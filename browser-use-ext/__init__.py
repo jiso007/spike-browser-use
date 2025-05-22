@@ -1,0 +1,1 @@
+# This file makes the 'browser-use-ext' directory a Python package. 

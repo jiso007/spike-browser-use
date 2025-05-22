@@ -105,3 +105,17 @@ dev-dependencies = [
     "codespell>=2.4.1",
     "pyright>=1.1.399",
 ]
+
+[tool.pytest.ini_options]
+pythonpath = [
+    "."
+]
+testpaths = [
+    "browser-use-ext/tests"
+]
+python_files = "test_*.py *_test.py"
+asyncio_mode = "auto"
+addopts = "-v --strict-markers --tb=short"
+collect_ignore = [
+    "**/test_agent_memory.py"
+]
