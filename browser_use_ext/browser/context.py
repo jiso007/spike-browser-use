@@ -2,14 +2,16 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, TYPE_CHECKING
 
 from pydantic import BaseModel, Field
 
 # Local application/library specific imports
-from .views import BrowserState, TabInfo # MODIFIED
-from dom.views import DOMElementNode # MODIFIED
-from extension_interface.service import ExtensionInterface # MODIFIED
+from .views import BrowserState, TabInfo
+from ..dom.views import DOMElementNode
+
+if TYPE_CHECKING:
+    from ..extension_interface.service import ExtensionInterface
 
 # Initialize logger for this module
 logger = logging.getLogger(__name__)
@@ -44,20 +46,20 @@ class BrowserContext:
     
     def __init__(
         self,
+        extension_interface: ExtensionInterface,
         config: BrowserContextConfig = BrowserContextConfig(),
-        extension_interface: Optional[ExtensionInterface] = None,
     ):
         """
         Initializes the BrowserContext.
 
         Args:
-            config: Configuration settings for the browser context.
             extension_interface: An instance of ExtensionInterface for communication.
-                                 If None, a new one will be created.
+            config: Configuration settings for the browser context.
         """
         self.config = config
-        # Use provided extension_interface or create a new one
-        self._extension = extension_interface or ExtensionInterface(host=config.extension_host, port=config.extension_port)
+        if extension_interface is None:
+            raise ValueError("ExtensionInterface instance must be provided to BrowserContext.")
+        self._extension = extension_interface
         # Caching the highlight_elements config for quick access
         self._highlight_elements = config.highlight_elements
         # Cache for the last retrieved browser state
@@ -418,10 +420,10 @@ class ExtensionPageProxy:
             browser_context: The parent BrowserContext, used to refresh state.
         """
         self._extension = extension
-        self._browser_context = browser_context # To get updated state
-        self.url: Optional[str] = None # Will be updated after actions
-        self.title_val: Optional[str] = None # Using title_val to avoid conflict with method
-        self.frames: list = []  # Frames are not implemented with this extension model
+        self._browser_context = browser_context
+        self.url: Optional[str] = None
+        self.title_val: Optional[str] = None
+        self.frames: list = []
 
     async def goto(self, url: str, **kwargs: Any) -> None:
         """

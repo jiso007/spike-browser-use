@@ -9,7 +9,7 @@ from typing import Optional, Any
 from pydantic import BaseModel, Field
 
 # Local application/library specific imports
-from extension_interface.service import ExtensionInterface
+from ..extension_interface.service import ExtensionInterface
 from .context import BrowserContext, BrowserContextConfig
 
 # Initialize logger for this module

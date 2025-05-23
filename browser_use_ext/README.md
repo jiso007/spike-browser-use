@@ -96,9 +96,8 @@ The project uses `pytest` for unit testing. The necessary `pytest.ini` is locate
 2.  **Navigate to the workspace root** (the directory containing `pytest.ini` and the `browser-use-ext` folder).
     For example, if your structure is `.../05_Browser_Use/browser-use-ext/` and `.../05_Browser_Use/pytest.ini`, you should be in `.../05_Browser_Use/`.
     ```bash
-    cd .. 
+    cd /path/to/your/workspace_root 
     ```
-    (If you were inside `browser-use-ext`)
 
 3.  **Run pytest**:
     ```bash
@@ -108,9 +107,23 @@ The project uses `pytest` for unit testing. The necessary `pytest.ini` is locate
 
     You should see output indicating the number of tests passed, failed, or skipped.
 
+## Starting the Python WebSocket Server (Standalone)
+
+To run the Python WebSocket server so the Chrome extension can connect to it:
+
+1.  **Ensure your virtual environment is activated** and dependencies are installed.
+
+2.  **Navigate to the workspace root** (the directory that *contains* the `browser-use-ext` package, e.g., `path/to/your/project/browser-use`).
+
+3.  **Run the following command**:
+    ```bash
+    python -m browser_use_ext.extension_interface.service
+    ```
+    This will start the WebSocket server, typically listening on `ws://localhost:8765` (or `ws://127.0.0.1:8765`). The console will show log messages, including the listening address.
+
 ## Chrome Extension Interaction
 
--   The Python backend (`ExtensionInterface` in `extension_interface/service.py`) starts a WebSocket server (default: `ws://127.0.0.1:8765`).
+-   The Python backend (`ExtensionInterface` in `browser_use_ext/extension_interface/service.py`) starts a WebSocket server (default: `ws://localhost:8765`).
 -   The accompanying Chrome Extension (not part of this Python codebase but assumed to exist) is responsible for connecting to this WebSocket server.
 -   Once connected, the extension can receive commands from the Python backend (e.g., to get browser state, click elements, input text) and send back responses or state information.
 -   The tests for `ExtensionInterface` in `tests/test_extension_interface.py` mock a client connection but also attempt to start a real WebSocket server on a test port (8766) for some of its tests.

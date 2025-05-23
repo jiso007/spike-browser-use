@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
-from dom.views import DOMElementNode
+from ..dom.views import DOMElementNode
 
 
 class TabInfo(BaseModel):
@@ -12,13 +12,13 @@ class TabInfo(BaseModel):
     Represents information about a single browser tab.
 
     This model stores key details of a tab, such as its unique ID,
-    current URL, and title. This is useful for managing multiple tabs
-    and providing context to the agent.
+    current URL, title, and active state. This is useful for managing
+    multiple tabs and providing context to the agent.
     """
 
     # A unique identifier for the tab, often assigned by the browser or extension.
     # This ID helps in distinguishing and targeting specific tabs for actions.
-    page_id: int = Field(description="Unique identifier for the tab.")
+    tabId: int = Field(description="Unique identifier for the tab (from browser's tab.id).")
 
     # The current URL loaded in the tab.
     url: str = Field(description="Current URL of the tab.")
@@ -26,14 +26,17 @@ class TabInfo(BaseModel):
     # The title of the webpage currently displayed in the tab.
     title: str = Field(description="Title of the tab.")
 
+    # Whether the tab is currently active.
+    isActive: bool = Field(description="Whether the tab is currently active.")
+
 
 class BrowserState(BaseModel):
     """
     Represents the complete state of the browser at a given moment.
 
     This model aggregates all relevant information about the browser's
-    current condition, including the active tab's URL, title, DOM structure,
-    information about all open tabs, and optionally a screenshot.
+    current condition, including the active tab's URL, title, raw HTML,
+    DOM structure, information about all open tabs, and optionally a screenshot.
     It also includes scroll position information.
     """
 
@@ -43,9 +46,12 @@ class BrowserState(BaseModel):
     # The title of the currently active tab.
     title: str = Field(description="Title of the active page.")
 
+    # The raw HTML content of the active page.
+    html_content: Optional[str] = Field(default=None, description="Raw HTML content of the active page (optional).")
+
     # The DOM structure of the active page, represented as a tree of DOMElementNode objects.
     # This provides a structured way to understand and interact with the page content.
-    element_tree: DOMElementNode = Field(description="DOM structure of the active page.")
+    tree: DOMElementNode = Field(description="DOM structure of the active page.")
 
     # A mapping of highlight indices to their corresponding XPath expressions or element references.
     # This allows for quick lookup of interactive elements identified by the content script.
@@ -61,9 +67,9 @@ class BrowserState(BaseModel):
     )
 
     # A base64 encoded string of the screenshot of the visible part of the active page.
-    # This is optional and only included if requested.
+    # This is optional and only included if requested. We will keep this null for now.
     screenshot: Optional[str] = Field(
-        default=None, description="Base64 encoded screenshot of the page (optional)."
+        default=None, description="Base64 encoded screenshot of the page (kept as null for now)."
     )
 
     # The number of pixels scrolled above the visible viewport.

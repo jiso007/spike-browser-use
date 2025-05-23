@@ -65,8 +65,12 @@ async function handleGetState(requestId) {
             currentDomCache = { tree, selectorMap, timestamp: now };
         }
 
+        // ADDED CONSOLE LOG FOR DEBUGGING
+        console.log("Structure of currentDomCache.tree before creating pageState:", JSON.stringify(currentDomCache.tree, null, 2));
+
         const pageState = {
-            element_tree: currentDomCache.tree,
+            html_content: document.documentElement.outerHTML,
+            tree: currentDomCache.tree,
             selector_map: stripElementReferencesFromSelectorMap(currentDomCache.selectorMap), // Send serializable map
             viewport_width: window.innerWidth,
             viewport_height: window.innerHeight,
@@ -85,10 +89,7 @@ async function handleGetState(requestId) {
         });
 
         if (screenshotResponse && screenshotResponse.status === "success") {
-            pageState.screenshot = screenshotResponse.data.screenshot;
-        } else {
-            console.warn("Failed to get screenshot:", screenshotResponse ? screenshotResponse.error : "No response");
-            pageState.screenshot = null;
+            console.log("Screenshot data was received from background.js, but will be set to null by Python backend.");
         }
 
         console.log("Successfully built state for request ID:", requestId);
@@ -293,7 +294,8 @@ function buildDomTreeWithMappings(element, selectorMap = {}, currentXPath = '/HT
 
         return {
         tree: {
-            tag: tagName,
+            type: "element",
+            tag_name: tagName,
             attributes: attributes,
             text: textContent,
             children: children,

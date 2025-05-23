@@ -11,17 +11,20 @@ import inspect # ADDED FOR DEBUGGING
 import json
 import logging
 import uuid
-from typing import Any, Callable, Dict, List, Optional, TypeVar, cast
+from typing import Any, Callable, Dict, List, Optional, TypeVar, cast, TYPE_CHECKING # ADDED TYPE_CHECKING
 
 # Third-party imports
 import websockets
 from pydantic import BaseModel, Field, ValidationError
 from websockets.exceptions import ConnectionClosed, ConnectionClosedOK
 from websockets.asyncio.server import ServerConnection
+from websockets.protocol import State
 
 # Local application/library specific imports
-from browser.views import BrowserState, TabInfo
-from dom.views import DOMElementNode
+# REMOVED: from ..browser.views import TabInfo 
+if TYPE_CHECKING:
+    from ..browser.views import BrowserState, TabInfo # Keep for type hinting
+    from ..dom.views import DOMElementNode # type: ignore
 
 # Initialize logger for this module
 logger = logging.getLogger(__name__)
@@ -55,14 +58,16 @@ class ResponseData(BaseModel):
     url: Optional[str] = Field(None, description="Current URL of the page.")
     # Title of the page, typically included in get_state responses.
     title: Optional[str] = Field(None, description="Title of the page.")
+    # Raw HTML content of the page, typically included in get_state responses.
+    html_content: Optional[str] = Field(None, description="Raw HTML content of the page (optional).")
     # DOM structure, typically included in get_state responses.
-    element_tree: Optional[Dict[str, Any]] = Field(None, description="Raw element tree from extension.")
+    tree: Optional[Dict[str, Any]] = Field(None, description="Raw element tree from extension.")
     # Selector map, typically included in get_state responses.
     selector_map: Optional[Dict[str, Any]] = Field(None, description="Raw selector map from extension.")
     # List of tabs, typically included in get_state responses.
     tabs: Optional[List[Dict[str, Any]]] = Field(None, description="List of tabs from extension.")
-    # Screenshot data (base64), if requested.
-    screenshot: Optional[str] = Field(None, description="Base64 encoded screenshot data.")
+    # Screenshot data (base64), if requested. Will be kept null.
+    screenshot: Optional[str] = Field(None, description="Base64 encoded screenshot data (kept as null).")
     # Scroll position information.
     pixels_above: Optional[int] = Field(None, description="Pixels scrolled above the viewport.")
     pixels_below: Optional[int] = Field(None, description="Pixels scrollable below the viewport.")
@@ -309,24 +314,17 @@ class ExtensionInterface:
 
 
     async def _send_request(self, request_type: str, data: Optional[Dict[str, Any]] = None, timeout: float = 30.0) -> ResponseData:
-        """
-        Sends a request to the active Chrome extension connection and waits for a response.
+        active_conn_info = self.active_connection # Get it once
+        
+        # MODIFIED: Check connection state using websocket.state for version 15.0.1
+        if not active_conn_info or active_conn_info.websocket.state != State.OPEN:
+            logger.error(f"Attempted to send request but connection is not active or not in OPEN state.")
+            active_client_id = active_conn_info.client_id if active_conn_info else "N/A"
+            current_state = active_conn_info.websocket.state if active_conn_info else "N/A"
+            logger.error(f"Connection details: ID={active_client_id}, Current State={current_state}")
+            raise RuntimeError(f"Active connection {active_client_id} is not open (state: {current_state}).")
 
-        Args:
-            request_type: The type of request (e.g., "get_state", "execute_action").
-            data: The data payload for the request.
-            timeout: Maximum time to wait for a response in seconds.
-
-        Returns:
-            A ResponseData object containing the extension's response.
-
-        Raises:
-            RuntimeError: If no active connection, or if the request times out or fails.
-        """
-        if not self.active_connection:
-            raise RuntimeError("No active Chrome extension connection.")
-
-        async with self._lock: # Ensure message ID counter is updated atomically
+        async with self._lock: 
             self._message_id_counter += 1
             msg_id = self._message_id_counter
         
@@ -335,91 +333,101 @@ class ExtensionInterface:
         self._pending_requests[msg_id] = future
 
         try:
-            # Ensure the connection is still valid before sending
-            if self.active_connection.websocket.closed:
-                raise RuntimeError(f"Active connection {self.active_connection.client_id} is closed.")
+            await active_conn_info.websocket.send(request.model_dump_json())
+            logger.debug(f"Sent {request_type} request (ID: {msg_id}) to {active_conn_info.client_id}")
             
-            await self.active_connection.websocket.send(request.model_dump_json())
-            logger.debug(f"Sent {request_type} request (ID: {msg_id}) to {self.active_connection.client_id}")
-            
-            # Wait for the response
             return await asyncio.wait_for(future, timeout=timeout)
         
         except asyncio.TimeoutError:
             logger.error(f"Timeout waiting for response to {request_type} request (ID: {msg_id})")
-            self._pending_requests.pop(msg_id, None) # Clean up pending request
+            self._pending_requests.pop(msg_id, None) 
             raise RuntimeError(f"Request {request_type} (ID: {msg_id}) timed out after {timeout}s.")
-        except ConnectionClosed:
+        except websockets.exceptions.ConnectionClosed: 
             logger.error(f"Connection closed while sending/waiting for {request_type} (ID: {msg_id})")
             self._pending_requests.pop(msg_id, None)
             raise RuntimeError(f"Connection closed during request {request_type} (ID: {msg_id}).")
-        except Exception as e: # Catch other exceptions during send or from future
+        except Exception as e: 
             logger.error(f"Error sending/processing {request_type} request (ID: {msg_id}): {e}", exc_info=True)
             self._pending_requests.pop(msg_id, None)
-            # Re-raise as a generic RuntimeError to simplify error handling for callers
-            # Or, could re-raise e directly if more specific error types are needed by callers
             raise RuntimeError(f"Failed to process request {request_type} (ID: {msg_id}): {e}")
 
 
-    async def get_state(self, include_screenshot: bool = False) -> BrowserState:
+    async def get_state(self, include_screenshot: bool = False) -> 'BrowserState':
         """
         Requests the current browser state from the extension.
 
         Args:
             include_screenshot: Whether to include a screenshot in the state.
+                                (Currently, screenshots are always treated as null on backend).
 
         Returns:
             A BrowserState object representing the current state.
         """
+        # MOVED IMPORT HERE
+        from ..browser.views import BrowserState, TabInfo 
+
         logger.info(f"Requesting browser state (screenshot: {include_screenshot})...")
         payload = {"includeScreenshot": include_screenshot}
         response_data = await self._send_request("get_state", payload)
 
-        # Basic validation of expected fields for get_state
         if response_data.url is None or \
            response_data.title is None or \
-           response_data.element_tree is None or \
+           response_data.tree is None or \
            response_data.selector_map is None or \
            response_data.tabs is None or \
            response_data.pixels_above is None or \
            response_data.pixels_below is None:
-            error_msg = "Received incomplete state data from extension."
+            error_msg = "Received incomplete state data from extension (missing one or more core fields)."
             logger.error(error_msg + f" Response: {response_data.model_dump_json(indent=2)}")
             raise RuntimeError(error_msg)
         
         try:
-            # Parse the raw element tree into DOMElementNode structure
-            parsed_element_tree = self._parse_element_tree_data(response_data.element_tree)
+            # MODIFIED: Handle the case where the tree might be the default "document" wrapper
+            tree_to_parse = response_data.tree
+            if response_data.tree.get("type") == "document" and response_data.tree.get("children") and isinstance(response_data.tree["children"], list) and len(response_data.tree["children"]) > 0:
+                logger.debug("Received 'document' type root in tree, parsing its first child (HTML element).")
+                tree_to_parse = response_data.tree["children"][0]
+            elif response_data.tree.get("type") == "document": # Document node but no children, or malformed
+                logger.warning("Received 'document' type root in tree, but children are missing or invalid. Parsing as is, may fail.")
+                # Let it try to parse, it will likely fail the xpath check, but this is better than index error
+
+            parsed_tree = self._parse_element_tree_data(tree_to_parse)
             
-            # Parse tab information
-            parsed_tabs = []
+            parsed_tabs: List[TabInfo] = []
             for tab_data in response_data.tabs:
-                # Ensure all required fields are present for TabInfo
-                if not all(k in tab_data for k in ("id", "url", "title", "active")):
-                    logger.warning(f"Skipping tab with incomplete data: {tab_data}")
+                if not all(k in tab_data for k in ("tabId", "url", "title", "isActive")):
+                    logger.warning(f"Skipping tab with incomplete data: {tab_data}. Expected tabId, url, title, isActive.")
                     continue
-                parsed_tabs.append(TabInfo.model_validate(tab_data))
+                try:
+                    parsed_tabs.append(TabInfo.model_validate(tab_data))
+                except ValidationError as ve_tab:
+                    logger.warning(f"Validation error parsing tab data: {ve_tab}. Data: {tab_data}")
+                    continue
             
-            # Construct and return the BrowserState object
             return BrowserState(
                 url=response_data.url,
                 title=response_data.title,
-                element_tree=parsed_element_tree,
-                selector_map=response_data.selector_map, # Assuming selector_map is already in correct format
+                html_content=response_data.html_content,
+                tree=parsed_tree, 
+                selector_map=response_data.selector_map,
                 tabs=parsed_tabs,
-                screenshot=response_data.screenshot,
+                screenshot=None,
                 pixels_above=response_data.pixels_above,
                 pixels_below=response_data.pixels_below
             )
-        except ValidationError as e:
-            logger.error(f"Pydantic validation error parsing browser state: {e}", exc_info=True)
+        except ValidationError as e: 
+            logger.error(f"Pydantic validation error constructing BrowserState: {e}", exc_info=True)
+            logger.error(f"Data that caused BrowserState validation error: url='{response_data.url}', title='{response_data.title}', html_content_present={response_data.html_content is not None}, tree_present={response_data.tree is not None}, ...")
             raise RuntimeError(f"Failed to parse browser state from extension: {e}")
         except Exception as e:
             logger.error(f"Unexpected error constructing BrowserState: {e}", exc_info=True)
+            # Log the problematic tree structure if it's not a Pydantic error
+            if not isinstance(e, ValidationError):
+                logger.error(f"Problematic tree data during BrowserState construction: {response_data.tree}")
             raise RuntimeError(f"Unexpected error constructing BrowserState: {e}")
 
 
-    def _parse_element_tree_data(self, element_data: Dict[str, Any]) -> DOMElementNode:
+    def _parse_element_tree_data(self, element_data: Dict[str, Any]) -> 'DOMElementNode':
         """
         Recursively parses the raw element tree data from the extension into DOMElementNode objects.
         Ensures that 'text' attribute is correctly handled.
@@ -430,6 +438,9 @@ class ExtensionInterface:
         Returns:
             A DOMElementNode object.
         """
+        # Local import for instantiation
+        from ..dom.views import DOMElementNode
+        
         # Pre-validation of essential keys
         if not all(k in element_data for k in ("type", "xpath")):
             raise ValueError(f"Essential keys 'type' or 'xpath' missing in element data: {element_data}")
@@ -525,9 +536,12 @@ class ExtensionInterface:
 
     @property
     def has_active_connection(self) -> bool:
-        """Checks if there is an active and open WebSocket connection."""
-        conn = self.active_connection
-        return conn is not None and not conn.websocket.closed
+        """Checks if there is an active and open WebSocket connection using state for v15.0.1."""
+        conn_info = self.active_connection
+        if conn_info is None:
+            return False
+        # MODIFIED: Use .state == State.OPEN for checking connection status as per websockets v15.0.1 docs
+        return conn_info.websocket.state == State.OPEN
 
 # --- Main Execution Block (for standalone server operation) ---
 
