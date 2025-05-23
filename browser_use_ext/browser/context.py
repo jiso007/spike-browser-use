@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, Dict, List, Optional, Union, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Union, TYPE_CHECKING, cast
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 # Local application/library specific imports
 from .views import BrowserState, TabInfo
 from ..dom.views import DOMElementNode
+from ..extension_interface.models import ResponseData
 
 if TYPE_CHECKING:
     from ..extension_interface.service import ExtensionInterface
@@ -105,39 +106,83 @@ class BrowserContext:
         #     await self._extension.stop_server()
         pass # Current implementation does not stop the server on exit.
     
-    async def get_state(self, include_screenshot: bool = False) -> BrowserState:
+    async def get_state(self, include_screenshot: bool = False, tab_id: Optional[int] = None) -> BrowserState:
         """
-        Retrieves the current state of the browser from the extension.
-
-        This includes the URL, title, DOM tree, selector map, tab information,
-        and optionally a screenshot.
+        Asynchronously retrieves the current state of the browser, including all tabs,
+        the active tab's content (DOM, screenshot if requested), and other relevant metadata.
 
         Args:
-            include_screenshot: Whether to request a screenshot in the state.
+            include_screenshot: Whether to include a screenshot of the active page.
+                                Defaults to False.
+            tab_id: Optional specific tab ID to target for page-specific data.
+                    If None, the extension will likely use the currently active tab.
 
         Returns:
-            A BrowserState object representing the current browser state.
-        
-        Raises:
-            RuntimeError: If the extension interface is not available or communication fails.
+            A BrowserState Pydantic model instance representing the current browser state.
         """
-        if not self._extension:
-            logger.error("ExtensionInterface is not initialized.")
-            raise RuntimeError("ExtensionInterface not available.")
+        logger.info(f"Requesting browser state (screenshot: {include_screenshot}, target_tab_id: {tab_id}).")
         
-        logger.info(f"Requesting browser state (screenshot: {include_screenshot}).")
-        # Delegate to the extension interface to get the actual state
-        state = await self._extension.get_state(include_screenshot=include_screenshot)
-        
-        # Cache the retrieved state and selector map
-        self._cached_browser_state = state
-        if state.selector_map:
-            self._cached_selector_map = state.selector_map
-        else:
-            self._cached_selector_map = {} # Ensure it's an empty dict if null
+        # state_data_obj will be an instance of the ResponseData model
+        state_data_obj: ResponseData = await self._extension.get_state(
+            include_screenshot=include_screenshot,
+            tab_id=tab_id
+        )
+
+        if not state_data_obj.success:
+            error_message = f"ExtensionInterface reported an error: {state_data_obj.error}"
+            logger.error(error_message)
+            # Return a BrowserState indicating failure, populating with any partial data available
+            return BrowserState(
+                active_tab_id=state_data_obj.active_tab_id,
+                tabs=state_data_obj.tabs if state_data_obj.tabs is not None else [],
+                url=state_data_obj.url if state_data_obj.url is not None else "",
+                title=state_data_obj.title if state_data_obj.title is not None else "",
+                html_content=f"Error: {error_message}", # Main error here
+                tree=state_data_obj.tree if state_data_obj.tree is not None else {},
+                viewport_size=state_data_obj.viewport_size if state_data_obj.viewport_size is not None else {"width": 0, "height": 0},
+                scroll_position=state_data_obj.scroll_position if state_data_obj.scroll_position is not None else {"x": 0, "y": 0},
+                pixels_below=state_data_obj.pixels_below if state_data_obj.pixels_below is not None else 0,
+                screenshot=state_data_obj.screenshot,
+                # selector_map will be handled by BrowserState.model_validate from the dict
+                error_message=error_message # Explicit error field in BrowserState
+            )
+
+        try:
+            # Convert the ResponseData object to a dictionary.
+            # This dictionary will contain all fields from ResponseData (url, title, html_content, tree, tabs, etc.)
+            # including any 'extra' fields like 'selector_map' if sent by the extension.
+            browser_state_dict = state_data_obj.model_dump(exclude_none=True)
             
-        logger.info(f"Received browser state for URL: {state.url}")
-        return state
+            # Validate this dictionary into a BrowserState object.
+            browser_state = BrowserState.model_validate(browser_state_dict)
+            
+            # Update caches
+            self._cached_browser_state = browser_state
+            # BrowserState model itself should define/contain selector_map
+            self._cached_selector_map = browser_state.selector_map if browser_state.selector_map is not None else {}
+
+        except ValidationError as e: # ValidationError should already be imported
+            error_msg_detail = f"Pydantic validation error while creating BrowserState: {e}"
+            logger.error(error_msg_detail)
+            problematic_dict_for_validation = state_data_obj.model_dump(exclude_none=True)
+            logger.error(f"Data that failed BrowserState validation: {problematic_dict_for_validation}")
+            
+            # Return BrowserState indicating this validation error
+            return BrowserState(
+                active_tab_id=state_data_obj.active_tab_id,
+                tabs=state_data_obj.tabs if state_data_obj.tabs is not None else [],
+                url=state_data_obj.url if state_data_obj.url is not None else "",
+                title=state_data_obj.title if state_data_obj.title is not None else "",
+                html_content=f"Error: {error_msg_detail}",
+                tree=state_data_obj.tree if state_data_obj.tree is not None else {},
+                viewport_size=state_data_obj.viewport_size if state_data_obj.viewport_size is not None else {"width": 0, "height": 0},
+                scroll_position=state_data_obj.scroll_position if state_data_obj.scroll_position is not None else {"x": 0, "y": 0},
+                pixels_below=state_data_obj.pixels_below if state_data_obj.pixels_below is not None else 0,
+                screenshot=state_data_obj.screenshot,
+                error_message=error_msg_detail
+            )
+        
+        return browser_state
     
     async def get_current_page(self) -> "ExtensionPageProxy":
         """

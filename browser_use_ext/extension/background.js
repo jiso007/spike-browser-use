@@ -8,7 +8,7 @@ let websocket = null;
 let activeTabId = null;
 let reconnectInterval = 5000; // 5 seconds
 const contentScriptsReady = new Set(); // Stores tabIds where content script is ready
-const CONTENT_SCRIPT_READY_TIMEOUT = 3000; // 3 seconds to wait for content script ready signal
+const CONTENT_SCRIPT_READY_TIMEOUT = 5000; // Reduced to 5 seconds
 
 /**
  * Initializes the WebSocket connection.
@@ -92,26 +92,37 @@ async function handleServerMessage(message) {
                 };
                 const includeScreenshot = serverParams && serverParams.includeScreenshot === true;
 
-                if (activeTabId) {
-                    console.log(`Attempting to get state for tab ${activeTabId}. Checking if content script is ready.`);
+                // MODIFIED: Determine targetTabId from serverParams first, then fallback to activeTabId if not provided
+                // The Python server should now always send a tabId for get_state calls triggered by events.
+                let targetTabIdForState = serverParams.tabId; // Python sends this as "tabId"
 
-                    // Wait for the content script to be ready in the target tab
-                    const isReady = await waitForContentScriptReady(activeTabId, CONTENT_SCRIPT_READY_TIMEOUT);
+                if (!targetTabIdForState && activeTabId) {
+                    console.warn(`'get_state' (ID: ${requestId}) called without an explicit tabId from server, using current activeTabId: ${activeTabId}`);
+                    targetTabIdForState = activeTabId;
+                } else if (!targetTabIdForState && !activeTabId) {
+                    console.warn(`'get_state' (ID: ${requestId}) called without an explicit tabId and no global activeTabId. Page-specific data will be default.`);
+                    // No targetTabIdForState, pageSpecificData will remain default
+                }
+
+                if (targetTabIdForState) {
+                    console.log(`Attempting to get state for target tab ${targetTabIdForState}. Checking if content script is ready. Request ID: ${requestId}`);
+
+                    const isReady = await waitForContentScriptReady(targetTabIdForState, CONTENT_SCRIPT_READY_TIMEOUT);
 
                     if (!isReady) {
-                        console.warn(`Content script in tab ${activeTabId} did not signal ready within timeout for get_state (ID: ${requestId}).`);
-                        throw new Error(`Content script in tab ${activeTabId} not ready after ${CONTENT_SCRIPT_READY_TIMEOUT}ms`);
+                        console.warn(`Content script in tab ${targetTabIdForState} did not signal ready within timeout for get_state (ID: ${requestId}).`);
+                        throw new Error(`Content script in tab ${targetTabIdForState} not ready after ${CONTENT_SCRIPT_READY_TIMEOUT}ms`);
                     }
                     
-                    console.log(`Content script for tab ${activeTabId} is ready. Forwarding 'get_state' (ID: ${requestId}).`);
-                    const contentResponse = await chrome.tabs.sendMessage(activeTabId, {
-                        type: "get_state", // Message type for content.js
-                        payload: serverParams, // Python's params (e.g., {"includeScreenshot": ...})
+                    console.log(`Content script for tab ${targetTabIdForState} is ready. Forwarding 'get_state' (ID: ${requestId}).`);
+                    const contentResponse = await chrome.tabs.sendMessage(targetTabIdForState, {
+                        type: "get_state", 
+                        payload: serverParams, 
                         requestId: requestId
                     });
 
                     if (contentResponse && contentResponse.status === "success" && contentResponse.data) {
-                        console.log(`Received state from content script for ID ${requestId}:`, contentResponse.data);
+                        console.log(`Received state from content script for ID ${requestId} (Tab: ${targetTabIdForState}):`, contentResponse.data);
                         pageSpecificData.url = contentResponse.data.url || pageSpecificData.url;
                         pageSpecificData.title = contentResponse.data.title || pageSpecificData.title;
                         pageSpecificData.html_content = contentResponse.data.html_content || pageSpecificData.html_content;
@@ -122,10 +133,11 @@ async function handleServerMessage(message) {
                                                        Math.max(0, contentResponse.data.page_content_height - (contentResponse.data.scroll_y + contentResponse.data.viewport_height))
                                                        : 0;
                     } else {
-                        const errorMsg = contentResponse ? contentResponse.error : "No response or error from content script for get_state.";
+                        const errorMsg = contentResponse ? contentResponse.error : `No response or error from content script for get_state on tab ${targetTabIdForState}.`;
                         console.warn(errorMsg, `(ID: ${requestId})`);
+                        // Do not throw here, allow collection of general tab data
                     }
-                } // End if (activeTabId)
+                } // End if (targetTabIdForState)
 
                 const allTabsRaw = await chrome.tabs.query({});
                 const formattedTabs = allTabsRaw.map(t => ({
@@ -135,14 +147,14 @@ async function handleServerMessage(message) {
                 // Screenshot logic now centralized here, but Python currently expects null.
                 let screenshotData = null; // Default to null as Python expects
 
-                if (includeScreenshot && activeTabId) {
+                if (includeScreenshot && targetTabIdForState) {
                     console.warn(`Python requested includeScreenshot=true, but current implementation forces screenshot to null for Python.`);
                     // try {
-                    //     console.log(`Attempting to capture screenshot for tab ${activeTabId} (request ID: ${requestId}) because includeScreenshot was true.`);
+                    //     console.log(`Attempting to capture screenshot for tab ${targetTabIdForState} (request ID: ${requestId}) because includeScreenshot was true.`);
                     //     screenshotData = await chrome.tabs.captureVisibleTab(null, { format: "png" }); 
                     //     console.log("Screenshot captured successfully.");
                     // } catch (error) {
-                    //     console.error(`Error capturing screenshot for tab ${activeTabId} (request ID: ${requestId}):`, error);
+                    //     console.error(`Error capturing screenshot for tab ${targetTabIdForState} (request ID: ${requestId}):`, error);
                     //     // Keep screenshotData as null
                     // }
                 } else {
@@ -256,14 +268,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         });
         return false; 
     }
-    // ADDED: Listener for content_script_ready
-    else if (sender.tab && message.type === "content_script_ready") {
-        console.log(`Content script in tab ${sender.tab.id} reported ready.`);
+    // Listener for content script ready signal
+    if (sender.tab && message.type === "content_script_ready") {
+        console.log(`background.js: Received 'content_script_ready' from tabId: ${sender.tab.id}`);
         contentScriptsReady.add(sender.tab.id);
-        // Optionally, acknowledge back to content script
-        sendResponse({ status: "acknowledged", tabId: sender.tab.id });
-        // Clean up tabId from the set if the tab is closed (see onRemoved listener)
-        return true; // Acknowledging async response
+        sendResponse({ status: "acknowledged_content_script_ready", tabId: sender.tab.id });
+        return true; // Keep channel open for async response
     }
     // Handle messages from the POPUP
     else if (message.source === "POPUP_ACTION") {
@@ -413,7 +423,7 @@ chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
     // ADDED: Clean up from contentScriptsReady set
     if (contentScriptsReady.has(tabId)) {
         contentScriptsReady.delete(tabId);
-        console.log(`Removed tab ${tabId} from contentScriptsReady set.`);
+        console.log(`background.js: Removed tabId ${tabId} from contentScriptsReady set.`);
     }
 });
 
@@ -450,29 +460,20 @@ console.log("Background script started.");
 
 // ADDED: Helper function to wait for content script readiness
 async function waitForContentScriptReady(tabId, timeoutMs) {
-    if (contentScriptsReady.has(tabId)) {
-        return true;
-    }
-    console.log(`Waiting for content script to be ready in tab ${tabId}...`);
     const startTime = Date.now();
+    console.log(`background.js: waitForContentScriptReady called for tabId: ${tabId}, timeout: ${timeoutMs}ms`);
     while (Date.now() - startTime < timeoutMs) {
         if (contentScriptsReady.has(tabId)) {
-            console.log(`Content script for tab ${tabId} became ready.`);
+            console.log(`background.js: Content script for tabId: ${tabId} is ready.`);
             return true;
         }
-        // Check if tab still exists
-        try {
-            await chrome.tabs.get(tabId);
-        } catch (e) {
-            console.warn(`Tab ${tabId} closed or does not exist while waiting for content script ready.`);
-            contentScriptsReady.delete(tabId); // Clean up if tab is gone
-            return false; 
-        }
-        await new Promise(resolve => setTimeout(resolve, 100)); // Poll every 100ms
+        console.log(`background.js: Polling for content script ready for tabId: ${tabId}. Still waiting...`);
+        await new Promise(resolve => setTimeout(resolve, 250)); // Poll every 250ms
     }
-    console.warn(`Timeout waiting for content script in tab ${tabId} after ${timeoutMs}ms.`);
+    console.error(`background.js: Timeout waiting for content script in tab ${tabId} to signal ready after ${timeoutMs}ms.`);
     return false;
 }
 
 connectWebSocket();
 // connectWebSocket(); // MODIFIED: Removed duplicate call 
+console.log("background.js: Script loaded, listeners initialized."); 

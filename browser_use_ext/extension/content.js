@@ -378,17 +378,19 @@ function getXPathForElement(element, parentXPath) {
 
 // Send a message to the background script indicating the content script is ready
 // This helps background script know when it's safe to send messages to this content script.
-if (chrome.runtime && chrome.runtime.sendMessage) {
-    console.log("Content script initialized, sending 'content_script_ready' to background.");
+console.log("content.js: Attempting to send content_script_ready message to background script.");
+try {
     chrome.runtime.sendMessage({ type: "content_script_ready" }, response => {
         if (chrome.runtime.lastError) {
-            console.warn("Error sending content_script_ready or background not listening:", chrome.runtime.lastError.message);
+            console.error('content.js: Error sending content_script_ready:', chrome.runtime.lastError.message);
         } else {
-            console.log("Background script acknowledged content_script_ready:", response);
+            console.log("content.js: Background script acknowledged content_script_ready.", response);
         }
     });
-} else {
-    console.error("chrome.runtime.sendMessage not available. Cannot send content_script_ready.");
+} catch (e) {
+    console.error("content.js: Exception thrown while trying to send content_script_ready message:", e);
 }
+
+console.log("content.js: Script execution finished. 'content_script_ready' message has been dispatched (or attempted).");
 
 console.log("Content script setup complete and listeners active."); 

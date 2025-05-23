@@ -1,3 +1,8 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
 # Guide: Creating Standalone Test Scripts for `browser_use_ext`
 
 This guide outlines how to create standalone Python scripts, similar to the existing `run_test.py`, for end-to-end testing of specific functionalities within the `browser_use_ext` system. These scripts are invaluable for focused debugging and verifying new features that involve interaction between the Python WebSocket server and the Chrome extension.
