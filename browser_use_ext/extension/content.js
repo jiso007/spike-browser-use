@@ -82,16 +82,6 @@ async function handleGetState(requestId) {
             title: document.title
         };
 
-        // Request screenshot from background script
-        const screenshotResponse = await chrome.runtime.sendMessage({
-            type: "request_screenshot",
-            requestId: requestId // Pass requestId for context
-        });
-
-        if (screenshotResponse && screenshotResponse.status === "success") {
-            console.log("Screenshot data was received from background.js, but will be set to null by Python backend.");
-        }
-
         console.log("Successfully built state for request ID:", requestId);
         return {
             request_id: requestId,
@@ -384,4 +374,21 @@ function getXPathForElement(element, parentXPath) {
     return `${parentXPath}/${element.tagName.toUpperCase()}[${index}]`;
 }
 
-console.log("Content script event listeners attached."); 
+// --- Initialization ---
+
+// Send a message to the background script indicating the content script is ready
+// This helps background script know when it's safe to send messages to this content script.
+if (chrome.runtime && chrome.runtime.sendMessage) {
+    console.log("Content script initialized, sending 'content_script_ready' to background.");
+    chrome.runtime.sendMessage({ type: "content_script_ready" }, response => {
+        if (chrome.runtime.lastError) {
+            console.warn("Error sending content_script_ready or background not listening:", chrome.runtime.lastError.message);
+        } else {
+            console.log("Background script acknowledged content_script_ready:", response);
+        }
+    });
+} else {
+    console.error("chrome.runtime.sendMessage not available. Cannot send content_script_ready.");
+}
+
+console.log("Content script setup complete and listeners active."); 

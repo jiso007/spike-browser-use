@@ -7,6 +7,8 @@ const WS_URL = "ws://localhost:8765";
 let websocket = null;
 let activeTabId = null;
 let reconnectInterval = 5000; // 5 seconds
+const contentScriptsReady = new Set(); // Stores tabIds where content script is ready
+const CONTENT_SCRIPT_READY_TIMEOUT = 3000; // 3 seconds to wait for content script ready signal
 
 /**
  * Initializes the WebSocket connection.
@@ -88,9 +90,20 @@ async function handleServerMessage(message) {
                     selector_map: {},
                     pixels_above: 0, pixels_below: 0,
                 };
+                const includeScreenshot = serverParams && serverParams.includeScreenshot === true;
 
                 if (activeTabId) {
-                    console.log(`Forwarding 'get_state' (ID: ${requestId}) to content script in tab ${activeTabId}`);
+                    console.log(`Attempting to get state for tab ${activeTabId}. Checking if content script is ready.`);
+
+                    // Wait for the content script to be ready in the target tab
+                    const isReady = await waitForContentScriptReady(activeTabId, CONTENT_SCRIPT_READY_TIMEOUT);
+
+                    if (!isReady) {
+                        console.warn(`Content script in tab ${activeTabId} did not signal ready within timeout for get_state (ID: ${requestId}).`);
+                        throw new Error(`Content script in tab ${activeTabId} not ready after ${CONTENT_SCRIPT_READY_TIMEOUT}ms`);
+                    }
+                    
+                    console.log(`Content script for tab ${activeTabId} is ready. Forwarding 'get_state' (ID: ${requestId}).`);
                     const contentResponse = await chrome.tabs.sendMessage(activeTabId, {
                         type: "get_state", // Message type for content.js
                         payload: serverParams, // Python's params (e.g., {"includeScreenshot": ...})
@@ -119,8 +132,25 @@ async function handleServerMessage(message) {
                     tabId: t.id, url: t.url || "", title: t.title || "", isActive: t.active
                 }));
 
+                // Screenshot logic now centralized here, but Python currently expects null.
+                let screenshotData = null; // Default to null as Python expects
+
+                if (includeScreenshot && activeTabId) {
+                    console.warn(`Python requested includeScreenshot=true, but current implementation forces screenshot to null for Python.`);
+                    // try {
+                    //     console.log(`Attempting to capture screenshot for tab ${activeTabId} (request ID: ${requestId}) because includeScreenshot was true.`);
+                    //     screenshotData = await chrome.tabs.captureVisibleTab(null, { format: "png" }); 
+                    //     console.log("Screenshot captured successfully.");
+                    // } catch (error) {
+                    //     console.error(`Error capturing screenshot for tab ${activeTabId} (request ID: ${requestId}):`, error);
+                    //     // Keep screenshotData as null
+                    // }
+                } else {
+                    console.log(`Screenshot not requested (includeScreenshot: ${includeScreenshot}) or no active tab for screenshot.`);
+                }
+
                 const finalDataPayload = {
-                    success: true, ...pageSpecificData, tabs: formattedTabs, screenshot: null
+                    success: true, ...pageSpecificData, tabs: formattedTabs, screenshot: screenshotData // Ensure this is consistently null for now
                 };
                 sendDataToServer({ type: "response", id: requestId, data: finalDataPayload });
 
@@ -224,78 +254,39 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             id: message.payload.id, // This should be the original Python request ID
             data: message.payload.data // This is the actual data payload from content.js
         });
-        // This specific path for "response_to_server" is not using sendResponse back to the original sender (content.js),
-        // it's forwarding to Python. So, not returning true here is okay.
         return false; 
     }
-    // MODIFIED: Added handler for "request_screenshot" from content.js
-    else if (message.type === "request_screenshot") {
-        if (sender.tab && sender.tab.id) {
-            handleScreenshotRequest(message.requestId, sender.tab.id, sendResponse);
+    // ADDED: Listener for content_script_ready
+    else if (sender.tab && message.type === "content_script_ready") {
+        console.log(`Content script in tab ${sender.tab.id} reported ready.`);
+        contentScriptsReady.add(sender.tab.id);
+        // Optionally, acknowledge back to content script
+        sendResponse({ status: "acknowledged", tabId: sender.tab.id });
+        // Clean up tabId from the set if the tab is closed (see onRemoved listener)
+        return true; // Acknowledging async response
+    }
+    // Handle messages from the POPUP
+    else if (message.source === "POPUP_ACTION") {
+        if (message.action === "GET_POPUP_STATUS") {
+            console.log("Popup requested status.");
+            queryActiveTab(false); // Update activeTabId without sending context
+            sendResponse({
+                websocketStatus: websocket ? websocket.readyState : WebSocket.CLOSED,
+                activeTabId: activeTabId
+            });
         } else {
-            // Fallback if sender.tab.id is not available (should not happen if sent from content script)
-            console.warn("Screenshot requested without a valid sender tab ID. Attempting with activeTabId if available.");
-            if (activeTabId) {
-                handleScreenshotRequest(message.requestId, activeTabId, sendResponse);
-            } else {
-                console.error("Cannot fulfill screenshot request: no valid tab ID.");
-                sendResponse({
-                    request_id: message.requestId,
-                    type: "response",
-                    status: "error",
-                    error: "Background script could not determine tab ID for screenshot."
-                });
-            }
+            console.warn("Unknown popup action:", message.action);
+            sendResponse({ error: "Unknown popup action" });
         }
-        return true; // Crucial: Indicates that sendResponse will be called asynchronously by handleScreenshotRequest
-    } 
-    // else if (message.type === "WS_STATUS_REQUEST") { // Example for popup requests
-    //    sendResponse({ status: websocket && websocket.readyState === WebSocket.OPEN ? "Connected" : "Disconnected" });
-    //    return false; // Synchronous response
-    // }
+        return true; // Indicate async response for popup messages
+    }
+    // Add other specific message handlers here if needed, e.g., from popup for other actions
 
-    // If the message isn't handled by any of the above, 
-    // and sendResponse isn't called, the channel might close for the sender if they expect a response.
-    // For messages not expecting a response, or for which `return true` was not used, this is fine.
-    console.log("Message type not explicitly handled in onMessage listener or response already sent:", message.type);
-    // Default to not keeping the channel open if not handled explicitly for async response.
+    console.warn("Message type not explicitly handled in onMessage listener or response already sent:", message.type, "Sender:", sender.id);
+    // Return false if not handling the message or not intending to send an async response from this top-level listener.
+    // Specific handlers might return true if they use sendResponse asynchronously.
     return false;
 });
-
-/**
- * Handles requests for screenshots from content scripts.
- * Captures the visible tab and sends the data URL back.
- * @param {string} requestId - The original request ID to include in the response.
- * @param {number} tabId - The ID of the tab to capture.
- * @param {function} sendResponse - Function to send response back to content script.
- */
-async function handleScreenshotRequest(requestId, tabId, sendResponse) {
-    if (!tabId) {
-        console.error("Screenshot request failed: No tab ID provided.");
-        sendResponse({
-            type: "response", 
-            status: "error",
-            error: "No tab ID for screenshot."
-        });
-        return;
-    }
-    try {
-        const dataUrl = await chrome.tabs.captureVisibleTab(tabId, { format: "png" });
-        console.log("Screenshot captured for tab:", tabId);
-        sendResponse({
-            type: "response", 
-            status: "success",
-            data: { screenshot: dataUrl } 
-        });
-    } catch (error) {
-        console.error("Error capturing screenshot:", error);
-        sendResponse({
-            type: "response", 
-            status: "error",
-            error: `Screenshot capture failed: ${error.message}`
-        });
-    }
-}
 
 /**
  * Sends a simple context update to the server.
@@ -327,37 +318,81 @@ function sendTabContextUpdate(eventName, tab) {
 
 // Tab management and active tab tracking
 chrome.tabs.onActivated.addListener(activeInfo => {
-    console.log("chrome.tabs.onActivated fired. New active tab ID:", activeInfo.tabId);
+    console.log("Tab activated:", activeInfo);
     activeTabId = activeInfo.tabId;
+    // Fetch tab details as onActivated only gives tabId and windowId
     chrome.tabs.get(activeInfo.tabId, (tab) => {
         if (chrome.runtime.lastError) {
             console.error("Error getting tab details in onActivated:", chrome.runtime.lastError.message);
             return;
         }
         if (tab) {
-            sendTabContextUpdate("tab_activated", tab);
+            console.log("Active tab details:", tab);
+            // Only send update if websocket is ready and tab is fully loaded
+            // The onUpdated listener will handle sending page_fully_loaded_and_ready when status is 'complete'
+            // This can send a simpler "tab_activated" event if needed.
+            // sendTabContextUpdate("tab_activated", tab);
+
+            // If the newly activated tab is already loaded, we might want to send the event here too.
+            // This is a bit redundant if onUpdated also fires, but covers cases where activation happens
+            // to an already loaded tab without an 'onUpdated' event with status 'complete'.
+            if (tab.status === 'complete' && tab.url && (tab.url.startsWith('http://') || tab.url.startsWith('https://'))) {
+                if (websocket && websocket.readyState === WebSocket.OPEN) {
+                    const eventData = {
+                        type: "extension_event",
+                        id: Date.now() + 1, // Slightly different ID for debugging
+                        data: {
+                            event_name: "page_fully_loaded_and_ready", // Sending same event name
+                            reason: "tab_activated_and_complete", // Add a reason for debugging
+                            tabId: tab.id,
+                            url: tab.url,
+                            title: tab.title
+                        }
+                    };
+                    sendDataToServer(eventData);
+                    console.info(`Sent 'page_fully_loaded_and_ready' (onActivated) for tab ${tab.id} to Python server.`);
+                }
+            }
         }
     });
 });
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-    console.log("chrome.tabs.onUpdated fired. Tab ID:", tabId, "ChangeInfo:", changeInfo);
-    if (changeInfo.status === 'complete' && tab.url && tab.url !== "chrome://newtab/") {
-        console.log("Tab update complete and URL present:", tab.url);
+    console.log("Tab updated:", tabId, "ChangeInfo:", changeInfo, "Tab:", tab);
+    // Ensure the update is for the main frame and the tab is completely loaded
+    if (changeInfo.status === 'complete' && tab.url && (tab.url.startsWith('http://') || tab.url.startsWith('https://'))) {
+        console.log(`Tab ${tabId} finished loading: ${tab.url}`);
+        activeTabId = tabId; // Update activeTabId if the completed tab is now active or just becomes the focus.
+
+        // ADDED: Send 'page_fully_loaded_and_ready' event to Python server
+        if (websocket && websocket.readyState === WebSocket.OPEN) {
+            const eventData = {
+                type: "extension_event",
+                // Python server doesn't use an ID for events like this, but good practice to have a type.
+                // If a specific ID were needed for correlation on Python side for this event, it would be generated here.
+                id: Date.now(), // Simple unique ID for this event instance, if server needs it later.
+                data: {
+                    event_name: "page_fully_loaded_and_ready",
+                    tabId: tabId,
+                    url: tab.url,
+                    title: tab.title
+                }
+            };
+            sendDataToServer(eventData);
+            console.info(`Sent 'page_fully_loaded_and_ready' event for tab ${tabId} to Python server.`);
+        } else {
+            console.warn("WebSocket not open, cannot send 'page_fully_loaded_and_ready' event.");
+        }
+
+        // Existing logic to send proactive context update to Python server can remain or be adjusted
+        // For now, let's keep it to see if it conflicts or complements.
+        // sendTabContextUpdate("tab_updated_complete", tab);
+    }
+
+    // Proactive update for when tab is just activated (might not be fully loaded yet)
+    if (changeInfo.status === 'loading' && tab.active) {
         activeTabId = tabId;
-        sendTabContextUpdate("tab_updated_complete", tab);
-    } else if (changeInfo.url) {
-        console.log("Tab URL changed to:", changeInfo.url);
-        activeTabId = tabId;
-        chrome.tabs.get(tabId, (updatedTab) => {
-            if (chrome.runtime.lastError) {
-                console.error("Error getting tab details in onUpdated (url change):", chrome.runtime.lastError.message);
-                return;
-            }
-            if (updatedTab) {
-                sendTabContextUpdate("tab_url_changed", updatedTab);
-            }
-        });
+        // sendTabContextUpdate("tab_activated_loading", tab);
     }
 });
 
@@ -374,6 +409,11 @@ chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
     if (activeTabId === tabId) {
         console.log("Active tab was closed. Querying for new active tab.");
         queryActiveTab(true);
+    }
+    // ADDED: Clean up from contentScriptsReady set
+    if (contentScriptsReady.has(tabId)) {
+        contentScriptsReady.delete(tabId);
+        console.log(`Removed tab ${tabId} from contentScriptsReady set.`);
     }
 });
 
@@ -407,5 +447,32 @@ function queryActiveTab(sendContext = false) {
 
 // Initial setup
 console.log("Background script started.");
+
+// ADDED: Helper function to wait for content script readiness
+async function waitForContentScriptReady(tabId, timeoutMs) {
+    if (contentScriptsReady.has(tabId)) {
+        return true;
+    }
+    console.log(`Waiting for content script to be ready in tab ${tabId}...`);
+    const startTime = Date.now();
+    while (Date.now() - startTime < timeoutMs) {
+        if (contentScriptsReady.has(tabId)) {
+            console.log(`Content script for tab ${tabId} became ready.`);
+            return true;
+        }
+        // Check if tab still exists
+        try {
+            await chrome.tabs.get(tabId);
+        } catch (e) {
+            console.warn(`Tab ${tabId} closed or does not exist while waiting for content script ready.`);
+            contentScriptsReady.delete(tabId); // Clean up if tab is gone
+            return false; 
+        }
+        await new Promise(resolve => setTimeout(resolve, 100)); // Poll every 100ms
+    }
+    console.warn(`Timeout waiting for content script in tab ${tabId} after ${timeoutMs}ms.`);
+    return false;
+}
+
 connectWebSocket();
 // connectWebSocket(); // MODIFIED: Removed duplicate call 

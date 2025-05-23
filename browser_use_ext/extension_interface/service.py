@@ -12,6 +12,8 @@ import json
 import logging
 import uuid
 from typing import Any, Callable, Dict, List, Optional, TypeVar, cast, TYPE_CHECKING # ADDED TYPE_CHECKING
+import re # For sanitizing filenames
+from datetime import datetime # For timestamped filenames
 
 # Third-party imports
 import websockets
@@ -140,8 +142,6 @@ class ExtensionInterface:
         self._pending_requests: Dict[int, asyncio.Future[ResponseData]] = {}
         self._server_task: Optional[asyncio.Task] = None
         self._lock = asyncio.Lock() # Lock for managing shared resources like _message_id_counter
-        # ADDED: Flag to track if initial state has been fetched upon first connection
-        self._initial_state_fetched: bool = False
     
     async def start_server(self) -> None:
         """Starts the WebSocket server to listen for connections from the extension."""
@@ -236,27 +236,6 @@ class ExtensionInterface:
             self._active_connection_id = client_id
             logger.info(f"Set {client_id} as the active connection.")
 
-            # ADDED: Automatically fetch and log initial browser state on first active connection
-            if not self._initial_state_fetched:
-                try:
-                    logger.info(f"First client ({client_id}) connected. Attempting to fetch initial browser state after a short delay.")
-                    # ADDED: Delay to allow browser/page to settle
-                    await asyncio.sleep(3) 
-
-                    # Create a BrowserContext instance using this ExtensionInterface
-                    # Ensure BrowserContext and BrowserContextConfig are imported
-                    # from ..browser.context import BrowserContext, BrowserContextConfig
-                    config = BrowserContextConfig() # Use default config
-                    browser_context = BrowserContext(config=config, extension_interface=self)
-                    
-                    # Call get_state()
-                    initial_state = await browser_context.get_state()
-                    logger.info(f"Initial browser state automatically fetched for {client_id}:")
-                    logger.info(json.dumps(initial_state.model_dump(), indent=2))
-                    self._initial_state_fetched = True # Mark as fetched
-                except Exception as e_get_state:
-                    logger.error(f"Error automatically fetching initial state for {client_id}: {e_get_state}", exc_info=True)
-
         try:
             # Loop indefinitely to process messages from this client.
             async for message_data in websocket:
@@ -331,6 +310,15 @@ class ExtensionInterface:
                 # Here you could dispatch these events to other parts of the application
                 # For example, using asyncio.Queue or registered callbacks.
 
+                # MODIFIED: Handle 'page_fully_loaded_and_ready' event to fetch initial state EVERY time.
+                if event_name == "page_fully_loaded_and_ready":
+                    logger.info(f"'page_fully_loaded_and_ready' event received from {client_id}. Triggering state fetch.")
+                    # Launch as a new task to avoid blocking the message processing loop
+                    asyncio.create_task(
+                        self._fetch_and_save_initial_state(client_id, event_payload),
+                        name=f"StateFetchOnPageLoad-{client_id}-{event_payload.get('tabId', 'unknown_tab')}"
+                    )
+
             else:
                 logger.warning(f"Received message of unhandled type '{base_msg.type}' from {client_id}")
 
@@ -341,6 +329,57 @@ class ExtensionInterface:
         except Exception as e: # Catch-all for other errors during message processing
             logger.error(f"Unexpected error processing message from {client_id}: {e}", exc_info=True)
 
+    def _sanitize_filename_component(self, component: str) -> str:
+        """Sanitizes a string component for use in a filename."""
+        if not component:
+            return "unknown"
+        # Remove http(s)://
+        component = re.sub(r'^https?://', '', component)
+        # Replace problematic characters with underscores
+        component = re.sub(r'[\\/*?:"<>|&%=#]', '_', component)
+        # Replace multiple underscores with a single one
+        component = re.sub(r'_+', '_', component)
+        # Trim leading/trailing underscores
+        component = component.strip('_')
+        # Limit length to avoid overly long filenames
+        return component[:50] if len(component) > 50 else component
+
+    async def _fetch_and_save_initial_state(self, client_id: str, event_payload: Dict[str, Any]) -> None:
+        """
+        Asynchronously fetches the current browser state and saves it to a file.
+        This is triggered by an event from the extension (e.g., page fully loaded).
+        """
+        try:
+            page_url = event_payload.get('url', 'unknown_url')
+            tab_id = event_payload.get('tabId', 'unknown_tab')
+            logger.info(f"Attempting to fetch browser state for {client_id} (Tab ID: {tab_id}, URL: {page_url})")
+            
+            config = BrowserContextConfig() # Use default config
+            browser_context = BrowserContext(config=config, extension_interface=self)
+            
+            current_state = await browser_context.get_state() # Changed variable name from initial_state
+            logger.info(f"Browser state successfully fetched for {client_id} (Tab ID: {tab_id}):")
+            state_json_str = json.dumps(current_state.model_dump(), indent=2)
+            # logger.info(state_json_str) # Log it to console - can be verbose, so optionally comment out
+
+            # MODIFIED: Dynamic filename generation
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3] # YYYYMMDD_HHMMSS_ms
+            sanitized_url = self._sanitize_filename_component(page_url)
+            filename = f"browser_state_tab{tab_id}_{sanitized_url}_{timestamp}.json"
+            file_path = os.path.join(os.getcwd(), filename)
+
+            try:
+                with open(file_path, "w", encoding="utf-8") as f:
+                    f.write(state_json_str)
+                logger.info(f"Successfully saved browser state to {file_path}")
+            except Exception as e_save:
+                logger.error(f"Failed to save browser state to file for {client_id} (Tab ID: {tab_id}): {e_save}", exc_info=True)
+            
+            # REMOVED: self._initial_state_fetched = True 
+            # logger.info(f"State fetched and processed for {client_id}. No longer setting _initial_state_fetched.")
+
+        except Exception as e_get_state:
+            logger.error(f"Error fetching/saving state for {client_id} (Tab ID: {tab_id}) triggered by event: {e_get_state}", exc_info=True)
 
     async def _send_request(self, request_type: str, data: Optional[Dict[str, Any]] = None, timeout: float = 30.0) -> ResponseData:
         active_conn_info = self.active_connection # Get it once
