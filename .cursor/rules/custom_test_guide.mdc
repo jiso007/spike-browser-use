@@ -1,0 +1,153 @@
+# Guide: Creating Standalone Test Scripts for `browser_use_ext`
+
+This guide outlines how to create standalone Python scripts, similar to the existing `run_test.py`, for end-to-end testing of specific functionalities within the `browser_use_ext` system. These scripts are invaluable for focused debugging and verifying new features that involve interaction between the Python WebSocket server and the Chrome extension.
+
+## 1. Purpose
+
+Standalone test scripts allow you to:
+- Isolate and test specific features (e.g., `get_state`, a new browser action).
+- Run end-to-end tests that span the Python server and the Chrome extension.
+- Debug interactions in a controlled environment without needing the full application stack (if applicable).
+- Quickly verify that core communication channels and data Pydantic models are working as expected.
+
+## 2. Core Components of a Test Script
+
+Your test script will typically include the following:
+
+```python
+import asyncio
+import logging
+import sys
+import os
+
+# Adjust path if running from outside the main package structure
+# This makes '''browser_use_ext''' importable if the script is in the project root
+# and '''browser_use_ext''' is a subdirectory.
+# sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '.')))
+
+from browser_use_ext.extension_interface.service import ExtensionInterface
+from browser_use_ext.browser.context import BrowserContext, BrowserContextConfig
+# Import any other necessary Pydantic models or components
+# from browser_use_ext.browser.views import BrowserState 
+
+# Basic Logging Setup
+logging.basicConfig(
+    level=logging.DEBUG, # Use DEBUG for verbose output during testing
+    format="%(asctime)s - %(name)s - %(levelname)s - %(module)s.%(funcName)s:%(lineno)d - %(message)s",
+    handlers=[logging.StreamHandler()]
+)
+logger = logging.getLogger(__name__)
+
+
+async def main():
+    logger.info("Starting test script...")
+    # Initialize the ExtensionInterface (WebSocket server)
+    # Ensure the port doesn't conflict if another instance is running.
+    interface = ExtensionInterface(host="localhost", port=8765) 
+
+    await interface.start_server()
+    logger.info(f"WebSocket server started on ws://{interface.host}:{interface.port}")
+
+    try:
+        # --- Crucial: Wait for the Chrome Extension to Connect ---
+        logger.info("Waiting for the Chrome extension to connect...")
+        connection_attempts = 0
+        max_connection_attempts = 20 # e.g., 10 seconds if sleep is 0.5s
+        while not interface.has_active_connection and connection_attempts < max_connection_attempts:
+            await asyncio.sleep(0.5)
+            connection_attempts += 1
+        
+        if not interface.has_active_connection:
+            logger.error("Extension did not connect within the timeout period. Exiting.")
+            return # Exit if no connection
+
+        logger.info(f"Chrome extension connected: Client ID {interface.active_connection.client_id}")
+
+        # --- Setup BrowserContext ---
+        # (Assumes the extension is connected and ready for interaction)
+        config = BrowserContextConfig() # Use default or customize as needed
+        browser_context = BrowserContext(config=config, extension_interface=interface)
+        logger.info("BrowserContext initialized.")
+
+        # --- Your Test Logic Here ---
+        logger.info("Attempting to call get_state()...")
+        try:
+            # Ensure a relevant webpage is open and active in the browser
+            # before this call for meaningful results.
+            state = await browser_context.get_state()
+            logger.info("Successfully received browser state:")
+            # print(state.model_dump_json(indent=2)) # Pretty print the JSON
+            
+            # Example: Check a specific part of the state
+            if state.url:
+                logger.info(f"Current page URL: {state.url}")
+            if state.tabs:
+                logger.info(f"Number of open tabs: {len(state.tabs)}")
+
+            # Add more assertions or checks based on what you're testing
+            # For example, save to a file:
+            # with open("test_output_state.json", "w", encoding="utf-8") as f:
+            #    f.write(state.model_dump_json(indent=2))
+            # logger.info("State saved to test_output_state.json")
+
+        except Exception as e_get_state:
+            logger.error(f"Error during get_state(): {e_get_state}", exc_info=True)
+
+        # Example: Test an action (if applicable and implemented)
+        # try:
+        #     logger.info("Attempting to execute a test action (e.g., scroll)...")
+        #     action_params = {"action": "scroll_page", "params": {"direction": "down"}}
+        #     result = await interface.execute_action(action_params["action"], action_params["params"])
+        #     logger.info(f"Action result: {result}")
+        # except Exception as e_action:
+        #     logger.error(f"Error during execute_action(): {e_action}", exc_info=True)
+
+        # Add more test scenarios as needed...
+        logger.info("Test logic completed.")
+
+    except Exception as e:
+        logger.error(f"An error occurred in the main test logic: {e}", exc_info=True)
+    finally:
+        logger.info("Shutting down WebSocket server...")
+        await interface.stop_server()
+        logger.info("Test script finished.")
+
+
+if __name__ == "__main__":
+    # Ensure Python version compatibility for asyncio.run if necessary,
+    # or use loop management for older versions.
+    asyncio.run(main())
+
+```
+
+## 3. Prerequisites for Running Your Test Script
+
+*   **Python Environment:** Your virtual environment (e.g., `.venv`) should be activated.
+*   **Dependencies:** All necessary Python packages (from `requirements.txt` or `pyproject.toml`) must be installed.
+*   **No Conflicting Server:** Ensure that the main `browser_use_ext.extension_interface.service` (or any other instance) is *not* already running on the same host and port that your test script intends to use (e.g., `localhost:8765`), as the script starts its own server instance.
+*   **Chrome Browser & Extension:**
+    *   Google Chrome (or a compatible Chromium-based browser) must be open.
+    *   The custom Chrome extension (from `browser_use_ext/extension/`) must be loaded in developer mode and enabled. The extension's `WS_URL` (in `background.js`) should point to the address your test script's server is using.
+*   **Active Webpage:** For tests like `get_state` or actions on a page, ensure a relevant webpage is loaded and active in a Chrome tab *before* the test script attempts these operations. The script currently doesn't navigate; it acts on the existing state.
+
+## 4. Python Import Considerations
+
+*   **If your test script is inside the `browser_use_ext` directory (e.g., `browser_use_ext/tests/my_custom_test.py`):**
+    You might need to adjust import paths or run the script as a module from the workspace root:
+    ```bash
+    python -m browser_use_ext.tests.my_custom_test
+    ```
+*   **If your test script is in the workspace root (parent of `browser_use_ext`), like `run_test.py`:**
+    You might need to add the workspace root to `sys.path` *before* your imports if Python can't find the `browser_use_ext` package, as shown commented out at the top of the example script. This is common if `browser_use_ext` itself is not installed as an editable package in the environment.
+
+## 5. Debugging Your Test Script
+
+*   **Python Logs:** The example script includes detailed logging. Examine the console output from your Python script carefully.
+*   **Chrome Extension Consoles:**
+    *   **Background Script (Service Worker):** Open `chrome://extensions/`, find your extension, and click the "Service Worker" (or equivalent) link to view its console. Look for connection messages, errors, or logs related to message handling.
+    *   **Content Script:** Open Developer Tools (F12) on the webpage you are interacting with. The content script's `console.log` messages will appear here.
+*   **Verify Payloads:** When testing actions or state, print or log the exact Pydantic models or JSON being sent and received to ensure they match expectations on both the Python and JavaScript sides.
+*   **Incremental Testing:** Test one piece of functionality at a time. Ensure the server starts, the extension connects, then test `get_state`, then test simple actions, etc.
+*   **JSON Output Files:** If the main server is also running (on a different port or at a different time) and configured to save state JSONs, those can be useful for comparing what your test script receives. Your test script can also be modified to save its own output to a uniquely named file for inspection.
+
+By following this structure, you can create effective standalone tests for various parts of the `browser_use_ext` system. 

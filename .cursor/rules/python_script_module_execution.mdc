@@ -4,40 +4,100 @@ globs: **/*
 alwaysApply: true
 ---
 ---
-description: Guides on executing Python scripts that are part of a package structure, focusing on module resolution and `sys.path` implications.
+description: Comprehensive guide on Python module import resolution and best practices for executing scripts within package structures, informed by common pitfalls and debugging strategies.
 globs: ["**/*.py", "*/__init__.py"] # Applies broadly to Python files
 alwaysApply: true
 ---
 
-- **Prefer `python -m package.module` for Executing Package Modules**
-    - When a script is part of a package and needs to import other modules from the same package or sibling packages, running it as a module with `python -m my_package.my_module` is generally the most robust approach.
-    - This method ensures that the directory containing `my_package` is added to `sys.path`, allowing relative imports within the package to work correctly.
-    - **Execution Context:** Run `python -m package.module` from the directory *containing* `package`.
-        - Example: If your structure is `project_root/my_app_package/module_a.py`, you would `cd project_root` and run `python -m my_app_package.module_a`.
-        - For our project: `cd C:\...\05_Browser_Use\browser-use\browser-use-ext` and run `python -m extension_interface.service`.
+- **Core Principles of Python Module Import Resolution**
+    - **The Role of `sys.path`:**
+        - Python uses a list of directories called `sys.path` to search for modules. The first module found with the correct name is used.
+        - When you run `python path/to/script.py`, the directory of `script.py` (i.e., `path/to/`) is typically added to the *start* of `sys.path`.
+        - When you run `python -m package.module`, Python adds the *current working directory* (CWD) to `sys.path`. This is why the CWD is crucial when using `-m`.
+    - **`__init__.py` Files Define Packages:**
+        - For a directory to be recognized by Python as a package (or sub-package) from which modules can be imported, it *must* contain an `__init__.py` file.
+        - This applies to your main source directories (e.g., `browser_use_ext/`) and all sub-directories intended to be part of the package structure (e.g., `browser_use_ext/extension_interface/`).
+        - Missing `__init__.py` files are a common cause of `ModuleNotFoundError`.
+    - **Absolute vs. Relative Imports:**
+        - **Absolute imports** (e.g., `from browser_use_ext.browser import BrowserContext`) specify the full path from a top-level package directory on `sys.path`. They are generally preferred for clarity.
+        - **Relative imports** (e.g., `from . import sibling_module`, `from ..parent_package_module import something`) are used for imports within the same package. The `.` refers to the current package, and `..` refers to the parent package.
+        - Relative imports like `from ..module import X` only work if the script is run as part of a package (e.g., using `python -m`).
+    - **Directory Naming vs. Import Naming:**
+        - Directory names can contain hyphens (e.g., `browser-use-ext`).
+        - However, Python package and module names used in `import` statements must be valid Python identifiers (e.g., `browser_use_ext`).
+        - If your code is in `browser-use-ext/` and this directory is effectively your top-level package source added to `sys.path` (or its parent is, and you import `browser_use_ext`), you'd use `import browser_use_ext` or `from browser_use_ext import ...`.
 
-- **Understand Direct Script Execution (`python path/to/script.py`) Limitations**
-    - When you run `python path/to/script.py`, Python adds the directory of `script.py` (i.e., `path/to/`) to `sys.path`.
-    - If `script.py` tries to import a sibling module like `from sibling_module import ...` (where `sibling_module.py` is in `path/to/`), it will work.
-    - However, if `script.py` tries `from ..another_package import ...` or `from package_above.sibling import ...`, it will often fail because `path/to/` is the primary entry on `sys.path`, not its parent.
-    - Direct execution is often problematic for scripts deep within a package structure that rely on package-relative imports.
+- **Executing Python Scripts: Best Practices for Packages**
+    - **Strongly Prefer `python -m package.module` for Package Scripts:**
+        - This is the most robust way to run scripts that are part of a package and need to import other modules from the same package or sibling sub-packages.
+        - **How it works:** It correctly sets up `sys.path` by adding your *current working directory* (CWD). If your CWD is the directory *containing* your top-level package (e.g., `project_root/` which contains `my_package/`), then `my_package` becomes available for import.
+        - **Execution Context (CWD):**
+            - If your structure is `project_root/my_app_package/module_a.py`, you should `cd project_root` and then run `python -m my_app_package.module_a`.
+            - For our project: If `browser_use_ext` is the top-level package directory, you should be *outside* it (in its parent directory, e.g., `browser-use/`) and run `python -m browser_use_ext.extension_interface.service`.
+            - If you intend `extension_interface` to be run as a module and `browser_use_ext` is its containing package, you could also `cd browser_use_ext` and run `python -m extension_interface.service` (assuming `browser_use_ext` itself is structured as a namespace or is on PYTHONPATH). *However, being in the parent of `browser_use_ext` and using `python -m browser_use_ext.module` is often less ambiguous for multi-level packages.*
+    - **Limitations of Direct Script Execution (`python path/to/script.py`):**
+        - As mentioned, this adds `path/to/` (the script's own directory) to `sys.path`.
+        - This is fine for simple scripts or if all imports are from that directory or standard library.
+        - It becomes problematic for scripts deep within a package structure that need to use relative imports like `from ..another_package import ...` because `path/to/` might not be the correct base for such an import to resolve against the intended package structure. This often leads to `ImportError: attempted relative import beyond top-level package`.
 
-- **Crucial Role of `__init__.py` Files**
-    - As with testing, all directories intended to be Python packages must contain an `__init__.py` file.
-    - This applies to your main application package (`browser_use_ext/`) and any sub-packages (`browser_use_ext/extension_interface/`, etc.). Without these, `python -m ...` will fail, and imports will not work as expected.
+- **Common Import Pitfalls & Debugging Strategies**
+    - **`ModuleNotFoundError`:**
+        1.  **`__init__.py`:** Verify presence in all package directories.
+        2.  **`sys.path` & CWD:** `print(sys.path)` and `print(os.getcwd())` at the start of your script or in an interactive session. Is the directory containing your top-level package present in `sys.path`? Is your CWD correct for how you're running the script (especially with `-m`)?
+        3.  **Typos:** Check spelling in import statements and filenames.
+        4.  **Virtual Environment:** Ensure you're in the correct one if using virtual environments.
+        5.  **Installation:** If it's an installed package, is it installed correctly in the environment Python is using?
+    - **`ImportError: attempted relative import beyond top-level package`:**
+        - This usually means you're running a script directly (e.g., `python path/to/package/module.py`) that is designed to be run as part of a package (using `python -m package.module`). The `..` in a relative import is trying to go above the directory that Python considers the "top-level" for that script's execution context.
+    - **Module Shadowing:**
+        - If you have a script/module with the same name as a standard library module or another module earlier in `sys.path` (e.g., a `test.py` in your CWD when trying to import the `test` standard library), Python might import the wrong one. Avoid naming your modules after common standard library modules. Rename conflicting local files if necessary.
+    - **Avoid `sys.path` Manipulation in Scripts if Possible:**
+        - While scripts *can* manually add parent directories to `sys.path` (e.g., `sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))`), this can make code harder to understand, maintain, and less portable.
+        - Prefer structuring your project correctly and using the appropriate execution method (like `python -m`) so that such manipulations are unnecessary.
 
-- **Avoid `sys.path` Manipulation in Scripts if Possible**
-    - While scripts *can* manually add parent directories to `sys.path` (e.g., `sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))`), this can make code harder to understand and maintain.
-    - Prefer structuring your project and execution method (like using `python -m`) so that such manipulations are unnecessary.
+### Examples:
 
-- **Directory Naming and Importability**
-    - While Python can handle directories with hyphens (e.g., `browser-use-ext`), the name you use to *import* a package must be a valid Python identifier (no hyphens).
-    - If `browser-use-ext` is your top-level directory added to `sys.path`, you can import submodules like `from extension_interface import service` if `extension_interface` is a package within `browser-use-ext`.
-    - The `-m` flag handles the mapping from `package.module` string to file paths.
+Assuming project structure:
+```
+project_root/
+├── browser_use_ext/
+│   ├── __init__.py
+│   ├── extension_interface/
+│   │   ├── __init__.py
+│   │   └── service.py
+│   └── browser/
+│       ├── __init__.py
+│       └── context.py
+└── run_my_service.py
+```
 
-- **Debugging `ModuleNotFoundError`**
-    - If you encounter `ModuleNotFoundError`:
-        1.  Verify the presence and correctness of `__init__.py` files in all relevant package directories.
-        2.  Print `sys.path` and `os.getcwd()` at the beginning of your script or in an interactive session to understand what Python sees.
-        3.  Check your CWD when executing the script/module.
-        4.  Ensure no conflicting module/package names exist higher up in `sys.path` that might be shadowing your intended module (as we experienced with the root-level `extension_interface`).
+**To run `service.py` as a module (Recommended):**
+```bash
+cd project_root
+python -m browser_use_ext.extension_interface.service
+```
+*Inside `service.py`, you can use:*
+```python
+from ..browser import context # Correct relative import
+from browser_use_ext.browser import context # Correct absolute import if CWD is project_root
+```
+
+**If `run_my_service.py` needs to import from `browser_use_ext`:**
+```python
+# In project_root/run_my_service.py
+import sys
+import os
+# Option 1: Add browser_use_ext's parent to sys.path if not already (less ideal than -m for packaged components)
+# sys.path.insert(0, os.path.abspath(os.path.dirname(__file__))) # Adds project_root
+
+from browser_use_ext.extension_interface import service
+from browser_use_ext.browser import context
+
+# ... rest of your script
+```
+Then run:
+```bash
+cd project_root
+python run_my_service.py
+```
+

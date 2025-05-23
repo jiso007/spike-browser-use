@@ -121,15 +121,44 @@ To run the Python WebSocket server so the Chrome extension can connect to it:
     ```
     This will start the WebSocket server, typically listening on `ws://localhost:8765` (or `ws://127.0.0.1:8765`). The console will show log messages, including the listening address.
 
+    **Note on Automatic State Logging:** Once the server is running and the corresponding Chrome Extension (see below) is loaded and connected, this system will automatically log the browser's state upon each full page load. See the "Automatic Browser State Logging on Page Load" section for more details.
+
 ## Chrome Extension Interaction
 
 -   The Python backend (`ExtensionInterface` in `browser_use_ext/extension_interface/service.py`) starts a WebSocket server (default: `ws://localhost:8765`).
--   The accompanying Chrome Extension (not part of this Python codebase but assumed to exist) is responsible for connecting to this WebSocket server.
+-   The accompanying Chrome Extension (assumed to be in `../extension/` relative to `browser-use-ext/` or a similar known location) is responsible for connecting to this WebSocket server.
 -   Once connected, the extension can receive commands from the Python backend (e.g., to get browser state, click elements, input text) and send back responses or state information.
 -   The tests for `ExtensionInterface` in `tests/test_extension_interface.py` mock a client connection but also attempt to start a real WebSocket server on a test port (8766) for some of its tests.
 
+### Automatic Browser State Logging on Page Load
+
+A key feature of this system when the Python server and the Chrome extension are running together is the automatic logging of the browser's state every time a page fully loads.
+
+**Interaction Flow:**
+
+1.  When a webpage loads, the extension's content script (`content.js`) initializes and sends a `content_script_ready` message to its background script (`background.js`).
+2.  The background script also detects when the page is fully loaded (`tab.status === 'complete'`) and sends a `page_fully_loaded_and_ready` event to the Python WebSocket server.
+3.  Upon receiving this event, the Python server requests the full browser state (`get_state`) from the extension's background script.
+4.  The background script, before forwarding this request to the content script, verifies that the content script for the target tab has signaled its readiness (from step 1). It will wait for a brief timeout for this signal if it hasn't received it yet.
+5.  If the content script is ready, the background script relays the `get_state` request to it.
+6.  The content script collects detailed page information (DOM structure, URL, title, scroll positions, etc.) and sends it back up the chain to the Python server.
+
+**Output Details:**
+
+-   **Content:** The complete `BrowserState` (including the DOM tree, current URL, page title, list of all open tabs, etc.) is captured.
+-   **Format:** The state is saved as a JSON file.
+-   **Location:** These JSON files are automatically saved into a directory named `browser_states_json_logs/`. This directory will be created at your **workspace root** (i.e., the directory from which you launched the `python -m browser_use_ext.extension_interface.service` command, typically the parent of `browser-use-ext/`).
+-   **Filename Convention:** Files are named dynamically to ensure uniqueness and provide context, following a pattern like: `browser_state_tab<TAB_ID>_<SANITIZED_URL>_<TIMESTAMP>.json`.
+    For example: `browser_state_tab123_google_com_search_q_example_20231105_153000_123.json`.
+
+**Purpose of State Logs:**
+
+These detailed JSON logs are invaluable for:
+*   Debugging issues related to browser interaction and control flow between Python and the extension.
+*   Understanding the precise structure and content of the data being extracted from web pages.
+*   Developing and testing new browser automation features and Pydantic models.
+*   Analyzing how different web pages are structured and perceived by the system.
+
 ## Further Development
 
--   Implement the Chrome Extension (`manifest.json`, `background.js`, `content.js`) to connect to the WebSocket server and handle browser interactions.
--   Flesh out the `Agent` components for more sophisticated automation logic.
--   Expand test coverage, especially for integration between the Python backend and a live (or mock) extension environment. 
+-   Implement the Chrome Extension (`
