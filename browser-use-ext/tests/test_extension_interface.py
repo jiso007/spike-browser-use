@@ -198,9 +198,9 @@ async def test_get_state_parsing(interface: ExtensionInterface):
     }
     # _send_request returns a ResponseData object
     interface._send_request = AsyncMock(return_value=ResponseData.model_validate(mock_response_payload))
-
+    
     browser_state = await interface.get_state()
-
+    
     assert browser_state is not None
     assert isinstance(browser_state, BrowserState)
     assert browser_state.url == "http://example.com"

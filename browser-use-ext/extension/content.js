@@ -21,8 +21,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     if (message.type === "get_state") {
         handleGetState(message.requestId)
-            .then(sendResponse)
-            .catch(error => {
+        .then(sendResponse)
+        .catch(error => {
                 console.error("Error in handleGetState:", error);
                 sendResponse({
                     request_id: message.requestId,
@@ -33,8 +33,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return true; // Indicates that the response will be sent asynchronously.
     } else if (message.type === "execute_action") {
         handleExecuteAction(message.payload.action, message.payload.params, message.requestId)
-            .then(sendResponse)
-            .catch(error => {
+        .then(sendResponse)
+        .catch(error => {
                 console.error("Error in handleExecuteAction:", error);
                 sendResponse({
                     request_id: message.requestId,
@@ -164,13 +164,13 @@ async function handleExecuteAction(actionName, params, requestId) {
                 console.log("Input text '", params.text, "' into element with index:", params.highlight_index);
                 break;
             case "go_to_url":
-                window.location.href = params.url;
+        window.location.href = params.url;
                 console.log("Navigating to URL:", params.url);
                 // For navigations, a response might not be reliably sent back if the page unloads too quickly.
                 // The server should handle timeouts for actions that cause navigation.
                 break;
             case "go_back":
-                window.history.back();
+        window.history.back();
                 console.log("Navigating back.");
                 break;
             case "scroll_page": // Renamed from scroll_down/scroll_up to generic scroll_page
@@ -215,7 +215,7 @@ async function handleExecuteAction(actionName, params, requestId) {
         error = e.message;
     }
 
-    return {
+        return {
         request_id: requestId,
         type: "response",
         status: status,
@@ -274,7 +274,7 @@ function buildDomTreeWithMappings(element, selectorMap = {}, currentXPath = '/HT
         };
     }
 
-    const children = [];
+        const children = [];
     if (element.children) {
         for (let i = 0; i < element.children.length; i++) {
             const childElement = element.children[i];
@@ -291,7 +291,7 @@ function buildDomTreeWithMappings(element, selectorMap = {}, currentXPath = '/HT
         highlightCounter = 0;
     }
 
-    return {
+        return {
         tree: {
             tag: tagName,
             attributes: attributes,
@@ -313,7 +313,7 @@ function buildDomTreeWithMappings(element, selectorMap = {}, currentXPath = '/HT
  */
 function isElementGenerallyVisible(element) {
     if (!element) return false;
-    const style = window.getComputedStyle(element);
+  const style = window.getComputedStyle(element);
     return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0' && element.offsetParent !== null;
 }
 
@@ -323,25 +323,25 @@ function isElementGenerallyVisible(element) {
  * @returns {boolean} True if the element is interactable.
  */
 function isElementInteractable(element) {
-    if (!element) return false;
+  if (!element) return false;
     if (element.hasAttribute('disabled') || element.hasAttribute('readonly')) {
         return false;
     }
     // Consider common interactable elements
     const interactableTags = ['a', 'button', 'input', 'select', 'textarea', 'details'];
     if (interactableTags.includes(element.tagName.toLowerCase())) {
-        return true;
-    }
+    return true;
+  }
     // Check for contentEditable attribute
-    if (element.isContentEditable) {
-        return true;
-    }
+  if (element.isContentEditable) {
+      return true;
+  }
     // Check for explicit role attribute suggesting interactivity
     const role = element.getAttribute('role');
     if (role && ['button', 'link', 'checkbox', 'radio', 'tab', 'menuitem'].includes(role)) {
         return true;
     }
-    return false;
+  return false;
 }
 
 /**
@@ -351,7 +351,7 @@ function isElementInteractable(element) {
  */
 function getElementAttributes(element) {
     const attrs = {};
-    if (element.attributes) {
+  if (element.attributes) {
         for (let i = 0; i < element.attributes.length; i++) {
             const attr = element.attributes[i];
             // Limit attribute value length to prevent overly large state
@@ -371,14 +371,14 @@ function getElementAttributes(element) {
 function getXPathForElement(element, parentXPath) {
     if (!element || !element.parentElement) return parentXPath + '/[unknown]'; // Should ideally not happen for document children
 
-    let index = 1;
-    let sibling = element.previousElementSibling;
-    while (sibling) {
-        if (sibling.tagName === element.tagName) {
-            index++;
+        let index = 1;
+        let sibling = element.previousElementSibling;
+        while (sibling) {
+            if (sibling.tagName === element.tagName) {
+                index++;
+            }
+            sibling = sibling.previousElementSibling;
         }
-        sibling = sibling.previousElementSibling;
-    }
     return `${parentXPath}/${element.tagName.toUpperCase()}[${index}]`;
 }
 

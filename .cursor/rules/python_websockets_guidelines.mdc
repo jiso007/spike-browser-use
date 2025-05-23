@@ -1,0 +1,89 @@
+---
+description: Guidelines for continuously improving Cursor rules based on emerging code patterns and best practices.
+globs: **/*
+alwaysApply: true
+---
+---
+description: Enforces best practices for Python websockets library handlers, Pydantic model validation with connection objects, and handling API changes/deprecations.
+globs: ["**/extension_interface/service.py", "**/websocket_handlers.py", "**/*_ws_interface.py"]
+alwaysApply: true
+---
+
+- **Prioritize Correct WebSocket Handler Signatures and Type Hinting**
+    - Always consult the specific version of the `websockets` library documentation for the correct signature of connection handlers passed to `websockets.serve()`.
+    - Pay close attention to arguments provided by the library (e.g., `websocket`, `path`). If an argument like `path` is not always provided by the library, ensure your handler accepts it as an `Optional` argument.
+    - Use accurate type hints for WebSocket connection objects. For recent versions of the `websockets` library, `websockets.asyncio.server.ServerConnection` is often the correct type for the connection object passed to handlers, not the deprecated `websockets.server.WebSocketServerProtocol`.
+
+    ```python
+    # ✅ DO: Use correct types and optional arguments as needed.
+    from websockets.asyncio.server import ServerConnection # Correct import
+    from typing import Optional
+    impo    logger = logging.getLogger(__name__)
+
+    async def my_websocket_handler(websocket: ServerConnection, path: Optional[str] = None) -> None:
+        logger.info(f"Connection from {websocket.remote_address} on path {path or 'unknown'}")
+        # ... rest of your handler logic
+    
+    # ❌ DON'T: Use deprecated types or assume arguments are always provided.
+    # from websockets.server import WebSocketServerProtocol # Deprecated
+    
+    # async def my_websocket_handler(websocket: WebSocketServerProtocol, path: str) -> None:
+    #     # This might lead to TypeError if path is not provided by websockets.serve()
+    #     # or Pydantic validation errors if WebSocketServerProtocol is not the actual type.
+    #     logger.info(f"Connection from {websocket.remote_address} on path {path}")
+    #     # ...
+    ```
+
+- **Ensure Pydantic Models Match WebSocket Object Types**
+    - When using Pydante or process WebSocket connection objects (e.g., in a `ConnectionInfo` class), the type hint for the websocket field in your Pydantic model *must* match the actual type of the object being passed.
+    - Set `arbitrary_types_allowed = True` in your Pydantic model's `Config` if you are storing complex, non-standard types like `ServerConnection`.
+
+    ```python
+    from pydantic import BaseModel
+    from websockets.asyncio.server import ServerConnection
+    import asyncio
+    from typing import Optional
+
+    class ConnectionInfo(BaseModel):
+        client_id: str
+        websocket: ServerConnection # ✅ DO: Match the actual type
+        handler_task: Optional[asyncio.Task] = None
+
+        class Config:
+            arbitrary_types_allowed = True # ✅ DO: Allow arbitrary types for objects like ServerConnection
+    
+    # async def _handle_connection(self, websocket: ServerConnection, path: Optional[str] = None) -> None:
+    #     # ...
+    #     conn_info = ConnectionInfo(client_id="some_id", websocket=websocket, handler_task=asyncio.current_task()) # ✅ DO
+    #     # ...
+    ```
+
+- **Proactively Check for and Address Library Deprecation Warnings**
+    - Pay attention to `DeprecationWarning` messages in your server logs. These often signal upcoming breaking changes or that you're using an outdated part of an API.
+    - When a deprecation warning appears (e.g., for `WebSocketServerProtocol`), consult the library's documentation to find the recommended replacement and update your code accordingly. This helps prevent future errors when the deprecated feature is removed.
+    - Example: If `websockets.server.WebSocketServerProtocol` is deprecated, find the new recommended type (e.g., `websockets.asyncio.server.ServerConnection`) and update imports and type hints.
+
+- **Use `inspect` Module for Debugging Type and Signature Mismatches**
+    - If you suspect a mismatch between your code's expectations and what a library provides, use the `inspect` module to log the actual file path and signature of the objects/methods involved.
+    - This was crucial in our debugging to confirm which code was being executed.
+
+    ```python
+    import inspect
+    import logging
+    logger = logging.getLogger(__name__)
+
+    # async def _handle_connection(self, websocket: ServerConnection, path: Optional[str] = None) -> None:
+    #     try:
+    #         logger.critical(f"!!! EXECUTING _handle_connection from: {inspect.getfile(self.__class__)}")
+    #         logger.critical(f"!!! Method signature: {inspect.signature(self._handle_connection)}")
+    #         logger.critical(f"!!! Websocket object type: {type(websocket)}")
+    #     except Exception as e_inspect:
+    #         logger.critical(f"!!! INSPECT FAILED: {e_inspect}")
+    #     # ... rest of the handler
+    ```
+
+- **Manage Python Module Import Conflicts**
+    - Be mindful of your project structure and how Python's import system resolves modules, especially when using `python -m <module_name>`.
+    - Avoid having identically named packages or modules in different locations on your `sys.path` if they could conflict (e.g., an `extension_interface` package at the project root and another nested within a sub-package like `browser-use-ext`).
+    - If conflicts are suspected, rename less critical or older/duplicated modules to avoid ambiguity (e.g., `extension_interface_OLD`).
+    - When running scripts with `python -m`, ensure your Current Working Directory (CWD) is set appropriately so that Python can find the top-level package for the module you're trying to run. For `python -m browser-use-ext.extension_interface.service`, the CWD should ideally be the parent of `browser-use-ext`. For `python -m extension_interface.service`, the CWD should be `browser-use-ext`.

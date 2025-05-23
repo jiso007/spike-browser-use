@@ -1,0 +1,56 @@
+---
+description: Guidelines for continuously improving Cursor rules based on emerging code patterns and best practices.
+globs: **/*
+alwaysApply: true
+---
+---
+description: Ensures correct pytest configuration for Python module resolution, especially for projects with a nested package structure.
+globs: ["pyproject.toml", "pytest.ini", "tests/**/*.py", "*/__init__.py"]
+alwaysApply: true
+---
+
+- **Prioritize `pyproject.toml` for Pytest Configuration**
+    - For modern Python projects, prefer configuring pytest within `pyproject.toml` under the `[tool.pytest.ini_options]` section. This centralizes project metadata and configuration.
+    - If using `pytest.ini`, ensure it is located appropriately (usually project root or a recognized test root) and does not conflict with `pyproject.toml` settings.
+
+- **Correctly Configure `pythonpath` (or `PYTHONPATH`)**
+    - To allow pytest to find your source modules, `pythonpath` must be set to include the directory(s) containing your top-level importable package(s).
+    - If your source code (e.g., `browser_use_ext/`) is at the root of your workspace or a specific subdirectory, add `"."` (for current dir, if workspace root *is* the parent of your package) or the relevant relative path (e.g., `"src/"`) to `pythonpath`.
+    - Example (`pyproject.toml`):
+      ```toml
+      [tool.pytest.ini_options]
+      pythonpath = [
+        ".",  # If 'browser_use_ext' is a top-level dir in the pytest root
+        # "src", # If your packages are under a 'src' directory
+      ]
+      testpaths = [
+        "browser_use_ext/tests", # Or your specific test directory
+      ]
+      ```
+
+- **Ensure Packages Have `__init__.py` Files**
+    - Every directory that should be treated as a Python package or sub-package *must* contain an `__init__.py` file. This is crucial for Python's import system to recognize them.
+    - This applies to your main source directories (e.g., `browser_use_ext/`, `browser_use_ext/extension_interface/`, `browser_use_ext/browser/`) and also to your `tests/` directory if you intend to import test helpers from other test files within it as a package.
+
+- **Consistent Import Statements in Test Files**
+    - Once `pythonpath` is correctly set up so that your project's root package (e.g., `browser_use_ext`) is discoverable, test files should import modules from it directly.
+    - Avoid relative imports that go too many levels up (`from .....`) if a proper `pythonpath` allows direct package imports.
+
+    ```python
+    # ✅ Assuming 'browser_use_ext' is on pythonpath:
+    from browser_use_ext.extension_interface.service import ExtensionInterface
+    from browser_use_ext.browser.views import BrowserState
+    
+    # ❌ Avoid if 'browser_use_ext' is already on pythonpath:
+    # from ..extension_interface.service import ExtensionInterface 
+    ```
+
+- **Define `testpaths` Clearly**
+    - Specify your test directories in `testpaths` (e.g., `browser_use_ext/tests` or `tests/`) so pytest knows where to look for tests.
+
+- **Be Aware of Workspace Root and `pytest` Execution Directory**
+    - `pytest` is typically run from the project's root directory (the directory containing `pyproject.toml` or `pytest.ini`). Paths in the configuration are usually relative to this root.
+    - If running `pytest` from a subdirectory, ensure paths in configuration files are still correctly pointing to source and test locations.
+
+- **Clean Pytest Cache (`.pytest_cache`) if Unexplained Issues Persist**
+    - If tests are behaving strangely or not picking up changes, deleting the `.pytest_cache` directory can sometimes help resolve issues related to outdated cached information.

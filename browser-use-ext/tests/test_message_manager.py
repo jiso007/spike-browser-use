@@ -156,7 +156,7 @@ def test_clear_history_with_system_prompt(sample_system_prompt: str):
     assert len(manager.history) == 1
     manager.add_user_message("User question")
     assert len(manager.history) == 2
-
+    
     manager.clear_history()
     assert len(manager.history) == 0 # System prompt is also cleared
 

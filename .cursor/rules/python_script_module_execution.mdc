@@ -1,0 +1,43 @@
+---
+description: Guidelines for continuously improving Cursor rules based on emerging code patterns and best practices.
+globs: **/*
+alwaysApply: true
+---
+---
+description: Guides on executing Python scripts that are part of a package structure, focusing on module resolution and `sys.path` implications.
+globs: ["**/*.py", "*/__init__.py"] # Applies broadly to Python files
+alwaysApply: true
+---
+
+- **Prefer `python -m package.module` for Executing Package Modules**
+    - When a script is part of a package and needs to import other modules from the same package or sibling packages, running it as a module with `python -m my_package.my_module` is generally the most robust approach.
+    - This method ensures that the directory containing `my_package` is added to `sys.path`, allowing relative imports within the package to work correctly.
+    - **Execution Context:** Run `python -m package.module` from the directory *containing* `package`.
+        - Example: If your structure is `project_root/my_app_package/module_a.py`, you would `cd project_root` and run `python -m my_app_package.module_a`.
+        - For our project: `cd C:\...\05_Browser_Use\browser-use\browser-use-ext` and run `python -m extension_interface.service`.
+
+- **Understand Direct Script Execution (`python path/to/script.py`) Limitations**
+    - When you run `python path/to/script.py`, Python adds the directory of `script.py` (i.e., `path/to/`) to `sys.path`.
+    - If `script.py` tries to import a sibling module like `from sibling_module import ...` (where `sibling_module.py` is in `path/to/`), it will work.
+    - However, if `script.py` tries `from ..another_package import ...` or `from package_above.sibling import ...`, it will often fail because `path/to/` is the primary entry on `sys.path`, not its parent.
+    - Direct execution is often problematic for scripts deep within a package structure that rely on package-relative imports.
+
+- **Crucial Role of `__init__.py` Files**
+    - As with testing, all directories intended to be Python packages must contain an `__init__.py` file.
+    - This applies to your main application package (`browser_use_ext/`) and any sub-packages (`browser_use_ext/extension_interface/`, etc.). Without these, `python -m ...` will fail, and imports will not work as expected.
+
+- **Avoid `sys.path` Manipulation in Scripts if Possible**
+    - While scripts *can* manually add parent directories to `sys.path` (e.g., `sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))`), this can make code harder to understand and maintain.
+    - Prefer structuring your project and execution method (like using `python -m`) so that such manipulations are unnecessary.
+
+- **Directory Naming and Importability**
+    - While Python can handle directories with hyphens (e.g., `browser-use-ext`), the name you use to *import* a package must be a valid Python identifier (no hyphens).
+    - If `browser-use-ext` is your top-level directory added to `sys.path`, you can import submodules like `from extension_interface import service` if `extension_interface` is a package within `browser-use-ext`.
+    - The `-m` flag handles the mapping from `package.module` string to file paths.
+
+- **Debugging `ModuleNotFoundError`**
+    - If you encounter `ModuleNotFoundError`:
+        1.  Verify the presence and correctness of `__init__.py` files in all relevant package directories.
+        2.  Print `sys.path` and `os.getcwd()` at the beginning of your script or in an interactive session to understand what Python sees.
+        3.  Check your CWD when executing the script/module.
+        4.  Ensure no conflicting module/package names exist higher up in `sys.path` that might be shadowing your intended module (as we experienced with the root-level `extension_interface`).

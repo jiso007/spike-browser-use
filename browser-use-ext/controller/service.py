@@ -115,7 +115,7 @@ class Controller:
             logger.error(f"Invalid scroll direction: {direction}. Must be 'up' or 'down'.")
             return {"error": "Invalid scroll direction"}
         return await self.execute_action(action_name="scroll_page", params={"direction": direction}, timeout=timeout)
-    
+
     async def go_back(self, timeout: float = 30.0) -> Optional[Dict[str, Any]]:
         """Navigates the active tab back in its history."""
         return await self.execute_action(action_name="go_back", params={}, timeout=timeout)
@@ -227,8 +227,8 @@ async def example_controller_usage():
             await asyncio.sleep(5) # Wait for potential connection
             if not browser.is_connected:
                 logger.error("Extension still not connected. Aborting controller example.")
-                return
-
+            return
+        
         logger.info("Browser launched and extension connected.")
         b_context = await browser.new_context()
         controller = Controller(browser_context=b_context)
@@ -244,9 +244,9 @@ async def example_controller_usage():
             #     logger.info(f"Current URL: {current_state.get('tabs',[{}])[0].get('url', 'N/A')}")
 
             # Navigate
-            nav_result = await controller.go_to_url("https://www.example.com")
+                nav_result = await controller.go_to_url("https://www.example.com")
             logger.info(f"Navigation to example.com result: {nav_result}")
-            await asyncio.sleep(2) # Allow page to load
+                await asyncio.sleep(2) # Allow page to load
 
             # Refresh state and log new URL
             # refreshed_state_data = await controller.get_current_browser_state(force_refresh=True)
@@ -264,8 +264,8 @@ async def example_controller_usage():
             # input_result = await controller.input_text(index=1, text="Hello from controller") # Guess for index 1
             # logger.info(f"Input text result: {input_result}")
 
-        except Exception as e:
-            logger.error(f"Error during controller example: {e}", exc_info=True)
+            except Exception as e:
+                logger.error(f"Error during controller example: {e}", exc_info=True)
         finally:
             logger.info("Closing browser context in controller example...")
             await b_context.close_context() # Context is managed by the `async with browser` block too

@@ -1,7 +1,13 @@
 from __future__ import annotations
 
+import sys
+import os
+# print(f"Current working directory: {os.getcwd()}")
+# print(f"sys.path: {sys.path}")
+
 # Standard library imports
 import asyncio
+import inspect # ADDED FOR DEBUGGING
 import json
 import logging
 import uuid
@@ -11,7 +17,7 @@ from typing import Any, Callable, Dict, List, Optional, TypeVar, cast
 import websockets
 from pydantic import BaseModel, Field, ValidationError
 from websockets.exceptions import ConnectionClosed, ConnectionClosedOK
-from websockets.server import WebSocketServerProtocol
+from websockets.asyncio.server import ServerConnection
 
 # Local application/library specific imports
 from browser.views import BrowserState, TabInfo
@@ -88,7 +94,7 @@ class ConnectionInfo(BaseModel):
     # Unique identifier assigned to the client by the server.
     client_id: str
     # The WebSocket connection object for this client.
-    websocket: WebSocketServerProtocol
+    websocket: ServerConnection
     # Task that handles message listening for this client.
     # Storing it allows for cancellation if needed.
     handler_task: Optional[asyncio.Task] = None
@@ -191,11 +197,18 @@ class ExtensionInterface:
         self._active_connection_id = None
         logger.info("WebSocket server stopped successfully.")
     
-    async def _handle_connection(self, websocket: WebSocketServerProtocol, path: str) -> None:
+    async def _handle_connection(self, websocket: ServerConnection, path: Optional[str] = None) -> None:
         """
         Manages a new WebSocket connection from a client (the Chrome extension).
         Each connection runs in its own instance of this coroutine.
         """
+        # --- DEBUGGING LINES ADDED ---
+        try:
+            logger.critical(f"!!! EXECUTING _handle_connection from: {inspect.getfile(self.__class__)}")
+            logger.critical(f"!!! Method signature: {inspect.signature(self._handle_connection)}")
+        except Exception as e_inspect:
+            logger.critical(f"!!! INSPECT FAILED: {e_inspect}")
+        # --- END DEBUGGING LINES ---
         client_id = f"client_{websocket.id}" # Use a unique ID from the websocket object
         handler_task = asyncio.current_task()
         if handler_task:
@@ -241,271 +254,266 @@ class ExtensionInterface:
 
     async def _process_message(self, client_id: str, message_data: str) -> None:
         """
-        Processes an incoming WebSocket message string from a specific client.
+        Processes a single message received from the WebSocket client.
+        It parses the message, validates it, and then handles it based on its type.
         """
+        # Log the raw message data for debugging purposes
+        logger.info(f"Received message from {client_id}: {message_data}")
+
         try:
+            # Parse the incoming JSON string into a dictionary
             raw_message = json.loads(message_data)
             # Validate the base structure first
             base_msg = BaseMessage.model_validate(raw_message)
             logger.debug(f"Received message from {client_id}: Type '{base_msg.type}', ID '{base_msg.id}'")
 
             if base_msg.type == "response":
-                # If it's a response, validate against ResponseMessage and handle it.
+                # Validate as a full ResponseMessage
                 response_msg = ResponseMessage.model_validate(raw_message)
                 future = self._pending_requests.pop(response_msg.id, None)
                 if future and not future.done():
                     if response_msg.data.error:
-                        logger.warning(f"Response for ID {response_msg.id} contained an error: {response_msg.data.error}")
-                        future.set_exception(RuntimeError(f"Extension Error: {response_msg.data.error}"))
+                        # If there's an error in the response, encapsulate it and set it as the future's exception
+                        error_message = f"Extension error for request ID {response_msg.id}: {response_msg.data.error}"
+                        logger.error(error_message)
+                        future.set_exception(RuntimeError(error_message))
                     else:
+                        # Otherwise, set the successful result
                         future.set_result(response_msg.data)
                 elif future and future.done():
-                    logger.warning(f"Received response for already completed future ID {response_msg.id}")
+                    logger.warning(f"Received response for already completed/cancelled future {response_msg.id}")
                 else:
-                    logger.warning(f"Received response for unknown or already handled request ID: {response_msg.id}")
-            # TODO: Handle other message types if the extension can send requests to Python.
-            # Example: if base_msg.type == "event_from_extension":
-            #            logger.info(f"Received event from extension: {raw_message.get('data')}")
+                    logger.warning(f"Received unsolicited response or response for unknown request ID: {response_msg.id}")
+            
+            elif base_msg.type == "error": # Assuming extension might send an 'error' type for unsolicited errors
+                error_payload = raw_message.get("data", {})
+                error_message = error_payload.get("message", "Unknown error from extension")
+                logger.error(f"Received unsolicited error from {client_id}: {error_message} (Raw: {message_data})")
+
+            elif base_msg.type == "extension_event": # For events like page load, tab switch, etc.
+                event_payload = raw_message.get("data", {})
+                event_name = event_payload.get("event_name", "unknown_event")
+                logger.info(f"Received event '{event_name}' from {client_id}: {event_payload}")
+                # Here you could dispatch these events to other parts of the application
+                # For example, using asyncio.Queue or registered callbacks.
+
             else:
-                logger.warning(f"Unhandled message type '{base_msg.type}' from {client_id}. Content: {message_data}")
-        
+                logger.warning(f"Received message of unhandled type '{base_msg.type}' from {client_id}")
+
         except json.JSONDecodeError:
-            logger.error(f"Invalid JSON message received from {client_id}: {message_data}", exc_info=True)
-        except Exception as e:
-            logger.error(f"Error processing message from {client_id}: {e}. Original message: {message_data}", exc_info=True)
-    
-    async def _send_request(self, request_type: str, data: Dict[str, Any], timeout: float = 30.0) -> ResponseData:
+            logger.error(f"Failed to decode JSON message from {client_id}: {message_data[:200]}...") # Log snippet
+        except ValidationError as e:
+            logger.error(f"Message validation error from {client_id} for message '{message_data[:200]}...': {e}")
+        except Exception as e: # Catch-all for other errors during message processing
+            logger.error(f"Unexpected error processing message from {client_id}: {e}", exc_info=True)
+
+
+    async def _send_request(self, request_type: str, data: Optional[Dict[str, Any]] = None, timeout: float = 30.0) -> ResponseData:
         """
-        Sends a request to the currently active Chrome extension and awaits a response.
+        Sends a request to the active Chrome extension connection and waits for a response.
 
         Args:
             request_type: The type of request (e.g., "get_state", "execute_action").
-            data: The payload for the request.
-            timeout: Maximum time in seconds to wait for a response.
+            data: The data payload for the request.
+            timeout: Maximum time to wait for a response in seconds.
 
         Returns:
-            The data part of the response message from the extension.
+            A ResponseData object containing the extension's response.
 
         Raises:
-            RuntimeError: If no active connection is available or if the connection is lost.
-            TimeoutError: If the extension does not respond within the specified timeout.
+            RuntimeError: If no active connection, or if the request times out or fails.
         """
-        async with self._lock: # Ensure thread-safe access to shared message counter
-            if not self._active_connection_id or self._active_connection_id not in self._connections:
-                logger.error("Cannot send request: No active extension connection or connection info missing.")
-                raise RuntimeError("No active extension connection available.")
-            
-            connection_info = self._connections[self._active_connection_id]
-            websocket = connection_info.websocket
+        if not self.active_connection:
+            raise RuntimeError("No active Chrome extension connection.")
 
-            if websocket.closed:
-                logger.error(f"Cannot send request: WebSocket for active connection {self._active_connection_id} is closed.")
-                # Attempt to clean up this connection as it's unexpectedly closed.
-                del self._connections[self._active_connection_id]
-                self._active_connection_id = next(iter(self._connections.keys())) if self._connections else None
-                raise RuntimeError(f"WebSocket connection {connection_info.client_id} is closed.")
-
-            request_id = self._message_id_counter
+        async with self._lock: # Ensure message ID counter is updated atomically
             self._message_id_counter += 1
+            msg_id = self._message_id_counter
         
+        request = RequestMessage(id=msg_id, type=request_type, data=data)
         future: asyncio.Future[ResponseData] = asyncio.Future()
-        self._pending_requests[request_id] = future
-        
-        message_payload = {"id": request_id, "type": request_type}
-        if data: # Add 'data' field only if it's provided for the specific request type
-            message_payload["data"] = data
-        
-        # Validate the outgoing message structure with Pydantic (optional but good practice)
-        try:
-            request_msg = RequestMessage.model_validate(message_payload)
-            serialized_message = request_msg.model_dump_json()
-        except Exception as e:
-            logger.error(f"Failed to validate or serialize outgoing request: {e}", exc_info=True)
-            if request_id in self._pending_requests: # Clean up future if serialization failed
-                 del self._pending_requests[request_id]
-            raise ValueError(f"Internal error: Failed to create valid request message: {e}")
+        self._pending_requests[msg_id] = future
 
-        logger.debug(f"Sending request to {self._active_connection_id}: ID {request_id}, Type {request_type}, Data {data}")
         try:
-            await websocket.send(serialized_message)
-        except ConnectionClosed as e:
-            logger.error(f"Connection closed while trying to send request {request_id}: {e}")
-            self._pending_requests.pop(request_id, None) # Clean up future
-            raise RuntimeError(f"Connection lost while sending request: {e}")
-        except Exception as e:
-            logger.error(f"Unexpected error sending request {request_id}: {e}", exc_info=True)
-            self._pending_requests.pop(request_id, None) # Clean up future
-            raise
+            # Ensure the connection is still valid before sending
+            if self.active_connection.websocket.closed:
+                raise RuntimeError(f"Active connection {self.active_connection.client_id} is closed.")
+            
+            await self.active_connection.websocket.send(request.model_dump_json())
+            logger.debug(f"Sent {request_type} request (ID: {msg_id}) to {self.active_connection.client_id}")
+            
+            # Wait for the response
+            return await asyncio.wait_for(future, timeout=timeout)
         
-        # Wait for the response with the specified timeout.
-        try:
-            response_data = await asyncio.wait_for(future, timeout=timeout)
-            return response_data
         except asyncio.TimeoutError:
-            logger.error(f"Request ID {request_id} (Type: {request_type}) to extension timed out after {timeout}s.")
-            self._pending_requests.pop(request_id, None) # Clean up future on timeout
-            raise TimeoutError(f"Request {request_type} (ID: {request_id}) to extension timed out.")
-        except asyncio.CancelledError:
-            logger.info(f"Request ID {request_id} (Type: {request_type}) was cancelled.")
-            self._pending_requests.pop(request_id, None)
-            raise # Re-raise CancelledError
-        except Exception as e:
-            logger.error(f"Exception waiting for response for request ID {request_id}: {e}", exc_info=True)
-            self._pending_requests.pop(request_id, None)
-            raise # Re-raise other exceptions
+            logger.error(f"Timeout waiting for response to {request_type} request (ID: {msg_id})")
+            self._pending_requests.pop(msg_id, None) # Clean up pending request
+            raise RuntimeError(f"Request {request_type} (ID: {msg_id}) timed out after {timeout}s.")
+        except ConnectionClosed:
+            logger.error(f"Connection closed while sending/waiting for {request_type} (ID: {msg_id})")
+            self._pending_requests.pop(msg_id, None)
+            raise RuntimeError(f"Connection closed during request {request_type} (ID: {msg_id}).")
+        except Exception as e: # Catch other exceptions during send or from future
+            logger.error(f"Error sending/processing {request_type} request (ID: {msg_id}): {e}", exc_info=True)
+            self._pending_requests.pop(msg_id, None)
+            # Re-raise as a generic RuntimeError to simplify error handling for callers
+            # Or, could re-raise e directly if more specific error types are needed by callers
+            raise RuntimeError(f"Failed to process request {request_type} (ID: {msg_id}): {e}")
+
 
     async def get_state(self, include_screenshot: bool = False) -> BrowserState:
         """
-        Retrieves the current browser state from the Chrome extension.
+        Requests the current browser state from the extension.
 
         Args:
-            include_screenshot: Whether to request a screenshot from the extension.
+            include_screenshot: Whether to include a screenshot in the state.
 
         Returns:
-            A BrowserState object representing the current state of the browser.
-
-        Raises:
-            RuntimeError: If there's an error communicating with the extension or parsing the response.
-            TimeoutError: If the request to the extension times out.
+            A BrowserState object representing the current state.
         """
-        logger.info(f"Requesting browser state from extension (screenshot: {include_screenshot})...")
-        request_data = {"includeScreenshot": include_screenshot}
-        response_payload = await self._send_request("get_state", request_data)
+        logger.info(f"Requesting browser state (screenshot: {include_screenshot})...")
+        payload = {"includeScreenshot": include_screenshot}
+        response_data = await self._send_request("get_state", payload)
 
-        if response_payload.error:
-            logger.error(f"Extension returned an error when getting state: {response_payload.error}")
-            raise RuntimeError(f"Error from extension getting browser state: {response_payload.error}")
+        # Basic validation of expected fields for get_state
+        if response_data.url is None or \
+           response_data.title is None or \
+           response_data.element_tree is None or \
+           response_data.selector_map is None or \
+           response_data.tabs is None or \
+           response_data.pixels_above is None or \
+           response_data.pixels_below is None:
+            error_msg = "Received incomplete state data from extension."
+            logger.error(error_msg + f" Response: {response_data.model_dump_json(indent=2)}")
+            raise RuntimeError(error_msg)
         
-        # Parse the element tree from the raw dictionary into DOMElementNode objects
-        parsed_element_tree = self._parse_element_tree_data(response_payload.element_tree or {})
-
-        # Parse tab information
-        parsed_tabs = []
-        if response_payload.tabs:
-            for tab_data in response_payload.tabs:
-                try:
-                    # The extension sends page_id, url, title. We map it to TabInfo.
-                    # The extension might also send its internal `id` (Chrome's tabId).
-                    parsed_tabs.append(TabInfo(
-                        page_id=tab_data.get("page_id", -1), # Default to -1 if missing
-                        url=tab_data.get("url", ""),
-                        title=tab_data.get("title", "")
-                        # We can store tab_data.get("id") if needed later for direct tab manipulation.
-                    ))
-                except Exception as e:
-                    logger.warning(f"Failed to parse tab data: {tab_data}. Error: {e}", exc_info=True)
-        
-        # Construct and return the BrowserState object
         try:
-            state = BrowserState(
-                url=response_payload.url or "",
-                title=response_payload.title or "",
+            # Parse the raw element tree into DOMElementNode structure
+            parsed_element_tree = self._parse_element_tree_data(response_data.element_tree)
+            
+            # Parse tab information
+            parsed_tabs = []
+            for tab_data in response_data.tabs:
+                # Ensure all required fields are present for TabInfo
+                if not all(k in tab_data for k in ("id", "url", "title", "active")):
+                    logger.warning(f"Skipping tab with incomplete data: {tab_data}")
+                    continue
+                parsed_tabs.append(TabInfo.model_validate(tab_data))
+            
+            # Construct and return the BrowserState object
+            return BrowserState(
+                url=response_data.url,
+                title=response_data.title,
                 element_tree=parsed_element_tree,
-                # The selector_map from extension is Dict[str, Dict[str, Any]] where key is highlight_index as string
-                # BrowserState expects Dict[int, Any]. We need to convert keys to int.
-                selector_map={int(k): v for k, v in response_payload.selector_map.items()} if response_payload.selector_map else {},
+                selector_map=response_data.selector_map, # Assuming selector_map is already in correct format
                 tabs=parsed_tabs,
-                screenshot=response_payload.screenshot,
-                pixels_above=response_payload.pixels_above or 0,
-                pixels_below=response_payload.pixels_below or 0
+                screenshot=response_data.screenshot,
+                pixels_above=response_data.pixels_above,
+                pixels_below=response_data.pixels_below
             )
-            logger.info("Successfully received and parsed browser state from extension.")
-            return state
+        except ValidationError as e:
+            logger.error(f"Pydantic validation error parsing browser state: {e}", exc_info=True)
+            raise RuntimeError(f"Failed to parse browser state from extension: {e}")
         except Exception as e:
-            logger.error(f"Failed to create BrowserState from extension response: {e}", exc_info=True)
-            logger.debug(f"Raw response data that caused parsing error: {response_payload.model_dump_json(indent=2)}")
-            raise RuntimeError(f"Could not parse browser state from extension: {e}")
+            logger.error(f"Unexpected error constructing BrowserState: {e}", exc_info=True)
+            raise RuntimeError(f"Unexpected error constructing BrowserState: {e}")
+
 
     def _parse_element_tree_data(self, element_data: Dict[str, Any]) -> DOMElementNode:
         """
-        Recursively parses the raw element tree data (JSON-like dict)
-        received from the extension into a structured DOMElementNode object.
+        Recursively parses the raw element tree data from the extension into DOMElementNode objects.
+        Ensures that 'text' attribute is correctly handled.
 
         Args:
-            element_data: A dictionary representing a node in the DOM tree from the extension.
+            element_data: A dictionary representing a node from the extension's element tree.
 
         Returns:
-            A DOMElementNode object representing the parsed element and its children.
-            Returns a default/empty DOMElementNode if input is invalid or empty.
+            A DOMElementNode object.
         """
-        if not element_data or not element_data.get("type"): # Basic validation
-            logger.warning(f"Attempted to parse empty or invalid element data: {element_data}")
-            # Return a default, empty, but valid DOMElementNode to prevent crashes upstream.
-            return DOMElementNode(tag_name="unknown", xpath="", children=[], attributes={}, is_visible=False, type="element")
+        # Pre-validation of essential keys
+        if not all(k in element_data for k in ("type", "xpath")):
+            raise ValueError(f"Essential keys 'type' or 'xpath' missing in element data: {element_data}")
 
-        node_type = element_data.get("type", "element")
+        # Create a copy to avoid modifying the original dict, especially for 'attributes'
+        data_copy = element_data.copy()
+
+        # Ensure 'attributes' is a dictionary, default to empty if not present or None
+        attributes = data_copy.get("attributes")
+        if not isinstance(attributes, dict):
+            attributes = {}
         
-        # Handle text nodes specifically
-        if node_type == "text":
-            return DOMElementNode(
-                tag_name="#text", # Conventional name for text nodes
-                text=element_data.get("text", ""),
-                type="text",
-                is_visible=element_data.get("is_visible", False),
-                # Text nodes don't have attributes, children, xpath in the same way elements do
-                attributes={},
-                xpath="", # XPath is not typically used for text nodes in this context
-                children=[]
-            )
-
-        # Handle element nodes
+        # Handle 'text' content: convert to string if present, otherwise it remains None via Pydantic default
+        node_text: Optional[str] = None
+        if data_copy.get("type") == "text": # For text nodes, 'text' is its content
+            node_text = str(data_copy.get("text", "")) # Ensure it's a string, even if empty
+        elif data_copy.get("type") == "element": # For element nodes, 'text' is direct text child
+            if "text" in data_copy and data_copy["text"] is not None:
+                node_text = str(data_copy["text"])
+        
         # Recursively parse child nodes
         children_nodes = []
-        raw_children = element_data.get("children", [])
-        if raw_children:
-            for child_data in raw_children:
-                if isinstance(child_data, dict):
-                    parsed_child = self._parse_element_tree_data(child_data)
-                    children_nodes.append(parsed_child)
+        if "children" in data_copy and isinstance(data_copy["children"], list):
+            for child_data in data_copy["children"]:
+                if isinstance(child_data, dict): # Ensure child_data is a dict before parsing
+                    try:
+                        children_nodes.append(self._parse_element_tree_data(child_data))
+                    except ValueError as ve: # Catch parsing errors from children
+                        logger.warning(f"Skipping child due to parsing error: {ve}. Child data: {child_data}")
                 else:
-                    logger.warning(f"Child data is not a dictionary, skipping: {child_data}")
+                    logger.warning(f"Skipping non-dictionary child item: {child_data}")
         
-        # Create the DOMElementNode for the current element
+        # Prepare fields for DOMElementNode, ensuring all required fields are present or have defaults
+        node_fields = {
+            "type": data_copy["type"],
+            "xpath": data_copy["xpath"],
+            "highlight_id": data_copy.get("highlight_id"), # Will be None if not present
+            "tag_name": data_copy.get("tag_name"), # Will be None for non-element types
+            "attributes": attributes,
+            "text": node_text, # Assign the processed text
+            "children": children_nodes,
+            "is_interactive": data_copy.get("is_interactive", False), # Default to False
+            "is_visible": data_copy.get("is_visible", False), # Default to False
+            "value": data_copy.get("value"), # For input elements
+            "raw_html_outer": data_copy.get("raw_html_outer"),
+            "raw_html_inner": data_copy.get("raw_html_inner"),
+        }
+        
+        # Validate and create the DOMElementNode
         try:
-            node = DOMElementNode(
-                tag_name=element_data.get("tag_name", "unknown"),
-                attributes=element_data.get("attributes", {}),
-                highlight_index=element_data.get("highlight_index"), # Can be None
-                is_visible=element_data.get("is_visible", False),
-                xpath=element_data.get("xpath", ""),
-                children=children_nodes,
-                type="element" # Explicitly set type for element nodes
-                # Parent references are typically set in a separate pass if needed by walking the tree.
-            )
-            # Explicitly assign text if type is element and text is in element_data, 
-            # as Pydantic might only map it if DOMElementNode.text wasn't None by default or if type was 'text'.
-            # This ensures that if the extension sends a "text" field for an element, it's captured.
-            if node.type == "element" and "text" in element_data and element_data["text"] is not None:
-                node.text = str(element_data["text"])
-            return node
-        except Exception as e:
-            logger.error(f"Error parsing element data into DOMElementNode: {e}. Data: {element_data}", exc_info=True)
-            # Return a fallback node to avoid crashing
-            return DOMElementNode(tag_name="parse_error", xpath="", children=[], attributes={}, is_visible=False, type="element")
-    
+            return DOMElementNode.model_validate(node_fields)
+        except ValidationError as e:
+            logger.error(f"Validation error creating DOMElementNode for {data_copy.get('xpath')}: {e}\nData: {node_fields}", exc_info=True)
+            # Instead of raising here and potentially stopping a large tree parse,
+            # one might consider returning a "failed_parse" node or logging and skipping.
+            # For now, re-raise to indicate the issue.
+            raise ValueError(f"Failed to validate DOMElementNode: {e}. Data: {node_fields}") from e
+
+
     async def execute_action(self, action: str, params: Dict[str, Any], timeout: float = 30.0) -> Dict[str, Any]:
         """
-        Executes a specific action in the browser extension (e.g., click, type, scroll).
-        Args:
-            action: The name of the action to execute.
-            params: A dictionary of parameters for the action.
-            timeout: Timeout in seconds for awaiting the response.
-        Returns:
-            A dictionary containing the result of the action.
-        """
-        payload = {"action": action, "params": params}
-        logger.debug(f"Executing action: '{action}' with params: {params}")
-        # Call _send_request with keyword arguments for clarity and robustness
-        response_data = await self._send_request(request_type="execute_action", data=payload, timeout=timeout)
-        
-        # response_data is a ResponseData model instance. Convert to dict for return.
-        # model_dump will include fields from model_extra if ResponseData allows them.
-        return response_data.model_dump(exclude_none=True)
+        Executes an action in the browser via the extension.
 
-    # --- Helper properties and methods ---
+        Args:
+            action: The name of the action to execute (e.g., "click", "input_text").
+            params: A dictionary of parameters for the action.
+            timeout: Timeout for the action in seconds.
+
+        Returns:
+            A dictionary containing the result of the action from the extension.
+        """
+        logger.info(f"Executing action '{action}' with params: {params}")
+        payload = {"action": action, "params": params}
+        response_data = await self._send_request("execute_action", payload, timeout=timeout)
+        
+        # The response_data itself is a Pydantic model. We return its dictionary representation.
+        # Exclude None values for cleaner output.
+        action_result = response_data.model_dump(exclude_none=True)
+        logger.info(f"Action '{action}' executed. Result: {action_result}")
+        return action_result
+
     @property
     def active_connection(self) -> Optional[ConnectionInfo]:
-        """Returns the active ConnectionInfo object, or None if no connection is active."""
+        """Returns the currently active ConnectionInfo, or None if no connection is active."""
         if self._active_connection_id and self._active_connection_id in self._connections:
             return self._connections[self._active_connection_id]
         return None
@@ -514,50 +522,64 @@ class ExtensionInterface:
     def is_server_running(self) -> bool:
         """Checks if the WebSocket server is currently running."""
         return self._server is not None and self._server.is_serving()
-    
+
     @property
     def has_active_connection(self) -> bool:
-        """Checks if there is an active and open WebSocket connection to an extension."""
+        """Checks if there is an active and open WebSocket connection."""
         conn = self.active_connection
-        return conn is not None and conn.websocket is not None and conn.websocket.open
+        return conn is not None and not conn.websocket.closed
 
+# --- Main Execution Block (for standalone server operation) ---
 
-# Example usage (for testing purposes if run directly)
 async def main():
-    logging.basicConfig(level=logging.INFO,
-                        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    """Main function to run the WebSocket server."""
+    # Configure basic logging
+    logging.basicConfig(
+        level=logging.DEBUG, # Changed to DEBUG for more verbose output
+        format="%(asctime)s - %(name)s - %(levelname)s - %(module)s.%(funcName)s:%(lineno)d - %(message)s",
+        handlers=[logging.StreamHandler()]
+    )
     
-    interface = ExtensionInterface()
-    await interface.start_server()
+    # Define server host and port
+    host = "localhost"
+    port = 8765
     
+    # Create an instance of the interface
+    interface = ExtensionInterface(host=host, port=port)
+    
+    # Log sys.path for debugging import issues
+    logger.debug(f"Current sys.path: {sys.path}")
+    import os # Ensure os is imported for getcwd
+    logger.debug(f"Current working directory: {os.getcwd()}")
+
     try:
-        # Keep the server running until interrupted
-        while True:
-            if interface.has_active_connection:
-                logger.info("Extension interface is running and has an active connection.")
-                # Example: Periodically request state if an extension is connected
-                # try:
-                #     state = await interface.get_state(include_screenshot=False)
-                #     logger.info(f"Got state: URL: {state.url}, Title: {state.title}")
-                #     if state.tabs:
-                #        logger.info(f"Open tabs: {[(t.page_id, t.title) for t in state.tabs]}")
-                # except Exception as e:
-                #     logger.error(f"Error getting state in main loop: {e}")
-            else:
-                logger.info("Extension interface is running, waiting for connection...")
-            await asyncio.sleep(10) # Check status every 10 seconds
+        # Start the server
+        await interface.start_server()
+        
+        # Keep the server running until interrupted (e.g., Ctrl+C)
+        # This loop also allows for periodic checks or tasks if needed.
+        while interface.is_server_running:
+            await asyncio.sleep(1) # Sleep for a short duration to prevent busy-waiting
             
     except KeyboardInterrupt:
-        logger.info("Shutdown requested by user (KeyboardInterrupt).")
+        logger.info("Server shutting down due to KeyboardInterrupt...")
     except Exception as e:
-        logger.error(f"An unexpected error occurred in main loop: {e}", exc_info=True)
+        logger.error(f"An unhandled error occurred in main: {e}", exc_info=True)
     finally:
-        logger.info("Shutting down server...")
+        logger.info("Initiating server stop sequence...")
         await interface.stop_server()
-        logger.info("Server shutdown complete.")
+        logger.info("Server has been stopped.")
 
 if __name__ == "__main__":
+    # Entry point when the script is executed directly.
+    # This sets up and runs the asyncio event loop.
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        logger.info("Main programmatically interrupted.") 
+        # This is just to make the exit cleaner on Ctrl+C if asyncio.run() itself is interrupted
+        # before main() handles it.
+        logger.info("Asyncio event loop interrupted. Exiting.")
+    except Exception as e:
+        # Catch-all for any other exceptions during asyncio.run, e.g., if main() raises something
+        # that isn't caught internally.
+        logger.critical(f"Fatal error during asyncio.run: {e}", exc_info=True) 
