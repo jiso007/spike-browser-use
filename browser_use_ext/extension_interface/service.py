@@ -22,6 +22,8 @@ from websockets.protocol import State
 
 # Local application/library specific imports
 # REMOVED: from ..browser.views import TabInfo 
+# ADDED: Import BrowserContext and BrowserContextConfig for get_state automation
+from ..browser.context import BrowserContext, BrowserContextConfig 
 if TYPE_CHECKING:
     from ..browser.views import BrowserState, TabInfo # Keep for type hinting
     from ..dom.views import DOMElementNode, DOMDocumentNode # Keep for type hinting
@@ -138,6 +140,8 @@ class ExtensionInterface:
         self._pending_requests: Dict[int, asyncio.Future[ResponseData]] = {}
         self._server_task: Optional[asyncio.Task] = None
         self._lock = asyncio.Lock() # Lock for managing shared resources like _message_id_counter
+        # ADDED: Flag to track if initial state has been fetched upon first connection
+        self._initial_state_fetched: bool = False
     
     async def start_server(self) -> None:
         """Starts the WebSocket server to listen for connections from the extension."""
@@ -231,6 +235,27 @@ class ExtensionInterface:
         if self._active_connection_id is None:
             self._active_connection_id = client_id
             logger.info(f"Set {client_id} as the active connection.")
+
+            # ADDED: Automatically fetch and log initial browser state on first active connection
+            if not self._initial_state_fetched:
+                try:
+                    logger.info(f"First client ({client_id}) connected. Attempting to fetch initial browser state after a short delay.")
+                    # ADDED: Delay to allow browser/page to settle
+                    await asyncio.sleep(3) 
+
+                    # Create a BrowserContext instance using this ExtensionInterface
+                    # Ensure BrowserContext and BrowserContextConfig are imported
+                    # from ..browser.context import BrowserContext, BrowserContextConfig
+                    config = BrowserContextConfig() # Use default config
+                    browser_context = BrowserContext(config=config, extension_interface=self)
+                    
+                    # Call get_state()
+                    initial_state = await browser_context.get_state()
+                    logger.info(f"Initial browser state automatically fetched for {client_id}:")
+                    logger.info(json.dumps(initial_state.model_dump(), indent=2))
+                    self._initial_state_fetched = True # Mark as fetched
+                except Exception as e_get_state:
+                    logger.error(f"Error automatically fetching initial state for {client_id}: {e_get_state}", exc_info=True)
 
         try:
             # Loop indefinitely to process messages from this client.
