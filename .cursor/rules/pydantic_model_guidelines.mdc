@@ -1,0 +1,95 @@
+---
+description: Guide for using meta-development script (scripts/dev.js) to manage task-driven development workflows
+globs: **/*
+alwaysApply: true
+---
+---
+description: Guidelines for defining and using Pydantic models effectively to ensure data validation and clarity.
+globs: ["**/*.py"] # Applies to all Python files
+alwaysApply: true
+---
+
+- **Core Pydantic Usage**
+    - **Inherit from `BaseModel`:** All Pydantic models must inherit from `pydantic.BaseModel`.
+    - **Type Hinting:** Use standard Python type hints for all model fields. Pydantic relies on these for validation.
+    - **Field Customization:** Use `pydantic.Field` for default values, descriptions, validation constraints (e.g., `gt`, `lt`, `min_length`), and aliases.
+      ```python
+      from pydantic import BaseModel, Field
+      from typing import Optional, List
+
+      class Item(BaseModel):
+          name: str = Field(description="The name of the item.")
+          price: float = Field(gt=0, description="The price must be greater than zero.")
+          tags: Optional[List[str]] = Field(default_factory=list, description="Optional list of tags.")
+      ```
+
+- **Model Validation and Data Handling**
+    - **Instantiation & Validation:** Data is validated when a model instance is created.
+      ```python
+      # Data from an external source (e.g., API response, message queue)
+      raw_data = {"name": "Laptop", "price": 1200.50, "tags": ["electronics", "computer"]}
+      try:
+          item_instance = Item(**raw_data) # or Item.model_validate(raw_data) for Pydantic v2+
+          print(f"Validated item: {item_instance.name}")
+      except ValidationError as e:
+          print(f"Validation Error: {e.errors()}")
+      ```
+    - **Import `ValidationError`:** Always import `ValidationError` from `pydantic` when performing explicit validation or catching validation errors.
+      ```python
+      from pydantic import BaseModel, ValidationError # ✅ DO
+      ```
+    - **Accessing Data:** Access validated data directly via model attributes.
+      ```python
+      # Assuming item_instance is a validated Item model
+      item_name = item_instance.name
+      item_price = item_instance.price
+      ```
+      - **❌ DON'T** try to access a generic `.data` attribute unless your model explicitly defines it. If an external source provides data nested under a "data" key, unpack it *before* validation or handle it during parsing in a custom root validator or a wrapper model.
+
+    - **Serialization:**
+        - `model_dump()` (Pydantic V2+): Serializes the model to a dictionary.
+        - `model_dump_json()` (Pydantic V2+): Serializes the model to a JSON string.
+        - (For Pydantic V1: `.dict()` and `.json()`)
+
+- **Generic Models**
+    - If a model needs to wrap generic data types (e.g., a `Message` model where the `data` field can vary), it must inherit from `typing.Generic[T]` and use a `TypeVar`.
+      ```python
+      from typing import TypeVar, Generic, Optional, Dict, Any
+      from pydantic import BaseModel, Field
+
+      T = TypeVar('T')
+
+      class Message(BaseModel, Generic[T]): # ✅ DO: Inherit from Generic[T]
+          id: int
+          type: str
+          data: Optional[T] = Field(default=None)
+      
+      # Usage:
+      # specific_message = Message[Dict[str, Any]](id=1, type="user_update", data={"name": "Alice", "age": 30})
+      # generic_message = Message[str](id=2, type="log_message", data="Process completed.")
+      ```
+
+- **Complex/Arbitrary Types in Models**
+    - If a model field needs to store a complex, non-Pydantic type (e.g., a WebSocket connection object, a custom class instance not meant for Pydantic validation itself):
+        - Set `model_config = {"arbitrary_types_allowed": True}` (Pydantic V2+).
+        - Or `class Config: arbitrary_types_allowed = True` (Pydantic V1).
+      ```python
+      from pydantic import BaseModel
+      # from websockets.asyncio.server import ServerConnection # Example complex type
+
+      class ConnectionInfo(BaseModel):
+          client_id: str
+          websocket: Any # Or the specific type like ServerConnection
+          # For Pydantic V2+
+          model_config = {
+              "arbitrary_types_allowed": True
+          }
+          # For Pydantic V1:
+          # class Config:
+          #     arbitrary_types_allowed = True
+      ```
+
+- **Avoid Common Pitfalls**
+    - **Missing Imports:** Ensure all necessary components (`BaseModel`, `Field`, `ValidationError`, `TypeVar`, `Generic`, etc.) are imported.
+    - **Incorrect Field Access:** Understand the structure of your models. If a model has fields `a`, `b`, `c`, access them as `model.a`, `model.b`, `model.c`, not `model.data.a` unless `data` is an explicit sub-model field.
+    - **Type Hint Accuracy:** Pydantic's power comes from type hints. Ensure they accurately reflect the expected data types.

@@ -3,18 +3,27 @@ description: Prevents "Receiving end does not exist" errors when background.js m
 globs: ["**/extension/background.js", "**/extension/content.js"]
 alwaysApply: true
 ---
+---
+description: Ensures reliable communication between background.js and content.js by implementing a two-way ready handshake.
+globs: ["**/extension/background.js", "**/extension/content.js"]
+alwaysApply: true
+---
 
-- **Problem:** `background.js` calling `chrome.tabs.sendMessage` to `content.js` can fail if `content.js` hasn't fully initialized its `chrome.runtime.onMessage` listener, often leading to "Error: Could not establish connection. Receiving end does not exist."
+- **Problem: `background.js` calling `chrome.tabs.sendMessage` to `content.js` can fail if `content.js` hasn't fully initialized its `chrome.runtime.onMessage` listener, often leading to "Error: Could not establish connection. Receiving end does not exist."**
 
 - **Solution: Two-Way "Ready" Handshake**
 
     - **1. `content.js` Pings "Ready":**
-        - After `content.js` successfully adds its `chrome.runtime.onMessage.addListener`, it must send a message to `background.js` indicating it's ready for the current tab.
+        - After `content.js` successfully adds its `chrome.runtime.onMessage.addListener` (typically at or near the end of its main execution block), it *must* send a message to `background.js` indicating it's ready for the current tab.
         ```javascript
-        // In content.js, after listener setup:
+        // In content.js, after listener setup and other critical initializations:
+        console.log("content.js: Attempting to send content_script_ready message.");
         chrome.runtime.sendMessage({ type: "content_script_ready" }, response => {
-            if (chrome.runtime.lastError) { /* handle error */ }
-            // else { console.log("Background acked content_script_ready"); }
+            if (chrome.runtime.lastError) {
+                console.error('content.js: Error sending content_script_ready:', chrome.runtime.lastError.message);
+            } else {
+                // console.log("content.js: Background acked content_script_ready:", response);
+            }
         });
         ```
 
@@ -23,32 +32,74 @@ alwaysApply: true
         ```javascript
         // In background.js:
         const contentScriptsReady = new Set();
+        // Ensure CONTENT_SCRIPT_READY_TIMEOUT is defined (e.g., const CONTENT_SCRIPT_READY_TIMEOUT = 5000;)
+
         chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             if (sender.tab && message.type === "content_script_ready") {
+                console.log(`background.js: Received 'content_script_ready' from tabId: ${sender.tab.id}`);
                 contentScriptsReady.add(sender.tab.id);
-                sendResponse({ status: "acknowledged", tabId: sender.tab.id });
+                sendResponse({ status: "acknowledged_content_script_ready", tabId: sender.tab.id });
                 return true; // For async response
             }
             // ... other listeners ...
         });
         // Remember to remove tabId from Set on chrome.tabs.onRemoved
-        chrome.tabs.onRemoved.addListener(tabId => contentScriptsReady.delete(tabId));
+        chrome.tabs.onRemoved.addListener(tabId => {
+            if (contentScriptsReady.has(tabId)) {
+                contentScriptsReady.delete(tabId);
+                console.log(`background.js: Removed tabId ${tabId} from contentScriptsReady set.`);
+            }
+        });
         ```
 
     - **3. `background.js` Waits Before Sending Critical Messages to `content.js`:**
         - Before `background.js` calls `chrome.tabs.sendMessage` to a `content.js` for a specific `tabId` (e.g., for `get_state`):
-            - It first checks if `tabId` is in `contentScriptsReady`.
-            - If not, it *must wait* for a limited timeout (e.g., 2-5 seconds) for the `content_script_ready` signal for that `tabId`. This can be done with a polling `async` helper function.
-            - If the timeout occurs, an error should be returned to the original requester (e.g., the Python server).
+            - It first checks if `tabId` is in `contentScriptsReady` by calling an async helper like `waitForContentScriptReady`.
+            - This helper function should poll the `contentScriptsReady` Set for a limited timeout (e.g., 3-5 seconds).
+            - If the timeout occurs, an error should be returned/thrown, eventually propagating to the original requester (e.g., the Python server).
             - Avoid relying solely on arbitrary `setTimeout` delays before sending.
         ```javascript
-        // In background.js, before chrome.tabs.sendMessage(tabId, ...):
-        // async function handleSomeRequestToContentScript(tabId, requestData) {
-        //   const isReady = await waitForContentScriptReady(tabId, 3000); // 3s timeout
-        //   if (!isReady) {
-        //     throw new Error(`Content script in tab ${tabId} not ready.`);
-        //   }
-        //   return chrome.tabs.sendMessage(tabId, requestData);
+        // In background.js:
+        // async function waitForContentScriptReady(tabId, timeoutMs) {
+        //     const startTime = Date.now();
+        //     console.log(`background.js: waitForContentScriptReady called for tabId: ${tabId}, timeout: ${timeoutMs}ms`);
+        //     while (Date.now() - startTime < timeoutMs) {
+        //         if (contentScriptsReady.has(tabId)) {
+        //             console.log(`background.js: Content script for tabId: ${tabId} is ready.`);
+        //             return true;
+        //         }
+        //         // console.log(`background.js: Polling for content script ready for tabId: ${tabId}. Still waiting...`);
+        //         await new Promise(resolve => setTimeout(resolve, 250)); // Poll frequently
+        //     }
+        //     console.error(`background.js: Timeout waiting for content script in tab ${tabId} to signal ready after ${timeoutMs}ms.`);
+        //     return false;
         // }
+
+        // Example usage in background.js before chrome.tabs.sendMessage(tabId, ...):
+        // const isReady = await waitForContentScriptReady(targetTabId, CONTENT_SCRIPT_READY_TIMEOUT);
+        // if (!isReady) {
+        //   throw new Error(`Content script in tab ${targetTabId} not ready after ${CONTENT_SCRIPT_READY_TIMEOUT}ms`);
+        // }
+        // // Proceed with chrome.tabs.sendMessage...
         ```
-        (The `waitForContentScriptReady` helper would poll the `contentScriptsReady` Set).
+
+    - **4. Debugging Handshake Failures (NEW SECTION):**
+        - If `waitForContentScriptReady` times out, it means the `content_script_ready` signal was not received for that tab.
+        - **Check `content.js` execution in the target tab:**
+            - Open the Developer Console for the specific tab that is timing out.
+            - Look for:
+                - Initial `console.log` messages from `content.js` (e.g., "Content script loaded and executing."). If missing, `content.js` might not be injecting.
+                - The log "content.js: Attempting to send content\_script\_ready message.".
+                - Any errors logged by `content.js` itself, especially around `chrome.runtime.sendMessage`.
+                - Any general JavaScript errors on the page that might be breaking `content.js` execution.
+                - Check for "Uncaught (in promise) Error: Could not establish connection. Receiving end does not exist." specifically in the *content script's console* when it tries to send its ready message. This can indicate an issue with `background.js` or the extension being reloaded/disabled.
+        - **Check `background.js` (Service Worker) console:**
+            - Look for the log "background.js: Received 'content\_script\_ready' from tabId: { проблемный_tabId}". If present, the message arrived.
+            - Observe polling logs from `waitForContentScriptReady` to see if it's checking for the correct `tabId`.
+            - Check for any errors in `background.js` that might occur when `chrome.runtime.onMessage` receives messages.
+        - **Verify Manifest (`manifest.json`):**
+            - Ensure `content_scripts` are correctly declared with appropriate `matches` patterns (e.g., `"<all_urls>"` for broad matching) and `js` pointing to the correct `content.js` file.
+        - **Content Security Policy (CSP):**
+            - Check the target tab's Developer Console for CSP errors. Strict CSPs on a webpage can prevent content scripts from executing inline scripts, loading resources, or making certain types of connections, potentially interfering with `sendMessage`.
+        - **Extension Reloads/Errors:**
+            - If the extension is reloaded (e.g., during development) or encounters a critical error, the message channel between `content.js` and `background.js` can break. Ensure the extension is stable.

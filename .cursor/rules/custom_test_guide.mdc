@@ -1,6 +1,6 @@
 ---
-description: 
-globs: 
+description: Guide for using meta-development script (scripts/dev.js) to manage task-driven development workflows
+globs: **/*
 alwaysApply: true
 ---
 # Guide: Creating Standalone Test Scripts for `browser_use_ext`
@@ -154,5 +154,6 @@ if __name__ == "__main__":
 *   **Verify Payloads:** When testing actions or state, print or log the exact Pydantic models or JSON being sent and received to ensure they match expectations on both the Python and JavaScript sides.
 *   **Incremental Testing:** Test one piece of functionality at a time. Ensure the server starts, the extension connects, then test `get_state`, then test simple actions, etc.
 *   **JSON Output Files:** If the main server is also running (on a different port or at a different time) and configured to save state JSONs, those can be useful for comparing what your test script receives. Your test script can also be modified to save its own output to a uniquely named file for inspection.
+
 
 By following this structure, you can create effective standalone tests for various parts of the `browser_use_ext` system. 
