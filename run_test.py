@@ -2,6 +2,7 @@ import asyncio
 import logging
 import sys
 import os
+import json
 
 # Get the directory where this script (run_test.py) is located.
 # This should be your project root: C:\...\browser-use
@@ -40,7 +41,7 @@ async def trigger_get_state_from_extension():
     """
     # Configure basic logging to see output from this Python script
     logging.basicConfig(
-        level=logging.INFO, 
+        level=logging.DEBUG, 
         format="%(asctime)s - %(name)s - %(levelname)s - %(module)s.%(funcName)s:%(lineno)d - %(message)s",
         handlers=[logging.StreamHandler()] # Ensure logs go to console
     )
@@ -90,9 +91,16 @@ async def trigger_get_state_from_extension():
             logger.info("--- Successfully Received BrowserState from Extension ---")
             # .model_dump_json(indent=2) is a Pydantic method for nice JSON output
             # This will print the structured data to your Python console.
-            print(current_browser_state.model_dump_json(indent=2)) 
-            logger.info("--- End of BrowserState --- ")
+            # MODIFIED: Comment out the line that prints the full BrowserState to console
+            # logger.info(current_browser_state.model_dump_json(indent=2)) 
+            logger.info("--- End of BrowserState (Full content NOT printed to console) ---") # MODIFIED log message
             logger.info("Now, check the Chrome extension's Service Worker console for its detailed logs regarding this get_state operation.")
+
+            # MODIFIED: Save the output to a JSON file
+            output_filename = "browser_state_output.json"
+            with open(output_filename, "w", encoding="utf-8") as f:
+                f.write(current_browser_state.model_dump_json(indent=2))
+            logger.info(f"BrowserState successfully saved to {output_filename}")
 
     except ConnectionRefusedError:
         logger.error(f"Connection refused when trying to start server on port {ext_interface.port}.") # This will now show ORIGINAL_PORT

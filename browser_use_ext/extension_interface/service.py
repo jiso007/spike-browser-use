@@ -24,10 +24,14 @@ from websockets.protocol import State
 # REMOVED: from ..browser.views import TabInfo 
 if TYPE_CHECKING:
     from ..browser.views import BrowserState, TabInfo # Keep for type hinting
-    from ..dom.views import DOMElementNode # type: ignore
+    from ..dom.views import DOMElementNode, DOMDocumentNode # Keep for type hinting
 
 # Initialize logger for this module
 logger = logging.getLogger(__name__)
+# ADDED: Ensure logger level is set for this module if not inherited
+if not logger.hasHandlers(): # Basic check, or just set level directly
+    logger.setLevel(logging.DEBUG) 
+    # If no handlers, it might not output. This assumes root logger is configured.
 
 # Generic TypeVar for async callback return types
 T = TypeVar('T')
@@ -355,16 +359,9 @@ class ExtensionInterface:
     async def get_state(self, include_screenshot: bool = False) -> 'BrowserState':
         """
         Requests the current browser state from the extension.
-
-        Args:
-            include_screenshot: Whether to include a screenshot in the state.
-                                (Currently, screenshots are always treated as null on backend).
-
-        Returns:
-            A BrowserState object representing the current state.
         """
-        # MOVED IMPORT HERE
-        from ..browser.views import BrowserState, TabInfo 
+        from ..browser.views import BrowserState, TabInfo
+        from ..dom.views import DOMDocumentNode, DOMElementNode
 
         logger.info(f"Requesting browser state (screenshot: {include_screenshot})...")
         payload = {"includeScreenshot": include_screenshot}
@@ -382,16 +379,34 @@ class ExtensionInterface:
             raise RuntimeError(error_msg)
         
         try:
-            # MODIFIED: Handle the case where the tree might be the default "document" wrapper
-            tree_to_parse = response_data.tree
-            if response_data.tree.get("type") == "document" and response_data.tree.get("children") and isinstance(response_data.tree["children"], list) and len(response_data.tree["children"]) > 0:
-                logger.debug("Received 'document' type root in tree, parsing its first child (HTML element).")
-                tree_to_parse = response_data.tree["children"][0]
-            elif response_data.tree.get("type") == "document": # Document node but no children, or malformed
-                logger.warning("Received 'document' type root in tree, but children are missing or invalid. Parsing as is, may fail.")
-                # Let it try to parse, it will likely fail the xpath check, but this is better than index error
+            raw_html_element_data = response_data.tree 
+            if raw_html_element_data.get("type") != "element":
+                err_msg = f"Expected root of tree from extension to be type 'element' (the html tag), but got '{raw_html_element_data.get('type')}'"
+                logger.error(err_msg + f" Tree data: {json.dumps(raw_html_element_data, indent=2)}")
+                raise ValueError(err_msg)
 
-            parsed_tree = self._parse_element_tree_data(tree_to_parse)
+            parsed_html_element = self._parse_element_tree_data(raw_html_element_data)
+            # logger.debug(f"[DEBUG] Type of parsed_html_element: {type(parsed_html_element)}") 
+
+            parsed_document_tree = DOMDocumentNode(
+                type="document", 
+                children=[parsed_html_element]
+            )
+            # logger.debug(f"[DEBUG] Type of parsed_document_tree: {type(parsed_document_tree)}")
+            
+            DEBUG_TREE_FILENAME = os.path.join(os.getcwd(), "debug_parsed_document_tree.json")
+            try:
+                with open(DEBUG_TREE_FILENAME, "w", encoding="utf-8") as f_debug:
+                    f_debug.write(parsed_document_tree.model_dump_json(indent=2))
+                # MODIFIED: Use a standard print for high visibility
+                print(f"\n\n>>>> SUCCESS: DEBUG TREE WRITTEN TO: {DEBUG_TREE_FILENAME} <<<<\n\n")
+                logger.debug(f"[SERVICE_DEBUG] Parsed document tree structure saved to {DEBUG_TREE_FILENAME}") 
+            except Exception as e_debug_write:
+                # MODIFIED: Use a standard print for high visibility
+                print(f"\n\n>>>> ERROR: FAILED TO WRITE DEBUG TREE TO FILE: {DEBUG_TREE_FILENAME} <<<<\nError: {e_debug_write}\n\n")
+                logger.error(f"[SERVICE_DEBUG] Failed to write debug tree to file: {e_debug_write}", exc_info=True)
+            
+            # logger.debug(f"[DEBUG] parsed_document_tree content (before BrowserState): {parsed_document_tree.model_dump_json(indent=2)}") # Keep this commented for now
             
             parsed_tabs: List[TabInfo] = []
             for tab_data in response_data.tabs:
@@ -402,28 +417,29 @@ class ExtensionInterface:
                     parsed_tabs.append(TabInfo.model_validate(tab_data))
                 except ValidationError as ve_tab:
                     logger.warning(f"Validation error parsing tab data: {ve_tab}. Data: {tab_data}")
-                    continue
-            
-            return BrowserState(
+                    continue            
+
+            final_browser_state = BrowserState(
                 url=response_data.url,
                 title=response_data.title,
                 html_content=response_data.html_content,
-                tree=parsed_tree, 
+                tree=parsed_document_tree, 
                 selector_map=response_data.selector_map,
                 tabs=parsed_tabs,
-                screenshot=None,
+                screenshot=None, 
                 pixels_above=response_data.pixels_above,
                 pixels_below=response_data.pixels_below
             )
+            # logger.debug(f"[DEBUG] Type of final_browser_state.tree: {type(final_browser_state.tree)}")
+            return final_browser_state
         except ValidationError as e: 
-            logger.error(f"Pydantic validation error constructing BrowserState: {e}", exc_info=True)
-            logger.error(f"Data that caused BrowserState validation error: url='{response_data.url}', title='{response_data.title}', html_content_present={response_data.html_content is not None}, tree_present={response_data.tree is not None}, ...")
+            logger.error(f"Pydantic validation error constructing BrowserState or its components: {e}", exc_info=True)
+            logger.error(f"Data causing validation error: Relevant part of response_data: {response_data.model_dump_json(indent=2)}")
             raise RuntimeError(f"Failed to parse browser state from extension: {e}")
         except Exception as e:
             logger.error(f"Unexpected error constructing BrowserState: {e}", exc_info=True)
-            # Log the problematic tree structure if it's not a Pydantic error
-            if not isinstance(e, ValidationError):
-                logger.error(f"Problematic tree data during BrowserState construction: {response_data.tree}")
+            tree_data_for_log = json.dumps(response_data.tree, indent=2) if response_data and response_data.tree else 'N/A'
+            logger.error(f"Problematic tree data during BrowserState construction: {tree_data_for_log}")
             raise RuntimeError(f"Unexpected error constructing BrowserState: {e}")
 
 

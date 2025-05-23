@@ -4,79 +4,76 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
+# Forward reference for recursive models
+if True: #TYPE_CHECKING:
+    DOMNode = Any # Simplified for this context, could be Union[DOMElementNode, DOMTextNode, DOMDocumentNode]
+else:
+    DOMNode = Any
+
 
 class DOMElementNode(BaseModel):
     """
-    Represents a node in the DOM tree.
-
-    This model captures essential information about a DOM element,
-    including its tag name, attributes, visibility, and relationship
-    with other nodes.
+    Represents an element node in the DOM tree.
     """
+    # MODIFIED: 'type' will be set by the context or sending script, not defaulted here.
+    # Pydantic model will still expect 'type' in the data it validates.
+    # type: str = Field(default="element", description="Type of the DOM node, e.g., 'element', 'text'.")
+    
+    # MODIFIED: Changed 'name' to 'tag_name' for consistency with browser APIs like tagName.
+    tag_name: Optional[str] = Field(None, description="Tag name of the element (e.g., 'div', 'a', 'input'). Populated for element nodes.")
+    
+    attributes: Dict[str, Any] = Field(default_factory=dict, description="Dictionary of HTML attributes of the element.")
+    
+    # Direct text content of the element, if any (excluding text from children).
+    # For a node like <div>Hello <span>World</span></div>, text would be "Hello ".
+    text: Optional[str] = Field(None, description="Direct text content of the node, if applicable.")
 
-    # The HTML tag name of the element (e.g., "div", "a", "input").
-    tag_name: str = Field(description="The HTML tag name of the element.")
-
-    # A dictionary of the element's HTML attributes and their values.
-    # For example: {"id": "main-content", "class": "container"}
-    attributes: Dict[str, str] = Field(
-        default_factory=dict, description="HTML attributes of the element."
-    )
-
-    # A unique index assigned to interactive elements for easy referencing.
-    # This is particularly useful for actions like clicking or typing.
-    # Non-interactive elements will have this as None.
-    highlight_index: Optional[int] = Field(
-        default=None, description="Unique index for interactive elements."
-    )
-
-    # Indicates whether the element is currently visible on the page.
-    # Visibility is determined by factors like CSS display, visibility,
-    # opacity, and dimensions.
-    is_visible: bool = Field(
-        default=True, description="Whether the element is visible on the page."
-    )
-
-    # The XPath expression that uniquely identifies this element in the DOM.
+    # Children of this node. Can be other elements or text nodes.
+    # MODIFIED: Using DOMNode for children to allow for mixed types if we had specific text nodes, etc.
+    # For now, parsing logic primarily creates DOMElementNode instances.
+    children: List[DOMNode] = Field(default_factory=list, description="List of child nodes.")
+    
+    # XPath to uniquely identify the element in the DOM.
     xpath: str = Field(description="XPath of the element.")
 
-    # A list of child DOMElementNode objects, representing the nested structure.
-    children: List[DOMElementNode] = Field(
-        default_factory=list, description="Child nodes of this element."
-    )
+    # Optional unique ID assigned by the content script for highlighting and interaction.
+    highlight_index: Optional[int] = Field(None, description="Unique ID for highlighting interactive elements.")
 
-    # A reference to the parent DOMElementNode, if this is not the root.
-    # This field is typically populated after the initial tree construction.
-    # The `Optional` type and `None` default allow for the root node to have no parent.
-    # The `Any` type is used here to avoid circular dependency issues with Pydantic,
-    # as `DOMElementNode` would refer to itself. This will be a `DOMElementNode` instance in practice.
-    parent: Optional[Any] = Field(
-        default=None, description="Parent node of this element."
-    )
+    # Visibility status of the element.
+    is_visible: bool = Field(default=True, description="Whether the element is currently visible in the viewport.")
     
-    # The textual content of the element, if it's a text node.
-    # This is useful for extracting text from specific parts of the DOM.
-    text: Optional[str] = Field(
-        default=None, description="Text content if this is a text node."
-    )
+    # Interactability status, determined by content script (e.g., visible, not disabled).
+    is_interactive: bool = Field(default=False, description="Whether the element is considered interactive.")
 
-    # The type of the node, e.g., "element" or "text".
-    # This helps in distinguishing between different kinds of DOM nodes.
-    type: str = Field(
-        default="element", description="Type of the DOM node (e.g., 'element', 'text')."
-    )
+    # For input elements, this holds their current value.
+    value: Optional[str] = Field(None, description="Value of the input element, if applicable.")
+    
+    # Raw outerHTML of the element, if provided by the extension.
+    raw_html_outer: Optional[str] = Field(None, description="Raw outerHTML of the element.")
+    # Raw innerHTML of the element, if provided by the extension.
+    raw_html_inner: Optional[str] = Field(None, description="Raw innerHTML of the element.")
+    
+    # Field to indicate the type of node, crucial for parsing and differentiation.
+    # This is expected to be present in the data from the extension.
+    type: str = Field(description="Type of the DOM node, e.g., 'element', 'text'.")
 
 
     class Config:
-        """
-        Pydantic model configuration.
-
-        `arbitrary_types_allowed = True` is necessary to allow the `parent`
-        field to be of type `Any` (which will be `DOMElementNode`) without
-        Pydantic raising an error during model validation.
-        """
+        # Allows Pydantic to handle the forward reference for List[DOMElementNode]
+        # and potentially other complex types if added later.
         arbitrary_types_allowed = True
 
+# NEW MODEL
+class DOMDocumentNode(BaseModel):
+    """
+    Represents the root document node of a DOM tree.
+    Its children are typically a single HTML element node.
+    """
+    type: str = Field(default="document", description="Type of the DOM node, always 'document'.")
+    children: List[DOMElementNode] = Field(description="List of child nodes, typically a single HTML element.")
+
+    class Config:
+        arbitrary_types_allowed = True
 
 # Update forward references to ensure Pydantic can resolve the self-referencing `children`
 # and the `parent` field if it were strictly typed as `DOMElementNode`.

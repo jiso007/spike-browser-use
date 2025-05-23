@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
-from ..dom.views import DOMElementNode
+from ..dom.views import DOMElementNode, DOMDocumentNode
 
 
 class TabInfo(BaseModel):
@@ -51,7 +51,7 @@ class BrowserState(BaseModel):
 
     # The DOM structure of the active page, represented as a tree of DOMElementNode objects.
     # This provides a structured way to understand and interact with the page content.
-    tree: DOMElementNode = Field(description="DOM structure of the active page.")
+    tree: DOMDocumentNode = Field(description="DOM structure of the active page, rooted by a document node.")
 
     # A mapping of highlight indices to their corresponding XPath expressions or element references.
     # This allows for quick lookup of interactive elements identified by the content script.
