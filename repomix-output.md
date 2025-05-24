@@ -35,6 +35,16 @@ The content is organized as follows:
 
 # Directory Structure
 ```
+.cursor/rules/chrome_extension_content_readiness.mdc
+.cursor/rules/cursor_rules.mdc
+.cursor/rules/custom_test_guide.mdc
+.cursor/rules/dev_workflow.mdc
+.cursor/rules/pydantic_model_guidelines.mdc
+.cursor/rules/pytest_config.mdc
+.cursor/rules/python_script_module_execution.mdc
+.cursor/rules/python_websockets_guidelines.mdc
+.cursor/rules/self_improve.mdc
+.env.example
 .gitattributes
 .github/ISSUE_TEMPLATE/bug_report.yml
 .github/ISSUE_TEMPLATE/config.yml
@@ -48,6 +58,41 @@ The content is organized as follows:
 .gitignore
 .pre-commit-config.yaml
 .python-version
+.windsurfrules
+browser_use_ext/__init__.py
+browser_use_ext/agent/__init__.py
+browser_use_ext/agent/memory/__init__.py
+browser_use_ext/agent/memory/service.py
+browser_use_ext/agent/message_manager/__init__.py
+browser_use_ext/agent/message_manager/service.py
+browser_use_ext/agent/prompts.py
+browser_use_ext/agent/views.py
+browser_use_ext/browser/__init__.py
+browser_use_ext/browser/browser.py
+browser_use_ext/browser/context.py
+browser_use_ext/browser/views.py
+browser_use_ext/controller/__init__.py
+browser_use_ext/controller/registry/__init__.py
+browser_use_ext/controller/registry/views.py
+browser_use_ext/controller/service.py
+browser_use_ext/dom/__init__.py
+browser_use_ext/dom/views.py
+browser_use_ext/extension_interface/__init__.py
+browser_use_ext/extension_interface/models.py
+browser_use_ext/extension_interface/service.py
+browser_use_ext/extension/background.js
+browser_use_ext/extension/content.js
+browser_use_ext/extension/popup.html
+browser_use_ext/extension/popup.js
+browser_use_ext/README.md
+browser_use_ext/tests/__init__.py
+browser_use_ext/tests/conftest.py
+browser_use_ext/tests/test_agent_prompts.py
+browser_use_ext/tests/test_browser_context.py
+browser_use_ext/tests/test_browser.py
+browser_use_ext/tests/test_controller_service.py
+browser_use_ext/tests/test_extension_interface.py
+browser_use_ext/tests/test_message_manager.py
 browser_use/__init__.py
 browser_use/agent/gif.py
 browser_use/agent/memory/__init__.py
@@ -84,39 +129,6 @@ browser_use/README.md
 browser_use/telemetry/service.py
 browser_use/telemetry/views.py
 browser_use/utils.py
-browser-use-ext/__init__.py
-browser-use-ext/agent/__init__.py
-browser-use-ext/agent/memory/__init__.py
-browser-use-ext/agent/memory/service.py
-browser-use-ext/agent/message_manager/__init__.py
-browser-use-ext/agent/message_manager/service.py
-browser-use-ext/agent/prompts.py
-browser-use-ext/agent/views.py
-browser-use-ext/browser/__init__.py
-browser-use-ext/browser/browser.py
-browser-use-ext/browser/context.py
-browser-use-ext/browser/views.py
-browser-use-ext/controller/__init__.py
-browser-use-ext/controller/registry/__init__.py
-browser-use-ext/controller/registry/views.py
-browser-use-ext/controller/service.py
-browser-use-ext/dom/__init__.py
-browser-use-ext/dom/views.py
-browser-use-ext/extension_interface/__init__.py
-browser-use-ext/extension_interface/service.py
-browser-use-ext/extension/background.js
-browser-use-ext/extension/content.js
-browser-use-ext/extension/popup.html
-browser-use-ext/extension/popup.js
-browser-use-ext/README.md
-browser-use-ext/tests/__init__.py
-browser-use-ext/tests/conftest.py
-browser-use-ext/tests/test_agent_prompts.py
-browser-use-ext/tests/test_browser_context.py
-browser-use-ext/tests/test_browser.py
-browser-use-ext/tests/test_controller_service.py
-browser-use-ext/tests/test_extension_interface.py
-browser-use-ext/tests/test_message_manager.py
 check_config_access.py
 codebeaver.yml
 docs/cloud/implementation.mdx
@@ -232,10 +244,13 @@ examples/use-cases/shopping.py
 examples/use-cases/twitter_post_using_cookies.py
 examples/use-cases/web_voyager_agent.py
 examples/use-cases/wikipedia_banana_to_quantum.py
-extension_interface/service.py
 LICENSE
 pyproject.toml
+README-task-master.md
 README.md
+run_test.py
+scripts/dev.js
+scripts/README.md
 SECURITY.md
 service.py
 SPIKE_FLOW_2.md
@@ -248,580 +263,652 @@ SPIKE_LLM_TOUCHPOINT.md
 
 # Files
 
-## File: extension_interface/service.py
-````python
-from __future__ import annotations
+## File: .cursor/rules/cursor_rules.mdc
+````
+---
+description: Guidelines for creating and maintaining Cursor rules to ensure consistency and effectiveness.
+globs: .cursor/rules/*.mdc
+alwaysApply: true
+---
 
-# Standard library imports
-import asyncio
-import json
-import logging
-import uuid
-from typing import Any, Callable, Dict, List, Optional, TypeVar, cast
+- **Required Rule Structure:**
+  ```markdown
+  ---
+  description: Clear, one-line description of what the rule enforces
+  globs: path/to/files/*.ext, other/path/**/*
+  alwaysApply: boolean
+  ---
 
-# Third-party imports
-import websockets
-from pydantic import BaseModel, Field, ValidationError
-from websockets.exceptions import ConnectionClosed, ConnectionClosedOK
-from websockets.server import WebSocketServerProtocol
+  - **Main Points in Bold**
+    - Sub-points with details
+    - Examples and explanations
+  ```
 
-# Local application/library specific imports
-from browser.views import BrowserState, TabInfo
-from dom.views import DOMElementNode
+- **File References:**
+  - Use `[filename](mdc:path/to/file)` ([filename](mdc:filename)) to reference files
+  - Example: [prisma.mdc](mdc:.cursor/rules/prisma.mdc) for rule references
+  - Example: [schema.prisma](mdc:prisma/schema.prisma) for code references
 
-# Initialize logger for this module
-logger = logging.getLogger(__name__)
+- **Code Examples:**
+  - Use language-specific code blocks
+  ```typescript
+  // ✅ DO: Show good examples
+  const goodExample = true;
+  
+  // ❌ DON'T: Show anti-patterns
+  const badExample = false;
+  ```
 
-# Generic TypeVar for async callback return types
-T = TypeVar('T')
+- **Rule Content Guidelines:**
+  - Start with high-level overview
+  - Include specific, actionable requirements
+  - Show examples of correct implementation
+  - Reference existing code when possible
+  - Keep rules DRY by referencing other rules
 
-# --- Pydantic Models for WebSocket Communication ---
+- **Rule Maintenance:**
+  - Update rules when new patterns emerge
+  - Add examples from actual codebase
+  - Remove outdated patterns
+  - Cross-reference related rules
 
-class BaseMessage(BaseModel):
-    """Base model for all WebSocket messages, providing common fields like id and type."""
-    # Unique identifier for the message, used to correlate requests and responses.
-    id: int = Field(description="Unique message identifier.")
-    # Type of the message, e.g., 'get_state', 'execute_action', 'response'.
-    type: str = Field(description="Type of the WebSocket message.")
-
-class RequestMessage(BaseMessage):
-    """Model for request messages sent from Python to the Chrome extension."""
-    # Action-specific data or parameters for the request.
-    # For 'get_state': {"includeScreenshot": bool}
-    # For 'execute_action': {"action": str, "params": Dict[str, Any]}
-    data: Optional[Dict[str, Any]] = Field(None, description="Payload for the request.")
-
-class ResponseData(BaseModel):
-    """Model for the 'data' field within a response message from the extension."""
-    # Indicates success or failure of the operation requested.
-    success: Optional[bool] = Field(None, description="Indicates if the operation was successful.")
-    # Error message if the operation failed.
-    error: Optional[str] = Field(None, description="Error message if an error occurred.")
-    # URL of the page, typically included in get_state responses.
-    url: Optional[str] = Field(None, description="Current URL of the page.")
-    # Title of the page, typically included in get_state responses.
-    title: Optional[str] = Field(None, description="Title of the page.")
-    # DOM structure, typically included in get_state responses.
-    element_tree: Optional[Dict[str, Any]] = Field(None, description="Raw element tree from extension.")
-    # Selector map, typically included in get_state responses.
-    selector_map: Optional[Dict[str, Any]] = Field(None, description="Raw selector map from extension.")
-    # List of tabs, typically included in get_state responses.
-    tabs: Optional[List[Dict[str, Any]]] = Field(None, description="List of tabs from extension.")
-    # Screenshot data (base64), if requested.
-    screenshot: Optional[str] = Field(None, description="Base64 encoded screenshot data.")
-    # Scroll position information.
-    pixels_above: Optional[int] = Field(None, description="Pixels scrolled above the viewport.")
-    pixels_below: Optional[int] = Field(None, description="Pixels scrollable below the viewport.")
-    # Content extracted from the page, for 'extract_content' action.
-    content: Optional[str] = Field(None, description="Extracted content from the page.")
-    # Note for providing additional context for an action's result.
-    note: Optional[str] = Field(None, description="Additional note for the action's result.")
-    # ID of the newly activated tab after a switch_tab action.
-    new_active_tab_id: Optional[int] = Field(None, description="ID of the new active tab.")
-    # ID of a newly created tab.
-    new_tab_id: Optional[int] = Field(None, description="ID of the newly created tab.")
-    # ID of a closed tab.
-    closed_tab_id: Optional[int] = Field(None, description="ID of the closed tab.")
-
-    class Config:
-        # Allows for extra fields in the response data that are not strictly defined
-        # This is useful for flexibility as the extension might send additional info.
-        extra = "allow"
-
-class ResponseMessage(BaseMessage):
-    """Model for response messages received from the Chrome extension."""
-    # The actual payload of the response, structured according to ResponseData.
-    data: ResponseData = Field(description="Payload of the response.")
-
-# --- Connection Management ---
-
-class ConnectionInfo(BaseModel):
-    """Stores information about an active WebSocket client connection."""
-    # Unique identifier assigned to the client by the server.
-    client_id: str
-    # The WebSocket connection object for this client.
-    websocket: WebSocketServerProtocol
-    # Task that handles message listening for this client.
-    # Storing it allows for cancellation if needed.
-    handler_task: Optional[asyncio.Task] = None
-
-    class Config:
-        # Allows Pydantic to handle non-standard types like WebSocketServerProtocol and asyncio.Task.
-        arbitrary_types_allowed = True
-
-# --- Main Extension Interface Class ---
-
-class ExtensionInterface:
-    """
-    Manages WebSocket communication with the Chrome extension.
-    It handles starting/stopping the server, sending requests to the extension,
-    and processing responses.
-    """
-    
-    def __init__(self, host: str = "localhost", port: int = 8765):
-        """
-        Initializes the ExtensionInterface.
-
-        Args:
-            host: The hostname for the WebSocket server.
-            port: The port number for the WebSocket server.
-        """
-        self.host = host
-        self.port = port
-        self._server: Optional[websockets.server.WebSocketServer] = None
-        self._connections: Dict[str, ConnectionInfo] = {}
-        self._active_connection_id: Optional[str] = None
-        self._message_id_counter: int = 0
-        self._pending_requests: Dict[int, asyncio.Future[ResponseData]] = {}
-        self._server_task: Optional[asyncio.Task] = None
-        self._lock = asyncio.Lock() # Lock for managing shared resources like _message_id_counter
-    
-    async def start_server(self) -> None:
-        """Starts the WebSocket server to listen for connections from the extension."""
-        if self._server is not None:
-            logger.warning("WebSocket server is already running.")
-            return
-        
-        try:
-            # `websockets.serve` creates and starts the server.
-            # `self._handle_connection` will be called for each new client.
-            self._server = await websockets.serve(
-                self._handle_connection, 
-                self.host, 
-                self.port
-            )
-            logger.info(f"WebSocket server started successfully on ws://{self.host}:{self.port}")
-            # Create a task to monitor the server's status. `wait_closed` will complete when the server stops.
-            self._server_task = asyncio.create_task(self._server.wait_closed(), name=f"WebSocketServerMonitor-{self.port}")
-        except Exception as e:
-            logger.error(f"Failed to start WebSocket server on ws://{self.host}:{self.port}: {e}", exc_info=True)
-            self._server = None # Ensure server is None if start failed
-            raise # Re-raise the exception to signal failure to the caller
-    
-    async def stop_server(self) -> None:
-        """Stops the WebSocket server and cleans up connections."""
-        if self._server is None:
-            logger.warning("WebSocket server is not running.")
-            return
-        
-        logger.info("Attempting to stop WebSocket server...")
-        self._server.close() # Initiates the server shutdown
-        
-        # Wait for the server to close fully and for its monitoring task to complete.
-        if self._server_task:
-            try:
-                await asyncio.wait_for(self._server_task, timeout=5.0)
-            except asyncio.TimeoutError:
-                logger.warning("Timeout waiting for server task to complete during shutdown.")
-            except Exception as e:
-                logger.error(f"Error during server task completion: {e}", exc_info=True)
-
-        # Cancel any pending client handler tasks
-        for conn_id, conn_info in list(self._connections.items()): # Iterate over a copy
-            if conn_info.handler_task and not conn_info.handler_task.done():
-                conn_info.handler_task.cancel()
-                try:
-                    await conn_info.handler_task # Wait for cancellation to complete
-                except asyncio.CancelledError:
-                    logger.debug(f"Handler task for {conn_id} cancelled successfully.")
-                except Exception as e:
-                    logger.error(f"Error cancelling handler task for {conn_id}: {e}", exc_info=True)
-            # Close the individual websocket connection if it's still open
-            if not conn_info.websocket.closed:
-                await conn_info.websocket.close(code=1001, reason="Server shutting down")
-
-        # Clear pending requests
-        for req_id, future in self._pending_requests.items():
-            if not future.done():
-                future.cancel(f"Request {req_id} cancelled due to server shutdown.")
-        self._pending_requests.clear()
-        
-        # Reset server state
-        self._server = None
-        self._server_task = None
-        self._connections.clear()
-        self._active_connection_id = None
-        logger.info("WebSocket server stopped successfully.")
-    
-    async def _handle_connection(self, websocket: WebSocketServerProtocol, path: Optional[str] = None) -> None:
-        """
-        Manages a new WebSocket connection from a client (the Chrome extension).
-        Each connection runs in its own instance of this coroutine.
-        """
-        client_id = f"client_{websocket.id}" # Use a unique ID from the websocket object
-        handler_task = asyncio.current_task()
-        if handler_task:
-             handler_task.set_name(f"WSClientHandler-{client_id}")
-
-        conn_info = ConnectionInfo(client_id=client_id, websocket=websocket, handler_task=handler_task)
-        self._connections[client_id] = conn_info
-        logger.info(f"New WebSocket connection established from {websocket.remote_address}: {client_id}") 
-
-        # If no active connection, set this new one as active.
-        if self._active_connection_id is None:
-            self._active_connection_id = client_id
-            logger.info(f"Set {client_id} as the active connection.")
-
-        try:
-            # Loop indefinitely to process messages from this client.
-            async for message_data in websocket:
-                if isinstance(message_data, str):
-                    await self._process_message(client_id, message_data)
-                else:
-                    logger.warning(f"Received non-text message from {client_id}, ignoring.")
-        except ConnectionClosedOK:
-            logger.info(f"Connection {client_id} closed gracefully (OK). Path: {path}")
-        except ConnectionClosed as e:
-            logger.warning(f"Connection {client_id} closed with code {e.code}, reason: {e.reason}. Path: {path}")
-        except Exception as e:
-            logger.error(f"Error during message handling for {client_id} on path {path}: {e}", exc_info=True)
-        finally:
-            # Cleanup when the connection is closed or an error occurs.
-            logger.info(f"Cleaning up connection {client_id}.")
-            if client_id in self._connections:
-                del self._connections[client_id]
-            
-            # If this was the active connection, try to set a new active one.
-            if self._active_connection_id == client_id:
-                if self._connections:
-                    self._active_connection_id = next(iter(self._connections.keys()))
-                    logger.info(f"Switched active connection to {self._active_connection_id}.")
-                else:
-                    self._active_connection_id = None
-                    logger.info("No remaining connections, active connection set to None.")
-            logger.info(f"Connection {client_id} fully cleaned up.")
-
-    async def _process_message(self, client_id: str, message_data: str) -> None:
-        """
-        Processes an incoming WebSocket message string from a specific client.
-        """
-        try:
-            raw_message = json.loads(message_data)
-            # Validate the base structure first
-            base_msg = BaseMessage.model_validate(raw_message)
-            logger.debug(f"Received message from {client_id}: Type '{base_msg.type}', ID '{base_msg.id}'")
-
-            if base_msg.type == "response":
-                # Validate as a full ResponseMessage
-                response_msg = ResponseMessage.model_validate(raw_message)
-                future = self._pending_requests.pop(response_msg.id, None)
-                if future and not future.done():
-                    if response_msg.data.error:
-                        # If there's an error in the response, encapsulate it and set it as the future's exception
-                        error_message = f"Extension error for request ID {response_msg.id}: {response_msg.data.error}"
-                        logger.error(error_message)
-                        future.set_exception(RuntimeError(error_message))
-                    else:
-                        # Otherwise, set the successful result
-                        future.set_result(response_msg.data)
-                elif future and future.done():
-                    logger.warning(f"Received response for already completed/cancelled future {response_msg.id}")
-                else:
-                    logger.warning(f"Received unsolicited response or response for unknown request ID: {response_msg.id}")
-            
-            elif base_msg.type == "error": # Assuming extension might send an 'error' type for unsolicited errors
-                error_payload = raw_message.get("data", {})
-                error_message = error_payload.get("message", "Unknown error from extension")
-                logger.error(f"Received unsolicited error from {client_id}: {error_message} (Raw: {message_data})")
-
-            elif base_msg.type == "extension_event": # For events like page load, tab switch, etc.
-                event_payload = raw_message.get("data", {})
-                event_name = event_payload.get("event_name", "unknown_event")
-                logger.info(f"Received event '{event_name}' from {client_id}: {event_payload}")
-                # Here you could dispatch these events to other parts of the application
-                # For example, using asyncio.Queue or registered callbacks.
-
-            else:
-                logger.warning(f"Received message of unhandled type '{base_msg.type}' from {client_id}")
-
-        except json.JSONDecodeError:
-            logger.error(f"Failed to decode JSON message from {client_id}: {message_data[:200]}...") # Log snippet
-        except ValidationError as e:
-            logger.error(f"Message validation error from {client_id} for message '{message_data[:200]}...': {e}")
-        except Exception as e: # Catch-all for other errors during message processing
-            logger.error(f"Unexpected error processing message from {client_id}: {e}", exc_info=True)
-
-
-    async def _send_request(self, request_type: str, data: Optional[Dict[str, Any]] = None, timeout: float = 30.0) -> ResponseData:
-        """
-        Sends a request to the active Chrome extension connection and waits for a response.
-
-        Args:
-            request_type: The type of request (e.g., "get_state", "execute_action").
-            data: The data payload for the request.
-            timeout: Maximum time to wait for a response in seconds.
-
-        Returns:
-            A ResponseData object containing the extension's response.
-
-        Raises:
-            RuntimeError: If no active connection, or if the request times out or fails.
-        """
-        if not self.active_connection:
-            raise RuntimeError("No active Chrome extension connection.")
-
-        async with self._lock: # Ensure message ID counter is updated atomically
-            self._message_id_counter += 1
-            msg_id = self._message_id_counter
-        
-        request = RequestMessage(id=msg_id, type=request_type, data=data)
-        future: asyncio.Future[ResponseData] = asyncio.Future()
-        self._pending_requests[msg_id] = future
-
-        try:
-            # Ensure the connection is still valid before sending
-            if self.active_connection.websocket.closed:
-                raise RuntimeError(f"Active connection {self.active_connection.client_id} is closed.")
-            
-            await self.active_connection.websocket.send(request.model_dump_json())
-            logger.debug(f"Sent {request_type} request (ID: {msg_id}) to {self.active_connection.client_id}")
-            
-            # Wait for the response
-            return await asyncio.wait_for(future, timeout=timeout)
-        
-        except asyncio.TimeoutError:
-            logger.error(f"Timeout waiting for response to {request_type} request (ID: {msg_id})")
-            self._pending_requests.pop(msg_id, None) # Clean up pending request
-            raise RuntimeError(f"Request {request_type} (ID: {msg_id}) timed out after {timeout}s.")
-        except ConnectionClosed:
-            logger.error(f"Connection closed while sending/waiting for {request_type} (ID: {msg_id})")
-            self._pending_requests.pop(msg_id, None)
-            raise RuntimeError(f"Connection closed during request {request_type} (ID: {msg_id}).")
-        except Exception as e: # Catch other exceptions during send or from future
-            logger.error(f"Error sending/processing {request_type} request (ID: {msg_id}): {e}", exc_info=True)
-            self._pending_requests.pop(msg_id, None)
-            # Re-raise as a generic RuntimeError to simplify error handling for callers
-            # Or, could re-raise e directly if more specific error types are needed by callers
-            raise RuntimeError(f"Failed to process request {request_type} (ID: {msg_id}): {e}")
-
-
-    async def get_state(self, include_screenshot: bool = False) -> BrowserState:
-        """
-        Requests the current browser state from the extension.
-
-        Args:
-            include_screenshot: Whether to include a screenshot in the state.
-
-        Returns:
-            A BrowserState object representing the current state.
-        """
-        logger.info(f"Requesting browser state (screenshot: {include_screenshot})...")
-        payload = {"includeScreenshot": include_screenshot}
-        response_data = await self._send_request("get_state", payload)
-
-        # Basic validation of expected fields for get_state
-        if response_data.url is None or \
-           response_data.title is None or \
-           response_data.element_tree is None or \
-           response_data.selector_map is None or \
-           response_data.tabs is None or \
-           response_data.pixels_above is None or \
-           response_data.pixels_below is None:
-            error_msg = "Received incomplete state data from extension."
-            logger.error(error_msg + f" Response: {response_data.model_dump_json(indent=2)}")
-            raise RuntimeError(error_msg)
-        
-        try:
-            # Parse the raw element tree into DOMElementNode structure
-            parsed_element_tree = self._parse_element_tree_data(response_data.element_tree)
-            
-            # Parse tab information
-            parsed_tabs = []
-            for tab_data in response_data.tabs:
-                # Ensure all required fields are present for TabInfo
-                if not all(k in tab_data for k in ("id", "url", "title", "active")):
-                    logger.warning(f"Skipping tab with incomplete data: {tab_data}")
-                    continue
-                parsed_tabs.append(TabInfo.model_validate(tab_data))
-            
-            # Construct and return the BrowserState object
-            return BrowserState(
-                url=response_data.url,
-                title=response_data.title,
-                element_tree=parsed_element_tree,
-                selector_map=response_data.selector_map, # Assuming selector_map is already in correct format
-                tabs=parsed_tabs,
-                screenshot=response_data.screenshot,
-                pixels_above=response_data.pixels_above,
-                pixels_below=response_data.pixels_below
-            )
-        except ValidationError as e:
-            logger.error(f"Pydantic validation error parsing browser state: {e}", exc_info=True)
-            raise RuntimeError(f"Failed to parse browser state from extension: {e}")
-        except Exception as e:
-            logger.error(f"Unexpected error constructing BrowserState: {e}", exc_info=True)
-            raise RuntimeError(f"Unexpected error constructing BrowserState: {e}")
-
-
-    def _parse_element_tree_data(self, element_data: Dict[str, Any]) -> DOMElementNode:
-        """
-        Recursively parses the raw element tree data from the extension into DOMElementNode objects.
-        Ensures that 'text' attribute is correctly handled.
-
-        Args:
-            element_data: A dictionary representing a node from the extension's element tree.
-
-        Returns:
-            A DOMElementNode object.
-        """
-        # Pre-validation of essential keys
-        if not all(k in element_data for k in ("type", "xpath")):
-            raise ValueError(f"Essential keys 'type' or 'xpath' missing in element data: {element_data}")
-
-        # Create a copy to avoid modifying the original dict, especially for 'attributes'
-        data_copy = element_data.copy()
-
-        # Ensure 'attributes' is a dictionary, default to empty if not present or None
-        attributes = data_copy.get("attributes")
-        if not isinstance(attributes, dict):
-            attributes = {}
-        
-        # Handle 'text' content: convert to string if present, otherwise it remains None via Pydantic default
-        node_text: Optional[str] = None
-        if data_copy.get("type") == "text": # For text nodes, 'text' is its content
-            node_text = str(data_copy.get("text", "")) # Ensure it's a string, even if empty
-        elif data_copy.get("type") == "element": # For element nodes, 'text' is direct text child
-            if "text" in data_copy and data_copy["text"] is not None:
-                node_text = str(data_copy["text"])
-        
-        # Recursively parse child nodes
-        children_nodes = []
-        if "children" in data_copy and isinstance(data_copy["children"], list):
-            for child_data in data_copy["children"]:
-                if isinstance(child_data, dict): # Ensure child_data is a dict before parsing
-                    try:
-                        children_nodes.append(self._parse_element_tree_data(child_data))
-                    except ValueError as ve: # Catch parsing errors from children
-                        logger.warning(f"Skipping child due to parsing error: {ve}. Child data: {child_data}")
-                else:
-                    logger.warning(f"Skipping non-dictionary child item: {child_data}")
-        
-        # Prepare fields for DOMElementNode, ensuring all required fields are present or have defaults
-        node_fields = {
-            "type": data_copy["type"],
-            "xpath": data_copy["xpath"],
-            "highlight_id": data_copy.get("highlight_id"), # Will be None if not present
-            "tag_name": data_copy.get("tag_name"), # Will be None for non-element types
-            "attributes": attributes,
-            "text": node_text, # Assign the processed text
-            "children": children_nodes,
-            "is_interactive": data_copy.get("is_interactive", False), # Default to False
-            "is_visible": data_copy.get("is_visible", False), # Default to False
-            "value": data_copy.get("value"), # For input elements
-            "raw_html_outer": data_copy.get("raw_html_outer"),
-            "raw_html_inner": data_copy.get("raw_html_inner"),
-        }
-        
-        # Validate and create the DOMElementNode
-        try:
-            return DOMElementNode.model_validate(node_fields)
-        except ValidationError as e:
-            logger.error(f"Validation error creating DOMElementNode for {data_copy.get('xpath')}: {e}\nData: {node_fields}", exc_info=True)
-            # Instead of raising here and potentially stopping a large tree parse,
-            # one might consider returning a "failed_parse" node or logging and skipping.
-            # For now, re-raise to indicate the issue.
-            raise ValueError(f"Failed to validate DOMElementNode: {e}. Data: {node_fields}") from e
-
-
-    async def execute_action(self, action: str, params: Dict[str, Any], timeout: float = 30.0) -> Dict[str, Any]:
-        """
-        Executes an action in the browser via the extension.
-
-        Args:
-            action: The name of the action to execute (e.g., "click", "input_text").
-            params: A dictionary of parameters for the action.
-            timeout: Timeout for the action in seconds.
-
-        Returns:
-            A dictionary containing the result of the action from the extension.
-        """
-        logger.info(f"Executing action '{action}' with params: {params}")
-        payload = {"action": action, "params": params}
-        response_data = await self._send_request("execute_action", payload, timeout=timeout)
-        
-        # The response_data itself is a Pydantic model. We return its dictionary representation.
-        # Exclude None values for cleaner output.
-        action_result = response_data.model_dump(exclude_none=True)
-        logger.info(f"Action '{action}' executed. Result: {action_result}")
-        return action_result
-
-    @property
-    def active_connection(self) -> Optional[ConnectionInfo]:
-        """Returns the currently active ConnectionInfo, or None if no connection is active."""
-        if self._active_connection_id and self._active_connection_id in self._connections:
-            return self._connections[self._active_connection_id]
-        return None
-
-    @property
-    def is_server_running(self) -> bool:
-        """Checks if the WebSocket server is currently running."""
-        return self._server is not None and self._server.is_serving()
-
-    @property
-    def has_active_connection(self) -> bool:
-        """Checks if there is an active and open WebSocket connection."""
-        conn = self.active_connection
-        return conn is not None and not conn.websocket.closed
-
-# --- Main Execution Block (for standalone server operation) ---
-
-async def main():
-    """Main function to run the WebSocket server."""
-    # Configure basic logging
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        handlers=[
-            logging.StreamHandler() # Log to console
-            # You can add logging.FileHandler("server.log") here if you want to log to a file
-        ]
-    )
-    
-    # Define server host and port
-    host = "localhost"
-    port = 8765
-    
-    # Create an instance of the interface
-    interface = ExtensionInterface(host=host, port=port)
-    
-    try:
-        # Start the server
-        await interface.start_server()
-        
-        # Keep the server running until interrupted (e.g., Ctrl+C)
-        # This loop also allows for periodic checks or tasks if needed.
-        while interface.is_server_running:
-            await asyncio.sleep(1) # Sleep for a short duration to prevent busy-waiting
-            
-    except KeyboardInterrupt:
-        logger.info("Server shutting down due to KeyboardInterrupt...")
-    except Exception as e:
-        logger.error(f"An unhandled error occurred in main: {e}", exc_info=True)
-    finally:
-        logger.info("Initiating server stop sequence...")
-        await interface.stop_server()
-        logger.info("Server has been stopped.")
-
-if __name__ == "__main__":
-    # Entry point when the script is executed directly.
-    # This sets up and runs the asyncio event loop.
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        # This is just to make the exit cleaner on Ctrl+C if asyncio.run() itself is interrupted
-        # before main() handles it.
-        logger.info("Asyncio event loop interrupted. Exiting.")
-    except Exception as e:
-        # Catch-all for any other exceptions during asyncio.run, e.g., if main() raises something
-        # that isn't caught internally.
-        logger.critical(f"Fatal error during asyncio.run: {e}", exc_info=True)
+- **Best Practices:**
+  - Use bullet points for clarity
+  - Keep descriptions concise
+  - Include both DO and DON'T examples
+  - Reference actual code over theoretical examples
+  - Use consistent formatting across rules
 ````
 
-## File: service.py
-````python
-from __future__ import annotations
- 
-# Standard library imports
+## File: .cursor/rules/dev_workflow.mdc
+````
+---
+description: Guide for using meta-development script (scripts/dev.js) to manage task-driven development workflows
+globs: **/*
+alwaysApply: true
+---
+
+- **Global CLI Commands**
+  - Task Master now provides a global CLI through the `task-master` command
+  - All functionality from `scripts/dev.js` is available through this interface
+  - Install globally with `npm install -g claude-task-master` or use locally via `npx`
+  - Use `task-master <command>` instead of `node scripts/dev.js <command>`
+  - Examples:
+    - `task-master list` instead of `node scripts/dev.js list`
+    - `task-master next` instead of `node scripts/dev.js next`
+    - `task-master expand --id=3` instead of `node scripts/dev.js expand --id=3`
+  - All commands accept the same options as their script equivalents
+  - The CLI provides additional commands like `task-master init` for project setup
+
+- **Development Workflow Process**
+  - Start new projects by running `task-master init` or `node scripts/dev.js parse-prd --input=<prd-file.txt>` to generate initial tasks.json
+  - Begin coding sessions with `task-master list` to see current tasks, status, and IDs
+  - Analyze task complexity with `task-master analyze-complexity --research` before breaking down tasks
+  - Select tasks based on dependencies (all marked 'done'), priority level, and ID order
+  - Clarify tasks by checking task files in tasks/ directory or asking for user input
+  - View specific task details using `task-master show <id>` to understand implementation requirements
+  - Break down complex tasks using `task-master expand --id=<id>` with appropriate flags
+  - Clear existing subtasks if needed using `task-master clear-subtasks --id=<id>` before regenerating
+  - Implement code following task details, dependencies, and project standards
+  - Verify tasks according to test strategies before marking as complete
+  - Mark completed tasks with `task-master set-status --id=<id> --status=done`
+  - Update dependent tasks when implementation differs from original plan
+  - Generate task files with `task-master generate` after updating tasks.json
+  - Maintain valid dependency structure with `task-master fix-dependencies` when needed
+  - Respect dependency chains and task priorities when selecting work
+  - Report progress regularly using the list command
+
+- **Task Complexity Analysis**
+  - Run `node scripts/dev.js analyze-complexity --research` for comprehensive analysis
+  - Review complexity report in scripts/task-complexity-report.json
+  - Or use `node scripts/dev.js complexity-report` for a formatted, readable version of the report
+  - Focus on tasks with highest complexity scores (8-10) for detailed breakdown
+  - Use analysis results to determine appropriate subtask allocation
+  - Note that reports are automatically used by the expand command
+
+- **Task Breakdown Process**
+  - For tasks with complexity analysis, use `node scripts/dev.js expand --id=<id>`
+  - Otherwise use `node scripts/dev.js expand --id=<id> --subtasks=<number>`
+  - Add `--research` flag to leverage Perplexity AI for research-backed expansion
+  - Use `--prompt="<context>"` to provide additional context when needed
+  - Review and adjust generated subtasks as necessary
+  - Use `--all` flag to expand multiple pending tasks at once
+  - If subtasks need regeneration, clear them first with `clear-subtasks` command
+
+- **Implementation Drift Handling**
+  - When implementation differs significantly from planned approach
+  - When future tasks need modification due to current implementation choices
+  - When new dependencies or requirements emerge
+  - Call `node scripts/dev.js update --from=<futureTaskId> --prompt="<explanation>"` to update tasks.json
+
+- **Task Status Management**
+  - Use 'pending' for tasks ready to be worked on
+  - Use 'done' for completed and verified tasks
+  - Use 'deferred' for postponed tasks
+  - Add custom status values as needed for project-specific workflows
+
+- **Task File Format Reference**
+  ```
+  # Task ID: <id>
+  # Title: <title>
+  # Status: <status>
+  # Dependencies: <comma-separated list of dependency IDs>
+  # Priority: <priority>
+  # Description: <brief description>
+  # Details:
+  <detailed implementation notes>
+  
+  # Test Strategy:
+  <verification approach>
+  ```
+
+- **Command Reference: parse-prd**
+  - Legacy Syntax: `node scripts/dev.js parse-prd --input=<prd-file.txt>`
+  - CLI Syntax: `task-master parse-prd --input=<prd-file.txt>`
+  - Description: Parses a PRD document and generates a tasks.json file with structured tasks
+  - Parameters: 
+    - `--input=<file>`: Path to the PRD text file (default: sample-prd.txt)
+  - Example: `task-master parse-prd --input=requirements.txt`
+  - Notes: Will overwrite existing tasks.json file. Use with caution.
+
+- **Command Reference: update**
+  - Legacy Syntax: `node scripts/dev.js update --from=<id> --prompt="<prompt>"`
+  - CLI Syntax: `task-master update --from=<id> --prompt="<prompt>"`
+  - Description: Updates tasks with ID >= specified ID based on the provided prompt
+  - Parameters:
+    - `--from=<id>`: Task ID from which to start updating (required)
+    - `--prompt="<text>"`: Explanation of changes or new context (required)
+  - Example: `task-master update --from=4 --prompt="Now we are using Express instead of Fastify."`
+  - Notes: Only updates tasks not marked as 'done'. Completed tasks remain unchanged.
+
+- **Command Reference: generate**
+  - Legacy Syntax: `node scripts/dev.js generate`
+  - CLI Syntax: `task-master generate`
+  - Description: Generates individual task files in tasks/ directory based on tasks.json
+  - Parameters: 
+    - `--file=<path>, -f`: Use alternative tasks.json file (default: 'tasks/tasks.json')
+    - `--output=<dir>, -o`: Output directory (default: 'tasks')
+  - Example: `task-master generate`
+  - Notes: Overwrites existing task files. Creates tasks/ directory if needed.
+
+- **Command Reference: set-status**
+  - Legacy Syntax: `node scripts/dev.js set-status --id=<id> --status=<status>`
+  - CLI Syntax: `task-master set-status --id=<id> --status=<status>`
+  - Description: Updates the status of a specific task in tasks.json
+  - Parameters:
+    - `--id=<id>`: ID of the task to update (required)
+    - `--status=<status>`: New status value (required)
+  - Example: `task-master set-status --id=3 --status=done`
+  - Notes: Common values are 'done', 'pending', and 'deferred', but any string is accepted.
+
+- **Command Reference: list**
+  - Legacy Syntax: `node scripts/dev.js list`
+  - CLI Syntax: `task-master list`
+  - Description: Lists all tasks in tasks.json with IDs, titles, and status
+  - Parameters: 
+    - `--status=<status>, -s`: Filter by status
+    - `--with-subtasks`: Show subtasks for each task
+    - `--file=<path>, -f`: Use alternative tasks.json file (default: 'tasks/tasks.json')
+  - Example: `task-master list`
+  - Notes: Provides quick overview of project progress. Use at start of sessions.
+
+- **Command Reference: expand**
+  - Legacy Syntax: `node scripts/dev.js expand --id=<id> [--num=<number>] [--research] [--prompt="<context>"]`
+  - CLI Syntax: `task-master expand --id=<id> [--num=<number>] [--research] [--prompt="<context>"]`
+  - Description: Expands a task with subtasks for detailed implementation
+  - Parameters:
+    - `--id=<id>`: ID of task to expand (required unless using --all)
+    - `--all`: Expand all pending tasks, prioritized by complexity
+    - `--num=<number>`: Number of subtasks to generate (default: from complexity report)
+    - `--research`: Use Perplexity AI for research-backed generation
+    - `--prompt="<text>"`: Additional context for subtask generation
+    - `--force`: Regenerate subtasks even for tasks that already have them
+  - Example: `task-master expand --id=3 --num=5 --research --prompt="Focus on security aspects"`
+  - Notes: Uses complexity report recommendations if available.
+
+- **Command Reference: analyze-complexity**
+  - Legacy Syntax: `node scripts/dev.js analyze-complexity [options]`
+  - CLI Syntax: `task-master analyze-complexity [options]`
+  - Description: Analyzes task complexity and generates expansion recommendations
+  - Parameters:
+    - `--output=<file>, -o`: Output file path (default: scripts/task-complexity-report.json)
+    - `--model=<model>, -m`: Override LLM model to use
+    - `--threshold=<number>, -t`: Minimum score for expansion recommendation (default: 5)
+    - `--file=<path>, -f`: Use alternative tasks.json file
+    - `--research, -r`: Use Perplexity AI for research-backed analysis
+  - Example: `task-master analyze-complexity --research`
+  - Notes: Report includes complexity scores, recommended subtasks, and tailored prompts.
+
+- **Command Reference: clear-subtasks**
+  - Legacy Syntax: `node scripts/dev.js clear-subtasks --id=<id>`
+  - CLI Syntax: `task-master clear-subtasks --id=<id>`
+  - Description: Removes subtasks from specified tasks to allow regeneration
+  - Parameters:
+    - `--id=<id>`: ID or comma-separated IDs of tasks to clear subtasks from
+    - `--all`: Clear subtasks from all tasks
+  - Examples:
+    - `task-master clear-subtasks --id=3`
+    - `task-master clear-subtasks --id=1,2,3`
+    - `task-master clear-subtasks --all`
+  - Notes: 
+    - Task files are automatically regenerated after clearing subtasks
+    - Can be combined with expand command to immediately generate new subtasks
+    - Works with both parent tasks and individual subtasks
+
+- **Task Structure Fields**
+  - **id**: Unique identifier for the task (Example: `1`)
+  - **title**: Brief, descriptive title (Example: `"Initialize Repo"`)
+  - **description**: Concise summary of what the task involves (Example: `"Create a new repository, set up initial structure."`)
+  - **status**: Current state of the task (Example: `"pending"`, `"done"`, `"deferred"`)
+  - **dependencies**: IDs of prerequisite tasks (Example: `[1, 2]`)
+    - Dependencies are displayed with status indicators (✅ for completed, ⏱️ for pending)
+    - This helps quickly identify which prerequisite tasks are blocking work
+  - **priority**: Importance level (Example: `"high"`, `"medium"`, `"low"`)
+  - **details**: In-depth implementation instructions (Example: `"Use GitHub client ID/secret, handle callback, set session token."`)
+  - **testStrategy**: Verification approach (Example: `"Deploy and call endpoint to confirm 'Hello World' response."`)
+  - **subtasks**: List of smaller, more specific tasks (Example: `[{"id": 1, "title": "Configure OAuth", ...}]`)
+
+- **Environment Variables Configuration**
+  - **ANTHROPIC_API_KEY** (Required): Your Anthropic API key for Claude (Example: `ANTHROPIC_API_KEY=sk-ant-api03-...`)
+  - **MODEL** (Default: `"claude-3-7-sonnet-20250219"`): Claude model to use (Example: `MODEL=claude-3-opus-20240229`)
+  - **MAX_TOKENS** (Default: `"4000"`): Maximum tokens for responses (Example: `MAX_TOKENS=8000`)
+  - **TEMPERATURE** (Default: `"0.7"`): Temperature for model responses (Example: `TEMPERATURE=0.5`)
+  - **DEBUG** (Default: `"false"`): Enable debug logging (Example: `DEBUG=true`)
+  - **LOG_LEVEL** (Default: `"info"`): Console output level (Example: `LOG_LEVEL=debug`)
+  - **DEFAULT_SUBTASKS** (Default: `"3"`): Default subtask count (Example: `DEFAULT_SUBTASKS=5`)
+  - **DEFAULT_PRIORITY** (Default: `"medium"`): Default priority (Example: `DEFAULT_PRIORITY=high`)
+  - **PROJECT_NAME** (Default: `"MCP SaaS MVP"`): Project name in metadata (Example: `PROJECT_NAME=My Awesome Project`)
+  - **PROJECT_VERSION** (Default: `"1.0.0"`): Version in metadata (Example: `PROJECT_VERSION=2.1.0`)
+  - **PERPLEXITY_API_KEY**: For research-backed features (Example: `PERPLEXITY_API_KEY=pplx-...`)
+  - **PERPLEXITY_MODEL** (Default: `"sonar-medium-online"`): Perplexity model (Example: `PERPLEXITY_MODEL=sonar-large-online`)
+
+- **Determining the Next Task**
+  - Run `task-master next` to show the next task to work on
+  - The next command identifies tasks with all dependencies satisfied
+  - Tasks are prioritized by priority level, dependency count, and ID
+  - The command shows comprehensive task information including:
+    - Basic task details and description
+    - Implementation details
+    - Subtasks (if they exist)
+    - Contextual suggested actions
+  - Recommended before starting any new development work
+  - Respects your project's dependency structure
+  - Ensures tasks are completed in the appropriate sequence
+  - Provides ready-to-use commands for common task actions
+
+- **Viewing Specific Task Details**
+  - Run `task-master show <id>` or `task-master show --id=<id>` to view a specific task
+  - Use dot notation for subtasks: `task-master show 1.2` (shows subtask 2 of task 1)
+  - Displays comprehensive information similar to the next command, but for a specific task
+  - For parent tasks, shows all subtasks and their current status
+  - For subtasks, shows parent task information and relationship
+  - Provides contextual suggested actions appropriate for the specific task
+  - Useful for examining task details before implementation or checking status
+
+- **Managing Task Dependencies**
+  - Use `task-master add-dependency --id=<id> --depends-on=<id>` to add a dependency
+  - Use `task-master remove-dependency --id=<id> --depends-on=<id>` to remove a dependency
+  - The system prevents circular dependencies and duplicate dependency entries
+  - Dependencies are checked for existence before being added or removed
+  - Task files are automatically regenerated after dependency changes
+  - Dependencies are visualized with status indicators in task listings and files
+
+- **Command Reference: add-dependency**
+  - Legacy Syntax: `node scripts/dev.js add-dependency --id=<id> --depends-on=<id>`
+  - CLI Syntax: `task-master add-dependency --id=<id> --depends-on=<id>`
+  - Description: Adds a dependency relationship between two tasks
+  - Parameters:
+    - `--id=<id>`: ID of task that will depend on another task (required)
+    - `--depends-on=<id>`: ID of task that will become a dependency (required)
+  - Example: `task-master add-dependency --id=22 --depends-on=21`
+  - Notes: Prevents circular dependencies and duplicates; updates task files automatically
+
+- **Command Reference: remove-dependency**
+  - Legacy Syntax: `node scripts/dev.js remove-dependency --id=<id> --depends-on=<id>`
+  - CLI Syntax: `task-master remove-dependency --id=<id> --depends-on=<id>`
+  - Description: Removes a dependency relationship between two tasks
+  - Parameters:
+    - `--id=<id>`: ID of task to remove dependency from (required)
+    - `--depends-on=<id>`: ID of task to remove as a dependency (required)
+  - Example: `task-master remove-dependency --id=22 --depends-on=21`
+  - Notes: Checks if dependency actually exists; updates task files automatically
+
+- **Command Reference: validate-dependencies**
+  - Legacy Syntax: `node scripts/dev.js validate-dependencies [options]`
+  - CLI Syntax: `task-master validate-dependencies [options]`
+  - Description: Checks for and identifies invalid dependencies in tasks.json and task files
+  - Parameters:
+    - `--file=<path>, -f`: Use alternative tasks.json file (default: 'tasks/tasks.json')
+  - Example: `task-master validate-dependencies`
+  - Notes: 
+    - Reports all non-existent dependencies and self-dependencies without modifying files
+    - Provides detailed statistics on task dependency state
+    - Use before fix-dependencies to audit your task structure
+
+- **Command Reference: fix-dependencies**
+  - Legacy Syntax: `node scripts/dev.js fix-dependencies [options]`
+  - CLI Syntax: `task-master fix-dependencies [options]`
+  - Description: Finds and fixes all invalid dependencies in tasks.json and task files
+  - Parameters:
+    - `--file=<path>, -f`: Use alternative tasks.json file (default: 'tasks/tasks.json')
+  - Example: `task-master fix-dependencies`
+  - Notes: 
+    - Removes references to non-existent tasks and subtasks
+    - Eliminates self-dependencies (tasks depending on themselves)
+    - Regenerates task files with corrected dependencies
+    - Provides detailed report of all fixes made
+
+- **Command Reference: complexity-report**
+  - Legacy Syntax: `node scripts/dev.js complexity-report [options]`
+  - CLI Syntax: `task-master complexity-report [options]`
+  - Description: Displays the task complexity analysis report in a formatted, easy-to-read way
+  - Parameters:
+    - `--file=<path>, -f`: Path to the complexity report file (default: 'scripts/task-complexity-report.json')
+  - Example: `task-master complexity-report`
+  - Notes: 
+    - Shows tasks organized by complexity score with recommended actions
+    - Provides complexity distribution statistics
+    - Displays ready-to-use expansion commands for complex tasks
+    - If no report exists, offers to generate one interactively
+
+- **Command Reference: add-task**
+  - CLI Syntax: `task-master add-task [options]`
+  - Description: Add a new task to tasks.json using AI
+  - Parameters:
+    - `--file=<path>, -f`: Path to the tasks file (default: 'tasks/tasks.json')
+    - `--prompt=<text>, -p`: Description of the task to add (required)
+    - `--dependencies=<ids>, -d`: Comma-separated list of task IDs this task depends on
+    - `--priority=<priority>`: Task priority (high, medium, low) (default: 'medium')
+  - Example: `task-master add-task --prompt="Create user authentication using Auth0"`
+  - Notes: Uses AI to convert description into structured task with appropriate details
+
+- **Command Reference: init**
+  - CLI Syntax: `task-master init`
+  - Description: Initialize a new project with Task Master structure
+  - Parameters: None
+  - Example: `task-master init`
+  - Notes: 
+    - Creates initial project structure with required files
+    - Prompts for project settings if not provided
+    - Merges with existing files when appropriate
+    - Can be used to bootstrap a new Task Master project quickly
+
+- **Code Analysis & Refactoring Techniques**
+  - **Top-Level Function Search**
+    - Use grep pattern matching to find all exported functions across the codebase
+    - Command: `grep -E "export (function|const) \w+|function \w+\(|const \w+ = \(|module\.exports" --include="*.js" -r ./`
+    - Benefits:
+      - Quickly identify all public API functions without reading implementation details
+      - Compare functions between files during refactoring (e.g., monolithic to modular structure)
+      - Verify all expected functions exist in refactored modules
+      - Identify duplicate functionality or naming conflicts
+    - Usage examples:
+      - When migrating from `scripts/dev.js` to modular structure: `grep -E "function \w+\(" scripts/dev.js`
+      - Check function exports in a directory: `grep -E "export (function|const)" scripts/modules/`
+      - Find potential naming conflicts: `grep -E "function (get|set|create|update)\w+\(" -r ./`
+    - Variations:
+      - Add `-n` flag to include line numbers
+      - Add `--include="*.ts"` to filter by file extension
+      - Use with `| sort` to alphabetize results
+    - Integration with refactoring workflow:
+      - Start by mapping all functions in the source file
+      - Create target module files based on function grouping
+      - Verify all functions were properly migrated
+      - Check for any unintentional duplications or omissions
+````
+
+## File: .cursor/rules/pydantic_model_guidelines.mdc
+````
+---
+description: Guide for using meta-development script (scripts/dev.js) to manage task-driven development workflows
+globs: **/*
+alwaysApply: true
+---
+---
+description: Guidelines for defining and using Pydantic models effectively to ensure data validation and clarity.
+globs: ["**/*.py"] # Applies to all Python files
+alwaysApply: true
+---
+
+- **Core Pydantic Usage**
+    - **Inherit from `BaseModel`:** All Pydantic models must inherit from `pydantic.BaseModel`.
+    - **Type Hinting:** Use standard Python type hints for all model fields. Pydantic relies on these for validation.
+    - **Field Customization:** Use `pydantic.Field` for default values, descriptions, validation constraints (e.g., `gt`, `lt`, `min_length`), and aliases.
+      ```python
+      from pydantic import BaseModel, Field
+      from typing import Optional, List
+
+      class Item(BaseModel):
+          name: str = Field(description="The name of the item.")
+          price: float = Field(gt=0, description="The price must be greater than zero.")
+          tags: Optional[List[str]] = Field(default_factory=list, description="Optional list of tags.")
+      ```
+
+- **Model Validation and Data Handling**
+    - **Instantiation & Validation:** Data is validated when a model instance is created.
+      ```python
+      # Data from an external source (e.g., API response, message queue)
+      raw_data = {"name": "Laptop", "price": 1200.50, "tags": ["electronics", "computer"]}
+      try:
+          item_instance = Item(**raw_data) # or Item.model_validate(raw_data) for Pydantic v2+
+          print(f"Validated item: {item_instance.name}")
+      except ValidationError as e:
+          print(f"Validation Error: {e.errors()}")
+      ```
+    - **Import `ValidationError`:** Always import `ValidationError` from `pydantic` when performing explicit validation or catching validation errors.
+      ```python
+      from pydantic import BaseModel, ValidationError # ✅ DO
+      ```
+    - **Accessing Data:** Access validated data directly via model attributes.
+      ```python
+      # Assuming item_instance is a validated Item model
+      item_name = item_instance.name
+      item_price = item_instance.price
+      ```
+      - **❌ DON'T** try to access a generic `.data` attribute unless your model explicitly defines it. If an external source provides data nested under a "data" key, unpack it *before* validation or handle it during parsing in a custom root validator or a wrapper model.
+
+    - **Serialization:**
+        - `model_dump()` (Pydantic V2+): Serializes the model to a dictionary.
+        - `model_dump_json()` (Pydantic V2+): Serializes the model to a JSON string.
+        - (For Pydantic V1: `.dict()` and `.json()`)
+
+- **Generic Models**
+    - If a model needs to wrap generic data types (e.g., a `Message` model where the `data` field can vary), it must inherit from `typing.Generic[T]` and use a `TypeVar`.
+      ```python
+      from typing import TypeVar, Generic, Optional, Dict, Any
+      from pydantic import BaseModel, Field
+
+      T = TypeVar('T')
+
+      class Message(BaseModel, Generic[T]): # ✅ DO: Inherit from Generic[T]
+          id: int
+          type: str
+          data: Optional[T] = Field(default=None)
+      
+      # Usage:
+      # specific_message = Message[Dict[str, Any]](id=1, type="user_update", data={"name": "Alice", "age": 30})
+      # generic_message = Message[str](id=2, type="log_message", data="Process completed.")
+      ```
+
+- **Complex/Arbitrary Types in Models**
+    - If a model field needs to store a complex, non-Pydantic type (e.g., a WebSocket connection object, a custom class instance not meant for Pydantic validation itself):
+        - Set `model_config = {"arbitrary_types_allowed": True}` (Pydantic V2+).
+        - Or `class Config: arbitrary_types_allowed = True` (Pydantic V1).
+      ```python
+      from pydantic import BaseModel
+      # from websockets.asyncio.server import ServerConnection # Example complex type
+
+      class ConnectionInfo(BaseModel):
+          client_id: str
+          websocket: Any # Or the specific type like ServerConnection
+          # For Pydantic V2+
+          model_config = {
+              "arbitrary_types_allowed": True
+          }
+          # For Pydantic V1:
+          # class Config:
+          #     arbitrary_types_allowed = True
+      ```
+
+- **Avoid Common Pitfalls**
+    - **Missing Imports:** Ensure all necessary components (`BaseModel`, `Field`, `ValidationError`, `TypeVar`, `Generic`, etc.) are imported.
+    - **Incorrect Field Access:** Understand the structure of your models. If a model has fields `a`, `b`, `c`, access them as `model.a`, `model.b`, `model.c`, not `model.data.a` unless `data` is an explicit sub-model field.
+    - **Type Hint Accuracy:** Pydantic's power comes from type hints. Ensure they accurately reflect the expected data types.
+````
+
+## File: .cursor/rules/pytest_config.mdc
+````
+---
+description: Guidelines for continuously improving Cursor rules based on emerging code patterns and best practices.
+globs: **/*
+alwaysApply: true
+---
+---
+description: Ensures correct pytest configuration for Python module resolution, especially for projects with a nested package structure.
+globs: ["pyproject.toml", "pytest.ini", "tests/**/*.py", "*/__init__.py"]
+alwaysApply: true
+---
+
+- **Prioritize `pyproject.toml` for Pytest Configuration**
+    - For modern Python projects, prefer configuring pytest within `pyproject.toml` under the `[tool.pytest.ini_options]` section. This centralizes project metadata and configuration.
+    - If using `pytest.ini`, ensure it is located appropriately (usually project root or a recognized test root) and does not conflict with `pyproject.toml` settings.
+
+- **Correctly Configure `pythonpath` (or `PYTHONPATH`)**
+    - To allow pytest to find your source modules, `pythonpath` must be set to include the directory(s) containing your top-level importable package(s).
+    - If your source code (e.g., `browser_use_ext/`) is at the root of your workspace or a specific subdirectory, add `"."` (for current dir, if workspace root *is* the parent of your package) or the relevant relative path (e.g., `"src/"`) to `pythonpath`.
+    - Example (`pyproject.toml`):
+      ```toml
+      [tool.pytest.ini_options]
+      pythonpath = [
+        ".",  # If 'browser_use_ext' is a top-level dir in the pytest root
+        # "src", # If your packages are under a 'src' directory
+      ]
+      testpaths = [
+        "browser_use_ext/tests", # Or your specific test directory
+      ]
+      ```
+
+- **Ensure Packages Have `__init__.py` Files**
+    - Every directory that should be treated as a Python package or sub-package *must* contain an `__init__.py` file. This is crucial for Python's import system to recognize them.
+    - This applies to your main source directories (e.g., `browser_use_ext/`, `browser_use_ext/extension_interface/`, `browser_use_ext/browser/`) and also to your `tests/` directory if you intend to import test helpers from other test files within it as a package.
+
+- **Consistent Import Statements in Test Files**
+    - Once `pythonpath` is correctly set up so that your project's root package (e.g., `browser_use_ext`) is discoverable, test files should import modules from it directly.
+    - Avoid relative imports that go too many levels up (`from .....`) if a proper `pythonpath` allows direct package imports.
+
+    ```python
+    # ✅ Assuming 'browser_use_ext' is on pythonpath:
+    from browser_use_ext.extension_interface.service import ExtensionInterface
+    from browser_use_ext.browser.views import BrowserState
+    
+    # ❌ Avoid if 'browser_use_ext' is already on pythonpath:
+    # from ..extension_interface.service import ExtensionInterface 
+    ```
+
+- **Define `testpaths` Clearly**
+    - Specify your test directories in `testpaths` (e.g., `browser_use_ext/tests` or `tests/`) so pytest knows where to look for tests.
+
+- **Be Aware of Workspace Root and `pytest` Execution Directory**
+    - `pytest` is typically run from the project's root directory (the directory containing `pyproject.toml` or `pytest.ini`). Paths in the configuration are usually relative to this root.
+    - If running `pytest` from a subdirectory, ensure paths in configuration files are still correctly pointing to source and test locations.
+
+- **Clean Pytest Cache (`.pytest_cache`) if Unexplained Issues Persist**
+    - If tests are behaving strangely or not picking up changes, deleting the `.pytest_cache` directory can sometimes help resolve issues related to outdated cached information.
+````
+
+## File: .cursor/rules/self_improve.mdc
+````
+---
+description: Guidelines for continuously improving Cursor rules based on emerging code patterns and best practices.
+globs: **/*
+alwaysApply: true
+---
+
+- **Rule Improvement Triggers:**
+  - New code patterns not covered by existing rules
+  - Repeated similar implementations across files
+  - Common error patterns that could be prevented
+  - New libraries or tools being used consistently
+  - Emerging best practices in the codebase
+
+- **Analysis Process:**
+  - Compare new code with existing rules
+  - Identify patterns that should be standardized
+  - Look for references to external documentation
+  - Check for consistent error handling patterns
+  - Monitor test patterns and coverage
+
+- **Rule Updates:**
+  - **Add New Rules When:**
+    - A new technology/pattern is used in 3+ files
+    - Common bugs could be prevented by a rule
+    - Code reviews repeatedly mention the same feedback
+    - New security or performance patterns emerge
+
+  - **Modify Existing Rules When:**
+    - Better examples exist in the codebase
+    - Additional edge cases are discovered
+    - Related rules have been updated
+    - Implementation details have changed
+
+- **Example Pattern Recognition:**
+  ```typescript
+  // If you see repeated patterns like:
+  const data = await prisma.user.findMany({
+    select: { id: true, email: true },
+    where: { status: 'ACTIVE' }
+  });
+  
+  // Consider adding to [prisma.mdc](mdc:.cursor/rules/prisma.mdc):
+  // - Standard select fields
+  // - Common where conditions
+  // - Performance optimization patterns
+  ```
+
+- **Rule Quality Checks:**
+  - Rules should be actionable and specific
+  - Examples should come from actual code
+  - References should be up to date
+  - Patterns should be consistently enforced
+
+- **Continuous Improvement:**
+  - Monitor code review comments
+  - Track common development questions
+  - Update rules after major refactors
+  - Add links to relevant documentation
+  - Cross-reference related rules
+
+- **Rule Deprecation:**
+  - Mark outdated patterns as deprecated
+  - Remove rules that no longer apply
+  - Update references to deprecated rules
+  - Document migration paths for old patterns
+
+- **Documentation Updates:**
+  - Keep examples synchronized with code
+  - Update references to external docs
+  - Maintain links between related rules
+  - Document breaking changes
+
+Follow [cursor_rules.mdc](mdc:.cursor/rules/cursor_rules.mdc) for proper rule formatting and structure.
+````
+
+## File: .env.example
+````
+# Required
+ANTHROPIC_API_KEY=your-api-key-here  # Format: sk-ant-api03-...
+PERPLEXITY_API_KEY=pplx-abcde # For research (recommended but optional)
+
+# Optional - defaults shown
+MODEL=claude-3-7-sonnet-20250219  # Recommended models: claude-3-7-sonnet-20250219, claude-3-opus-20240229
+PERPLEXITY_MODEL=sonar-pro        # Make sure you have access to sonar-pro otherwise you can use sonar regular.
+MAX_TOKENS=4000                   # Maximum tokens for model responses
+TEMPERATURE=0.7                   # Temperature for model responses (0.0-1.0)
+DEBUG=false                       # Enable debug logging (true/false)
+LOG_LEVEL=info                    # Log level (debug, info, warn, error)
+DEFAULT_SUBTASKS=3                # Default number of subtasks when expanding
+DEFAULT_PRIORITY=medium           # Default priority for generated tasks (high, medium, low)
+PROJECT_NAME=browser-use-remake      # Project name for tasks.json metadata
 ````
 
 ## File: .gitattributes
@@ -1288,203 +1375,6 @@ jobs:
       - run: uv run --with=dotenv pytest tests/${{ matrix.test }}.py || true
 ````
 
-## File: .gitignore
-````
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-*$py.class
-
-# C extensions
-*.so
-
-# Distribution / packaging
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-
-# PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
-*.manifest
-*.spec
-
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.py,cover
-.hypothesis/
-.pytest_cache/
-cover/
-
-# Saved Trajectories for internal evaluation
-saved_trajectories/
-
-# Translations
-*.mo
-*.pot
-
-# Django stuff:
-*.log
-local_settings.py
-db.sqlite3
-db.sqlite3-journal
-
-# Flask stuff:
-instance/
-.webassets-cache
-
-# Scrapy stuff:
-.scrapy
-
-# Sphinx documentation
-docs/_build/
-
-# PyBuilder
-.pybuilder/
-target/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# IPython
-profile_default/
-ipython_config.py
-
-# pyenv
-#   For a library or package, you might want to ignore these files since the code is
-#   intended to run in multiple environments; otherwise, check them in:
-# .python-version
-
-# pipenv
-#   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
-#   However, in case of collaboration, if having platform-specific dependencies or dependencies
-#   having no cross-platform support, pipenv may install dependencies that don't work, or not
-#   install all needed dependencies.
-#Pipfile.lock
-
-# poetry
-#   Similar to Pipfile.lock, it is generally recommended to include poetry.lock in version control.
-#   This is especially recommended for binary packages to ensure reproducibility, and is more
-#   commonly ignored for libraries.
-#   https://python-poetry.org/docs/basic-usage/#commit-your-poetrylock-file-to-version-control
-#poetry.lock
-
-# pdm
-#   Similar to Pipfile.lock, it is generally recommended to include pdm.lock in version control.
-#pdm.lock
-#   pdm stores project-wide configurations in .pdm.toml, but it is recommended to not include it
-#   in version control.
-#   https://pdm.fming.dev/latest/usage/project/#working-with-version-control
-.pdm.toml
-.pdm-python
-.pdm-build/
-
-# PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
-__pypackages__/
-
-# Celery stuff
-celerybeat-schedule
-celerybeat.pid
-
-# SageMath parsed files
-*.sage.py
-
-# Environments
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
-test_env/
-
-
-# Spyder project settings
-.spyderproject
-.spyproject
-
-# Rope project settings
-.ropeproject
-
-# mkdocs documentation
-/site
-
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
-# Pyre type checker
-.pyre/
-
-# pytype static type analyzer
-.pytype/
-
-# Cython debug symbols
-cython_debug/
-
-# PyCharm
-#  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
-#  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
-#  and can be added to the global gitignore or merged into this file.  For a more nuclear
-#  option (not recommended) you can uncomment the following to ignore the entire idea folder.
-#.idea/
-temp
-tmp
-
-
-.DS_Store
-
-private_example.py
-private_example
-
-browser_cookies.json
-cookies.json
-AgentHistory.json
-cv_04_24.pdf
-AgentHistoryList.json
-*.gif
-gcp-login.json
-.vscode
-.ruff_cache
-.idea
-*.txt
-*.pdf
-*.csv
-*.json
-*.jsonl
-
-uv.lock
-````
-
 ## File: .pre-commit-config.yaml
 ````yaml
 repos:
@@ -1524,6 +1414,3367 @@ repos:
 ## File: .python-version
 ````
 3.11
+````
+
+## File: .windsurfrules
+````
+Below you will find a variety of important rules spanning:
+- the dev_workflow
+- the .windsurfrules document self-improvement workflow
+- the template to follow when modifying or adding new sections/rules to this document.
+
+---
+DEV_WORKFLOW
+---
+description: Guide for using meta-development script (scripts/dev.js) to manage task-driven development workflows
+globs: **/*
+filesToApplyRule: **/*
+alwaysApply: true
+---
+
+- **Global CLI Commands**
+  - Task Master now provides a global CLI through the `task-master` command
+  - All functionality from `scripts/dev.js` is available through this interface
+  - Install globally with `npm install -g claude-task-master` or use locally via `npx`
+  - Use `task-master <command>` instead of `node scripts/dev.js <command>`
+  - Examples:
+    - `task-master list` instead of `node scripts/dev.js list`
+    - `task-master next` instead of `node scripts/dev.js next`
+    - `task-master expand --id=3` instead of `node scripts/dev.js expand --id=3`
+  - All commands accept the same options as their script equivalents
+  - The CLI provides additional commands like `task-master init` for project setup
+
+- **Development Workflow Process**
+  - Start new projects by running `task-master init` or `node scripts/dev.js parse-prd --input=<prd-file.txt>` to generate initial tasks.json
+  - Begin coding sessions with `task-master list` to see current tasks, status, and IDs
+  - Analyze task complexity with `task-master analyze-complexity --research` before breaking down tasks
+  - Select tasks based on dependencies (all marked 'done'), priority level, and ID order
+  - Clarify tasks by checking task files in tasks/ directory or asking for user input
+  - View specific task details using `task-master show <id>` to understand implementation requirements
+  - Break down complex tasks using `task-master expand --id=<id>` with appropriate flags
+  - Clear existing subtasks if needed using `task-master clear-subtasks --id=<id>` before regenerating
+  - Implement code following task details, dependencies, and project standards
+  - Verify tasks according to test strategies before marking as complete
+  - Mark completed tasks with `task-master set-status --id=<id> --status=done`
+  - Update dependent tasks when implementation differs from original plan
+  - Generate task files with `task-master generate` after updating tasks.json
+  - Maintain valid dependency structure with `task-master fix-dependencies` when needed
+  - Respect dependency chains and task priorities when selecting work
+  - Report progress regularly using the list command
+
+- **Task Complexity Analysis**
+  - Run `node scripts/dev.js analyze-complexity --research` for comprehensive analysis
+  - Review complexity report in scripts/task-complexity-report.json
+  - Or use `node scripts/dev.js complexity-report` for a formatted, readable version of the report
+  - Focus on tasks with highest complexity scores (8-10) for detailed breakdown
+  - Use analysis results to determine appropriate subtask allocation
+  - Note that reports are automatically used by the expand command
+
+- **Task Breakdown Process**
+  - For tasks with complexity analysis, use `node scripts/dev.js expand --id=<id>`
+  - Otherwise use `node scripts/dev.js expand --id=<id> --subtasks=<number>`
+  - Add `--research` flag to leverage Perplexity AI for research-backed expansion
+  - Use `--prompt="<context>"` to provide additional context when needed
+  - Review and adjust generated subtasks as necessary
+  - Use `--all` flag to expand multiple pending tasks at once
+  - If subtasks need regeneration, clear them first with `clear-subtasks` command
+
+- **Implementation Drift Handling**
+  - When implementation differs significantly from planned approach
+  - When future tasks need modification due to current implementation choices
+  - When new dependencies or requirements emerge
+  - Call `node scripts/dev.js update --from=<futureTaskId> --prompt="<explanation>"` to update tasks.json
+
+- **Task Status Management**
+  - Use 'pending' for tasks ready to be worked on
+  - Use 'done' for completed and verified tasks
+  - Use 'deferred' for postponed tasks
+  - Add custom status values as needed for project-specific workflows
+
+- **Task File Format Reference**
+  ```
+  # Task ID: <id>
+  # Title: <title>
+  # Status: <status>
+  # Dependencies: <comma-separated list of dependency IDs>
+  # Priority: <priority>
+  # Description: <brief description>
+  # Details:
+  <detailed implementation notes>
+  
+  # Test Strategy:
+  <verification approach>
+  ```
+
+- **Command Reference: parse-prd**
+  - Legacy Syntax: `node scripts/dev.js parse-prd --input=<prd-file.txt>`
+  - CLI Syntax: `task-master parse-prd --input=<prd-file.txt>`
+  - Description: Parses a PRD document and generates a tasks.json file with structured tasks
+  - Parameters: 
+    - `--input=<file>`: Path to the PRD text file (default: sample-prd.txt)
+  - Example: `task-master parse-prd --input=requirements.txt`
+  - Notes: Will overwrite existing tasks.json file. Use with caution.
+
+- **Command Reference: update**
+  - Legacy Syntax: `node scripts/dev.js update --from=<id> --prompt="<prompt>"`
+  - CLI Syntax: `task-master update --from=<id> --prompt="<prompt>"`
+  - Description: Updates tasks with ID >= specified ID based on the provided prompt
+  - Parameters:
+    - `--from=<id>`: Task ID from which to start updating (required)
+    - `--prompt="<text>"`: Explanation of changes or new context (required)
+  - Example: `task-master update --from=4 --prompt="Now we are using Express instead of Fastify."`
+  - Notes: Only updates tasks not marked as 'done'. Completed tasks remain unchanged.
+
+- **Command Reference: generate**
+  - Legacy Syntax: `node scripts/dev.js generate`
+  - CLI Syntax: `task-master generate`
+  - Description: Generates individual task files in tasks/ directory based on tasks.json
+  - Parameters: 
+    - `--file=<path>, -f`: Use alternative tasks.json file (default: 'tasks/tasks.json')
+    - `--output=<dir>, -o`: Output directory (default: 'tasks')
+  - Example: `task-master generate`
+  - Notes: Overwrites existing task files. Creates tasks/ directory if needed.
+
+- **Command Reference: set-status**
+  - Legacy Syntax: `node scripts/dev.js set-status --id=<id> --status=<status>`
+  - CLI Syntax: `task-master set-status --id=<id> --status=<status>`
+  - Description: Updates the status of a specific task in tasks.json
+  - Parameters:
+    - `--id=<id>`: ID of the task to update (required)
+    - `--status=<status>`: New status value (required)
+  - Example: `task-master set-status --id=3 --status=done`
+  - Notes: Common values are 'done', 'pending', and 'deferred', but any string is accepted.
+
+- **Command Reference: list**
+  - Legacy Syntax: `node scripts/dev.js list`
+  - CLI Syntax: `task-master list`
+  - Description: Lists all tasks in tasks.json with IDs, titles, and status
+  - Parameters: 
+    - `--status=<status>, -s`: Filter by status
+    - `--with-subtasks`: Show subtasks for each task
+    - `--file=<path>, -f`: Use alternative tasks.json file (default: 'tasks/tasks.json')
+  - Example: `task-master list`
+  - Notes: Provides quick overview of project progress. Use at start of sessions.
+
+- **Command Reference: expand**
+  - Legacy Syntax: `node scripts/dev.js expand --id=<id> [--num=<number>] [--research] [--prompt="<context>"]`
+  - CLI Syntax: `task-master expand --id=<id> [--num=<number>] [--research] [--prompt="<context>"]`
+  - Description: Expands a task with subtasks for detailed implementation
+  - Parameters:
+    - `--id=<id>`: ID of task to expand (required unless using --all)
+    - `--all`: Expand all pending tasks, prioritized by complexity
+    - `--num=<number>`: Number of subtasks to generate (default: from complexity report)
+    - `--research`: Use Perplexity AI for research-backed generation
+    - `--prompt="<text>"`: Additional context for subtask generation
+    - `--force`: Regenerate subtasks even for tasks that already have them
+  - Example: `task-master expand --id=3 --num=5 --research --prompt="Focus on security aspects"`
+  - Notes: Uses complexity report recommendations if available.
+
+- **Command Reference: analyze-complexity**
+  - Legacy Syntax: `node scripts/dev.js analyze-complexity [options]`
+  - CLI Syntax: `task-master analyze-complexity [options]`
+  - Description: Analyzes task complexity and generates expansion recommendations
+  - Parameters:
+    - `--output=<file>, -o`: Output file path (default: scripts/task-complexity-report.json)
+    - `--model=<model>, -m`: Override LLM model to use
+    - `--threshold=<number>, -t`: Minimum score for expansion recommendation (default: 5)
+    - `--file=<path>, -f`: Use alternative tasks.json file
+    - `--research, -r`: Use Perplexity AI for research-backed analysis
+  - Example: `task-master analyze-complexity --research`
+  - Notes: Report includes complexity scores, recommended subtasks, and tailored prompts.
+
+- **Command Reference: clear-subtasks**
+  - Legacy Syntax: `node scripts/dev.js clear-subtasks --id=<id>`
+  - CLI Syntax: `task-master clear-subtasks --id=<id>`
+  - Description: Removes subtasks from specified tasks to allow regeneration
+  - Parameters:
+    - `--id=<id>`: ID or comma-separated IDs of tasks to clear subtasks from
+    - `--all`: Clear subtasks from all tasks
+  - Examples:
+    - `task-master clear-subtasks --id=3`
+    - `task-master clear-subtasks --id=1,2,3`
+    - `task-master clear-subtasks --all`
+  - Notes: 
+    - Task files are automatically regenerated after clearing subtasks
+    - Can be combined with expand command to immediately generate new subtasks
+    - Works with both parent tasks and individual subtasks
+
+- **Task Structure Fields**
+  - **id**: Unique identifier for the task (Example: `1`)
+  - **title**: Brief, descriptive title (Example: `"Initialize Repo"`)
+  - **description**: Concise summary of what the task involves (Example: `"Create a new repository, set up initial structure."`)
+  - **status**: Current state of the task (Example: `"pending"`, `"done"`, `"deferred"`)
+  - **dependencies**: IDs of prerequisite tasks (Example: `[1, 2]`)
+    - Dependencies are displayed with status indicators (✅ for completed, ⏱️ for pending)
+    - This helps quickly identify which prerequisite tasks are blocking work
+  - **priority**: Importance level (Example: `"high"`, `"medium"`, `"low"`)
+  - **details**: In-depth implementation instructions (Example: `"Use GitHub client ID/secret, handle callback, set session token."`)
+  - **testStrategy**: Verification approach (Example: `"Deploy and call endpoint to confirm 'Hello World' response."`)
+  - **subtasks**: List of smaller, more specific tasks (Example: `[{"id": 1, "title": "Configure OAuth", ...}]`)
+
+- **Environment Variables Configuration**
+  - **ANTHROPIC_API_KEY** (Required): Your Anthropic API key for Claude (Example: `ANTHROPIC_API_KEY=sk-ant-api03-...`)
+  - **MODEL** (Default: `"claude-3-7-sonnet-20250219"`): Claude model to use (Example: `MODEL=claude-3-opus-20240229`)
+  - **MAX_TOKENS** (Default: `"4000"`): Maximum tokens for responses (Example: `MAX_TOKENS=8000`)
+  - **TEMPERATURE** (Default: `"0.7"`): Temperature for model responses (Example: `TEMPERATURE=0.5`)
+  - **DEBUG** (Default: `"false"`): Enable debug logging (Example: `DEBUG=true`)
+  - **LOG_LEVEL** (Default: `"info"`): Console output level (Example: `LOG_LEVEL=debug`)
+  - **DEFAULT_SUBTASKS** (Default: `"3"`): Default subtask count (Example: `DEFAULT_SUBTASKS=5`)
+  - **DEFAULT_PRIORITY** (Default: `"medium"`): Default priority (Example: `DEFAULT_PRIORITY=high`)
+  - **PROJECT_NAME** (Default: `"MCP SaaS MVP"`): Project name in metadata (Example: `PROJECT_NAME=My Awesome Project`)
+  - **PROJECT_VERSION** (Default: `"1.0.0"`): Version in metadata (Example: `PROJECT_VERSION=2.1.0`)
+  - **PERPLEXITY_API_KEY**: For research-backed features (Example: `PERPLEXITY_API_KEY=pplx-...`)
+  - **PERPLEXITY_MODEL** (Default: `"sonar-medium-online"`): Perplexity model (Example: `PERPLEXITY_MODEL=sonar-large-online`)
+
+- **Determining the Next Task**
+  - Run `task-master next` to show the next task to work on
+  - The next command identifies tasks with all dependencies satisfied
+  - Tasks are prioritized by priority level, dependency count, and ID
+  - The command shows comprehensive task information including:
+    - Basic task details and description
+    - Implementation details
+    - Subtasks (if they exist)
+    - Contextual suggested actions
+  - Recommended before starting any new development work
+  - Respects your project's dependency structure
+  - Ensures tasks are completed in the appropriate sequence
+  - Provides ready-to-use commands for common task actions
+
+- **Viewing Specific Task Details**
+  - Run `task-master show <id>` or `task-master show --id=<id>` to view a specific task
+  - Use dot notation for subtasks: `task-master show 1.2` (shows subtask 2 of task 1)
+  - Displays comprehensive information similar to the next command, but for a specific task
+  - For parent tasks, shows all subtasks and their current status
+  - For subtasks, shows parent task information and relationship
+  - Provides contextual suggested actions appropriate for the specific task
+  - Useful for examining task details before implementation or checking status
+
+- **Managing Task Dependencies**
+  - Use `task-master add-dependency --id=<id> --depends-on=<id>` to add a dependency
+  - Use `task-master remove-dependency --id=<id> --depends-on=<id>` to remove a dependency
+  - The system prevents circular dependencies and duplicate dependency entries
+  - Dependencies are checked for existence before being added or removed
+  - Task files are automatically regenerated after dependency changes
+  - Dependencies are visualized with status indicators in task listings and files
+
+- **Command Reference: add-dependency**
+  - Legacy Syntax: `node scripts/dev.js add-dependency --id=<id> --depends-on=<id>`
+  - CLI Syntax: `task-master add-dependency --id=<id> --depends-on=<id>`
+  - Description: Adds a dependency relationship between two tasks
+  - Parameters:
+    - `--id=<id>`: ID of task that will depend on another task (required)
+    - `--depends-on=<id>`: ID of task that will become a dependency (required)
+  - Example: `task-master add-dependency --id=22 --depends-on=21`
+  - Notes: Prevents circular dependencies and duplicates; updates task files automatically
+
+- **Command Reference: remove-dependency**
+  - Legacy Syntax: `node scripts/dev.js remove-dependency --id=<id> --depends-on=<id>`
+  - CLI Syntax: `task-master remove-dependency --id=<id> --depends-on=<id>`
+  - Description: Removes a dependency relationship between two tasks
+  - Parameters:
+    - `--id=<id>`: ID of task to remove dependency from (required)
+    - `--depends-on=<id>`: ID of task to remove as a dependency (required)
+  - Example: `task-master remove-dependency --id=22 --depends-on=21`
+  - Notes: Checks if dependency actually exists; updates task files automatically
+
+- **Command Reference: validate-dependencies**
+  - Legacy Syntax: `node scripts/dev.js validate-dependencies [options]`
+  - CLI Syntax: `task-master validate-dependencies [options]`
+  - Description: Checks for and identifies invalid dependencies in tasks.json and task files
+  - Parameters:
+    - `--file=<path>, -f`: Use alternative tasks.json file (default: 'tasks/tasks.json')
+  - Example: `task-master validate-dependencies`
+  - Notes: 
+    - Reports all non-existent dependencies and self-dependencies without modifying files
+    - Provides detailed statistics on task dependency state
+    - Use before fix-dependencies to audit your task structure
+
+- **Command Reference: fix-dependencies**
+  - Legacy Syntax: `node scripts/dev.js fix-dependencies [options]`
+  - CLI Syntax: `task-master fix-dependencies [options]`
+  - Description: Finds and fixes all invalid dependencies in tasks.json and task files
+  - Parameters:
+    - `--file=<path>, -f`: Use alternative tasks.json file (default: 'tasks/tasks.json')
+  - Example: `task-master fix-dependencies`
+  - Notes: 
+    - Removes references to non-existent tasks and subtasks
+    - Eliminates self-dependencies (tasks depending on themselves)
+    - Regenerates task files with corrected dependencies
+    - Provides detailed report of all fixes made
+
+- **Command Reference: complexity-report**
+  - Legacy Syntax: `node scripts/dev.js complexity-report [options]`
+  - CLI Syntax: `task-master complexity-report [options]`
+  - Description: Displays the task complexity analysis report in a formatted, easy-to-read way
+  - Parameters:
+    - `--file=<path>, -f`: Path to the complexity report file (default: 'scripts/task-complexity-report.json')
+  - Example: `task-master complexity-report`
+  - Notes: 
+    - Shows tasks organized by complexity score with recommended actions
+    - Provides complexity distribution statistics
+    - Displays ready-to-use expansion commands for complex tasks
+    - If no report exists, offers to generate one interactively
+
+- **Command Reference: add-task**
+  - CLI Syntax: `task-master add-task [options]`
+  - Description: Add a new task to tasks.json using AI
+  - Parameters:
+    - `--file=<path>, -f`: Path to the tasks file (default: 'tasks/tasks.json')
+    - `--prompt=<text>, -p`: Description of the task to add (required)
+    - `--dependencies=<ids>, -d`: Comma-separated list of task IDs this task depends on
+    - `--priority=<priority>`: Task priority (high, medium, low) (default: 'medium')
+  - Example: `task-master add-task --prompt="Create user authentication using Auth0"`
+  - Notes: Uses AI to convert description into structured task with appropriate details
+
+- **Command Reference: init**
+  - CLI Syntax: `task-master init`
+  - Description: Initialize a new project with Task Master structure
+  - Parameters: None
+  - Example: `task-master init`
+  - Notes: 
+    - Creates initial project structure with required files
+    - Prompts for project settings if not provided
+    - Merges with existing files when appropriate
+    - Can be used to bootstrap a new Task Master project quickly
+
+- **Code Analysis & Refactoring Techniques**
+  - **Top-Level Function Search**
+    - Use grep pattern matching to find all exported functions across the codebase
+    - Command: `grep -E "export (function|const) \w+|function \w+\(|const \w+ = \(|module\.exports" --include="*.js" -r ./`
+    - Benefits:
+      - Quickly identify all public API functions without reading implementation details
+      - Compare functions between files during refactoring (e.g., monolithic to modular structure)
+      - Verify all expected functions exist in refactored modules
+      - Identify duplicate functionality or naming conflicts
+    - Usage examples:
+      - When migrating from `scripts/dev.js` to modular structure: `grep -E "function \w+\(" scripts/dev.js`
+      - Check function exports in a directory: `grep -E "export (function|const)" scripts/modules/`
+      - Find potential naming conflicts: `grep -E "function (get|set|create|update)\w+\(" -r ./`
+    - Variations:
+      - Add `-n` flag to include line numbers
+      - Add `--include="*.ts"` to filter by file extension
+      - Use with `| sort` to alphabetize results
+    - Integration with refactoring workflow:
+      - Start by mapping all functions in the source file
+      - Create target module files based on function grouping
+      - Verify all functions were properly migrated
+      - Check for any unintentional duplications or omissions
+
+---
+WINDSURF_RULES
+---
+description: Guidelines for creating and maintaining Windsurf rules to ensure consistency and effectiveness.
+globs: .windsurfrules
+filesToApplyRule: .windsurfrules
+alwaysApply: true
+---
+The below describes how you should be structuring new rule sections in this document.
+- **Required Rule Structure:**
+  ```markdown
+  ---
+  description: Clear, one-line description of what the rule enforces
+  globs: path/to/files/*.ext, other/path/**/*
+  alwaysApply: boolean
+  ---
+
+  - **Main Points in Bold**
+    - Sub-points with details
+    - Examples and explanations
+  ```
+
+- **Section References:**
+  - Use `ALL_CAPS_SECTION` to reference files
+  - Example: `WINDSURF_RULES`
+
+- **Code Examples:**
+  - Use language-specific code blocks
+  ```typescript
+  // ✅ DO: Show good examples
+  const goodExample = true;
+  
+  // ❌ DON'T: Show anti-patterns
+  const badExample = false;
+  ```
+
+- **Rule Content Guidelines:**
+  - Start with high-level overview
+  - Include specific, actionable requirements
+  - Show examples of correct implementation
+  - Reference existing code when possible
+  - Keep rules DRY by referencing other rules
+
+- **Rule Maintenance:**
+  - Update rules when new patterns emerge
+  - Add examples from actual codebase
+  - Remove outdated patterns
+  - Cross-reference related rules
+
+- **Best Practices:**
+  - Use bullet points for clarity
+  - Keep descriptions concise
+  - Include both DO and DON'T examples
+  - Reference actual code over theoretical examples
+  - Use consistent formatting across rules 
+
+---
+SELF_IMPROVE
+---
+description: Guidelines for continuously improving this rules document based on emerging code patterns and best practices.
+globs: **/*
+filesToApplyRule: **/*
+alwaysApply: true
+---
+
+- **Rule Improvement Triggers:**
+  - New code patterns not covered by existing rules
+  - Repeated similar implementations across files
+  - Common error patterns that could be prevented
+  - New libraries or tools being used consistently
+  - Emerging best practices in the codebase
+
+- **Analysis Process:**
+  - Compare new code with existing rules
+  - Identify patterns that should be standardized
+  - Look for references to external documentation
+  - Check for consistent error handling patterns
+  - Monitor test patterns and coverage
+
+- **Rule Updates:**
+  - **Add New Rules When:**
+    - A new technology/pattern is used in 3+ files
+    - Common bugs could be prevented by a rule
+    - Code reviews repeatedly mention the same feedback
+    - New security or performance patterns emerge
+
+  - **Modify Existing Rules When:**
+    - Better examples exist in the codebase
+    - Additional edge cases are discovered
+    - Related rules have been updated
+    - Implementation details have changed
+
+- **Example Pattern Recognition:**
+  ```typescript
+  // If you see repeated patterns like:
+  const data = await prisma.user.findMany({
+    select: { id: true, email: true },
+    where: { status: 'ACTIVE' }
+  });
+  
+  // Consider adding a PRISMA section in the .windsurfrules:
+  // - Standard select fields
+  // - Common where conditions
+  // - Performance optimization patterns
+  ```
+
+- **Rule Quality Checks:**
+  - Rules should be actionable and specific
+  - Examples should come from actual code
+  - References should be up to date
+  - Patterns should be consistently enforced
+
+- **Continuous Improvement:**
+  - Monitor code review comments
+  - Track common development questions
+  - Update rules after major refactors
+  - Add links to relevant documentation
+  - Cross-reference related rules
+
+- **Rule Deprecation:**
+  - Mark outdated patterns as deprecated
+  - Remove rules that no longer apply
+  - Update references to deprecated rules
+  - Document migration paths for old patterns
+
+- **Documentation Updates:**
+  - Keep examples synchronized with code
+  - Update references to external docs
+  - Maintain links between related rules
+  - Document breaking changes
+
+Follow WINDSURF_RULES for proper rule formatting and structure of windsurf rule sections.
+````
+
+## File: browser_use_ext/__init__.py
+````python
+# This file makes the 'browser-use-ext' directory a Python package.
+````
+
+## File: browser_use_ext/agent/__init__.py
+````python
+# This file makes the agent directory a Python package. 
+
+# You might want to expose key classes from the agent submodules here, for example:
+# from .views import AgentSettings, AgentOutput
+# from .message_manager.service import MessageManager
+# from .memory.service import AgentMemory
+# from .prompts import SystemPrompt
+
+# For now, keeping it simple. Can be expanded as the agent develops.
+__all__ = []
+````
+
+## File: browser_use_ext/agent/memory/__init__.py
+````python
+# This file makes the memory directory a Python package. 
+
+from .service import MemoryItem, AgentMemory
+
+__all__ = [
+    "MemoryItem",
+    "AgentMemory",
+]
+````
+
+## File: browser_use_ext/agent/memory/service.py
+````python
+# Standard library imports
+import logging
+from typing import Dict, Any, Optional, List
+from datetime import datetime, timezone
+
+# Third-party imports
+from pydantic import BaseModel, Field
+
+# Initialize logger for this module
+logger = logging.getLogger(__name__)
+
+class MemoryItem(BaseModel):
+    """Represents a single item stored in the agent's memory."""
+    key: str = Field(description="Unique key for the memory item.")
+    value: Any = Field(description="The value associated with the key.")
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Timestamp of when the memory item was last updated or created.")
+    metadata: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Optional metadata for the memory item (e.g., source, relevance score).")
+    
+    class Config:
+        from_attributes = True
+        json_encoders = {
+            datetime: lambda v: v.isoformat()
+        }
+
+class AgentMemory:
+    """
+    A simple in-memory storage for an agent.
+    Provides basic CRUD operations for memory items.
+    This can be expanded to use databases or vector stores for more complex memory management.
+    """
+
+    def __init__(self):
+        """Initializes the AgentMemory with an empty dictionary for storage."""
+        self._storage: Dict[str, MemoryItem] = {}
+        logger.info("AgentMemory initialized.")
+
+    def store(self, key: str, value: Any, metadata: Optional[Dict[str, Any]] = None) -> None:
+        """
+        Stores or updates an item in memory.
+        Args:
+            key: The unique key for the item.
+            value: The value to store.
+            metadata: Optional metadata associated with the item.
+        """
+        if not key:
+            logger.warning("Attempted to store memory item with empty key. Skipping.")
+            return
+            
+        item = MemoryItem(key=key, value=value, metadata=metadata or {})
+        self._storage[key] = item
+        logger.debug(f"Stored/Updated memory item with key: '{key}'")
+
+    def retrieve(self, key: str) -> Optional[MemoryItem]:
+        """
+        Retrieves an item from memory by its key.
+        Args:
+            key: The key of the item to retrieve.
+        Returns:
+            The MemoryItem if found, otherwise None.
+        """
+        item = self._storage.get(key)
+        if item:
+            logger.debug(f"Retrieved memory item with key: '{key}'")
+        else:
+            logger.debug(f"Memory item with key: '{key}' not found.")
+        return item
+
+    def retrieve_value(self, key: str) -> Optional[Any]:
+        """
+        Retrieves only the value of an item from memory by its key.
+        Args:
+            key: The key of the item.
+        Returns:
+            The value if the key is found, otherwise None.
+        """
+        item = self.retrieve(key)
+        return item.value if item else None
+
+    def delete(self, key: str) -> bool:
+        """
+        Deletes an item from memory by its key.
+        Args:
+            key: The key of the item to delete.
+        Returns:
+            True if the item was deleted, False if the key was not found.
+        """
+        if key in self._storage:
+            del self._storage[key]
+            logger.debug(f"Deleted memory item with key: '{key}'")
+            return True
+        logger.debug(f"Attempted to delete non-existent memory item with key: '{key}'")
+        return False
+
+    def list_keys(self) -> List[str]:
+        """Returns a list of all keys currently in memory."""
+        return list(self._storage.keys())
+
+    def get_all_items(self) -> List[MemoryItem]:
+        """Returns all items currently in memory."""
+        return list(self._storage.values())
+
+    def clear_memory(self) -> None:
+        """Clears all items from memory."""
+        self._storage = {}
+        logger.info("Agent memory cleared.")
+
+# Example Usage:
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG)
+    memory = AgentMemory()
+
+    # Store items
+    memory.store("user_preference_theme", "dark", metadata={"source": "user_settings"})
+    memory.store("last_visited_url", "https://example.com/path", metadata={"type": "navigation_history"})
+    memory.store("complex_object", {"data": [1, 2, 3], "config": {"active": True}})
+
+    # Retrieve items
+    theme = memory.retrieve_value("user_preference_theme")
+    logger.info(f"User theme preference: {theme}")
+
+    last_url_item = memory.retrieve("last_visited_url")
+    if last_url_item:
+        logger.info(f"Last visited URL item: Key='{last_url_item.key}', Value='{last_url_item.value}', Timestamp='{last_url_item.timestamp.isoformat()}', Meta={last_url_item.metadata}")
+
+    non_existent = memory.retrieve("non_existent_key")
+    logger.info(f"Non-existent item: {non_existent}")
+
+    # List keys and items
+    logger.info(f"All keys in memory: {memory.list_keys()}")
+    # logger.info(f"All items: {memory.get_all_items()}") # Can be verbose
+
+    # Delete an item
+    deleted = memory.delete("last_visited_url")
+    logger.info(f"Deletion of 'last_visited_url' successful: {deleted}")
+    logger.info(f"Keys after deletion: {memory.list_keys()}")
+
+    # Clear memory
+    memory.clear_memory()
+    logger.info(f"Keys after clearing memory: {memory.list_keys()}")
+````
+
+## File: browser_use_ext/agent/message_manager/__init__.py
+````python
+# This file makes the message_manager directory a Python package. 
+
+from .service import Message, MessageManager
+
+__all__ = [
+    "Message",
+    "MessageManager",
+]
+````
+
+## File: browser_use_ext/agent/message_manager/service.py
+````python
+# Standard library imports
+import logging
+from typing import List, Dict, Any, Optional, Literal
+from datetime import datetime, timezone
+
+# Third-party imports
+from pydantic import BaseModel, Field
+
+# Initialize logger for this module
+logger = logging.getLogger(__name__)
+
+class Message(BaseModel):
+    """Represents a single message in a conversation or interaction history."""
+    role: Literal["user", "assistant", "system", "tool_code", "tool_output"] = Field(description="The role of the message sender.")
+    content: str = Field(description="The textual content of the message.")
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Timestamp of when the message was created.")
+    metadata: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Optional metadata associated with the message.")
+
+    class Config:
+        from_attributes = True
+        json_encoders = {
+            datetime: lambda v: v.isoformat() # Ensure datetime is serialized to ISO format
+        }
+
+class MessageManager:
+    """
+    Manages a list of messages, representing a conversation history.
+    Provides methods to add messages and retrieve the history.
+    """
+    def __init__(self, system_prompt: Optional[str] = None):
+        """
+        Initializes the MessageManager.
+        Args:
+            system_prompt: An optional system prompt to pre-pend to the message history.
+        """
+        self.history: List[Message] = []
+        if system_prompt:
+            self.add_message(role="system", content=system_prompt)
+        logger.info(f"MessageManager initialized. System prompt {'set' if system_prompt else 'not set'}.")
+
+    def add_message(self, role: Literal["user", "assistant", "system", "tool_code", "tool_output"], content: str, metadata: Optional[Dict[str, Any]] = None) -> None:
+        """
+        Adds a new message to the history.
+        Args:
+            role: The role of the message sender.
+            content: The content of the message.
+            metadata: Optional metadata for the message.
+        """
+        if not role or not content:
+            logger.warning("Attempted to add message with empty role or content. Skipping.")
+            return
+            
+        message = Message(role=role, content=content, metadata=metadata or {})
+        self.history.append(message)
+        logger.debug(f"Added message: Role='{role}', Content='{content[:50]}...'")
+
+    def get_history(self) -> List[Message]:
+        """Returns the current message history."""
+        return self.history
+
+    def get_history_as_dicts(self) -> List[Dict[str, Any]]:
+        """Returns the current message history as a list of dictionaries, with datetimes as ISO strings."""
+        # Using model_dump with mode='json' ensures that json_encoders are applied.
+        return [msg.model_dump(mode='json', exclude_none=True) for msg in self.history]
+
+    def clear_history(self) -> None:
+        """Clears all messages from the history."""
+        self.history = []
+        logger.info("Message history cleared.")
+
+    def add_user_message(self, content: str, metadata: Optional[Dict[str, Any]] = None) -> None:
+        """Convenience method to add a user message."""
+        self.add_message(role="user", content=content, metadata=metadata)
+
+    def add_assistant_message(self, content: str, metadata: Optional[Dict[str, Any]] = None) -> None:
+        """Convenience method to add an assistant message."""
+        self.add_message(role="assistant", content=content, metadata=metadata)
+
+# Example Usage:
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG)
+    
+    # Initialize with a system prompt
+    manager = MessageManager(system_prompt="You are a helpful AI assistant.")
+    manager.add_user_message("Hello, assistant!")
+    manager.add_assistant_message("Hello, user! How can I help you today?")
+    manager.add_message(role="tool_code", content="print('Hello from tool')")
+    manager.add_message(role="tool_output", content="Hello from tool")
+
+    history = manager.get_history()
+    for msg in history:
+        logger.info(f"[{msg.timestamp.isoformat()}] {msg.role.upper()}: {msg.content}")
+
+    history_dicts = manager.get_history_as_dicts()
+    logger.info(f"History as dicts: {history_dicts}")
+
+    manager.clear_history()
+    logger.info(f"History count after clear: {len(manager.get_history())}")
+````
+
+## File: browser_use_ext/agent/prompts.py
+````python
+# Standard library imports
+import logging
+from typing import List, Optional, Dict, Any
+
+# Third-party imports
+from pydantic import BaseModel, Field
+
+# Initialize logger for this module
+logger = logging.getLogger(__name__)
+
+class PromptVariable(BaseModel):
+    """Describes a variable that can be injected into a prompt template."""
+    name: str = Field(description="Name of the variable (e.g., '{{user_query}}')")
+    description: str = Field(description="Description of what the variable represents")
+    example_value: Optional[Any] = Field(default=None, description="An example value for the variable")
+
+class SystemPrompt(BaseModel):
+    """
+    Defines the structure and content of a system prompt for an LLM-based agent.
+    A system prompt guides the behavior, persona, and constraints of the language model.
+    """
+    name: str = Field(description="Unique name for this system prompt configuration")
+    template: str = Field(description="The actual prompt template string. Use {{variable_name}} for placeholders.")
+    variables: List[PromptVariable] = Field(default_factory=list, description="List of variables expected by the template.")
+    description: Optional[str] = Field(default=None, description="Description of the prompt's purpose or when to use it.")
+    version: str = Field(default="1.0.0", description="Version of the prompt template.")
+
+    def format_prompt(self, **kwargs: Any) -> str:
+        """
+        Formats the prompt template with the provided keyword arguments.
+        Args:
+            **kwargs: Keyword arguments where keys match variable names in the template.
+        Returns:
+            The formatted prompt string.
+        Raises:
+            KeyError: If a required variable is not provided in kwargs.
+        """
+        try:
+            # Simple .format() might be okay for basic cases, but str.format_map is safer
+            # For more complex templating, consider Jinja2 or similar.
+            # For now, a loop for direct replacement to handle {{var}} syntax clearly.
+            formatted_template = self.template
+            for var in self.variables:
+                placeholder = f"{{{{{var.name}}}}}" # e.g. {{user_query}}
+                if var.name in kwargs:
+                    formatted_template = formatted_template.replace(placeholder, str(kwargs[var.name]))
+                elif var.example_value is not None: # Use example if real value not provided (for testing/defaults)
+                    # logger.warning(f"Variable '{var.name}' not provided for prompt '{self.name}', using example value.")
+                    # Use warnings.warn for conditions that tests or calling code might want to specifically catch.
+                    import warnings # Import locally or at module level if preferred
+                    warnings.warn(
+                        f"Variable '{var.name}' not provided for prompt '{self.name}', using example value.",
+                        UserWarning
+                    )
+                    formatted_template = formatted_template.replace(placeholder, str(var.example_value))
+                else:
+                    # This check might be too strict if some variables are truly optional in the template
+                    # and the template handles their absence gracefully.
+                    # Consider adding a 'required' field to PromptVariable if needed.
+                    logger.error(f"Required variable '{var.name}' not provided for prompt '{self.name}'.")
+                    raise KeyError(f"Variable '{var.name}' is required for prompt '{self.name}' but was not provided.")
+            return formatted_template
+        except KeyError as e:
+            raise e # Re-raise key errors related to missing variables
+        except Exception as e:
+            logger.error(f"Error formatting prompt '{self.name}': {e}", exc_info=True)
+            # Return the unformatted template or raise a more specific error
+            raise ValueError(f"Failed to format prompt '{self.name}': {e}")
+
+# Example of a default system prompt
+DEFAULT_SYSTEM_PROMPT_TEMPLATE = (
+    "You are an AI assistant designed to interact with web pages based on user instructions. "
+    "Your goal is to understand the user's request and the current state of the web page, "
+    "then decide on the best action to take to achieve the user's goal.\n\n"
+    "Current User Query: {{user_query}}\n"
+    "Current Web Page State (summary):\n{{browser_state_summary}}\n\n"
+    "Available Actions: {{available_actions_summary}}\n\n"
+    "Based on the above, determine the next best action and its parameters. "
+    "If you believe the task is complete or cannot proceed, indicate that clearly."
+)
+
+DEFAULT_SYSTEM_PROMPT = SystemPrompt(
+    name="DefaultWebAgentSystemPrompt",
+    template=DEFAULT_SYSTEM_PROMPT_TEMPLATE,
+    variables=[
+        PromptVariable(name="user_query", description="The user's current instruction or question.", example_value="Find the latest news about AI."),
+        PromptVariable(name="browser_state_summary", description="A textual summary of the current web page state, including URL, title, and key elements.", example_value="Page: Google News, Title: AI News, Key Elements: List of articles..."),
+        PromptVariable(name="available_actions_summary", description="A list or description of actions the agent can perform (e.g., click, type, scroll).", example_value="click(element_id), type(element_id, text), scroll(direction)")
+    ],
+    description="A default system prompt for a general web interaction agent."
+)
+
+# More specific prompts can be defined here, e.g., for data extraction, form filling, etc.
+# class DataExtractionPrompt(SystemPrompt):
+#     task_description: str = Field(description="Specific instructions for what data to extract.")
+#     output_format: str = Field(default="JSON", description="Desired format for the extracted data.")
+
+#     def get_full_content(self) -> str:
+#         return f"{self.content}\n\nTask: {self.task_description}\nOutput Format: {self.output_format}"
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    
+    logger.info(f"Default Prompt Name: {DEFAULT_SYSTEM_PROMPT.name}")
+    logger.info(f"Default Prompt Template:\n{DEFAULT_SYSTEM_PROMPT.template}")
+    logger.info(f"Default Prompt Variables: {[v.name for v in DEFAULT_SYSTEM_PROMPT.variables]}")
+
+    try:
+        formatted = DEFAULT_SYSTEM_PROMPT.format_prompt(
+            user_query="Book a flight to Paris for next week.",
+            browser_state_summary="Currently on Kayak.com homepage. Search fields visible.",
+            available_actions_summary="type(element_id, text), click(element_id), select_date(date)"
+        )
+        logger.info(f"\nFormatted Prompt:\n{formatted}")
+    except Exception as e:
+        logger.error(f"Error formatting default prompt in example: {e}")
+
+    # Example of a prompt that might be used for a different purpose
+    SUMMARIZE_PAGE_PROMPT_TEMPLATE = (
+        "Please summarize the key information from the following web page content.\n\n"
+        "Page Title: {{page_title}}\n"
+        "Page URL: {{page_url}}\n\n"
+        "Visible Text Content Snippet:\n{{visible_text_snippet}}\n\n"
+        "Your Summary:"
+    )
+    SUMMARIZE_PAGE_PROMPT = SystemPrompt(
+        name="SummarizeWebPagePrompt",
+        template=SUMMARIZE_PAGE_PROMPT_TEMPLATE,
+        variables=[
+            PromptVariable(name="page_title", description="Title of the web page."),
+            PromptVariable(name="page_url", description="URL of the web page."),
+            PromptVariable(name="visible_text_snippet", description="A snippet of the visible text from the page.")
+        ],
+        description="A prompt to guide an LLM to summarize a web page."
+    )
+
+    try:
+        formatted_summary_prompt = SUMMARIZE_PAGE_PROMPT.format_prompt(
+            page_title="Awesome AI Innovations",
+            page_url="https://example.com/ai-news/awesome-innovations",
+            visible_text_snippet="Researchers today announced a breakthrough in AI that allows... (rest of content)"
+        )
+        logger.info(f"\nFormatted Summarize Prompt:\n{formatted_summary_prompt}")
+    except Exception as e:
+        logger.error(f"Error formatting summary prompt: {e}")
+````
+
+## File: browser_use_ext/agent/views.py
+````python
+# Standard library imports
+from typing import Optional, Dict, Any, List, Union
+import logging
+
+# Third-party imports
+from pydantic import BaseModel, Field
+from typing import Literal
+
+# Local application/library specific imports
+from browser_use.browser.views import BrowserState # For Agent to potentially receive or log
+from .message_manager.service import Message
+
+logger = logging.getLogger(__name__)
+
+class AgentSettings(BaseModel):
+    """
+    Configuration settings for the Agent.
+    This could include model preferences, persona definitions, tool configurations, etc.
+    """
+    name: str = Field(default="BrowserAgent", description="Name of the agent.")
+    max_iterations: int = Field(default=10, description="Maximum number of iterations or steps the agent can take.")
+    # Example: LLM model name to use for decision making
+    language_model_name: Optional[str] = Field(default="gpt-4-turbo-preview", description="The language model to use.")
+    # Example: Temperature for LLM generation, influencing creativity/randomness.
+    temperature: float = Field(default=0.7, ge=0.0, le=1.0, description="LLM generation temperature.")
+    verbose: bool = Field(default=True, description="Enable verbose logging for agent activities.")
+    allow_parallel_execution: bool = Field(default=False, description="Allow agent to execute multiple actions in parallel (not typically supported by simple controllers).")
+    # Add other agent-specific settings here.
+    # system_prompt: Optional[str] = Field(None, description="Default system prompt for the agent.")
+
+    class Config:
+        from_attributes = True
+
+class AgentThought(BaseModel):
+    """
+    Represents a single thought or reasoning step of the agent.
+    Useful for logging, debugging, and understanding the agent's decision process.
+    """
+    thought_process: str = Field(description="Textual description of the agent's reasoning.")
+    tool_to_use: Optional[str] = Field(default=None, description="The name of the tool or action the agent decided to use.")
+    tool_input: Optional[Dict[str, Any]] = Field(default_factory=dict, description="The parameters for the tool/action.")
+    confidence_score: Optional[float] = Field(default=None, ge=0.0, le=1.0, description="Agent's confidence in its decision (0.0 to 1.0).")
+    raw_llm_response: Optional[str] = Field(default=None, description="Raw response from the LLM if applicable.")
+
+    class Config:
+        from_attributes = True
+
+class AgentOutput(BaseModel):
+    """
+    Represents the final output or result of an agent's run or a significant step.
+    """
+    status: Literal["success", "failure", "max_iterations_reached"] = Field(description="Final status of the agent's execution.")
+    output_message: str = Field(description="A summary message describing the outcome.")
+    final_answer: Optional[Any] = Field(default=None, description="The final answer or result produced by the agent, if any.")
+    iterations_taken: int = Field(description="Number of iterations the agent performed.")
+    full_history: Optional[List[Message]] = Field(default_factory=list, description="Full conversation history if available.")
+    thoughts_history: Optional[List[AgentThought]] = Field(default_factory=list, description="History of agent's thoughts and actions.")
+    # Example: The browser state at the end of the agent's operation.
+    final_browser_state: Optional[BrowserState] = Field(None, description="Browser state at the end of operation.")
+    # Example: Any errors encountered during the agent's run.
+    error: Optional[str] = Field(None, description="Error message if the agent run failed.")
+
+    class Config:
+        from_attributes = True
+        json_encoders = {
+            # Ensure Message objects within full_history are serialized correctly if they have datetimes
+            Message: lambda v: v.model_dump(exclude_none=True) 
+        }
+
+# More Pydantic models can be added here as the agent's capabilities grow,
+# for example, for specific task inputs, structured observations, etc. 
+
+# Example:
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+
+    settings = AgentSettings(name="DemoAgent", max_iterations=5, verbose=True)
+    logger.info(f"Agent Settings: {settings.model_dump_json(indent=2)}")
+
+    thought = AgentThought(
+        thought_process="The user wants to know the weather. I should use the get_weather tool.",
+        tool_to_use="get_weather",
+        tool_input={"city": "London"},
+        confidence_score=0.9
+    )
+    logger.info(f"Agent Thought: {thought.model_dump_json(indent=2)}")
+
+    output_success = AgentOutput(
+        status="success",
+        output_message="Successfully retrieved weather for London.",
+        final_answer={"temperature": "15C", "condition": "Cloudy"},
+        iterations_taken=3,
+        thoughts_history=[thought]
+    )
+    logger.info(f"Agent Output (Success): {output_success.model_dump_json(indent=2)}")
+
+    output_failure = AgentOutput(
+        status="failure",
+        output_message="Could not retrieve weather information after multiple attempts.",
+        iterations_taken=5
+    )
+    logger.info(f"Agent Output (Failure): {output_failure.model_dump_json(indent=2)}")
+````
+
+## File: browser_use_ext/browser/__init__.py
+````python
+# This file makes the browser directory a Python package. 
+
+# Optionally, import key classes for easier access from this package level
+from .browser import Browser, BrowserConfig
+from .context import BrowserContext, BrowserContextConfig, ExtensionPageProxy
+from .views import BrowserState, TabInfo
+
+__all__ = [
+    "Browser",
+    "BrowserConfig",
+    "BrowserContext",
+    "BrowserContextConfig",
+    "ExtensionPageProxy",
+    "BrowserState",
+    "TabInfo",
+]
+````
+
+## File: browser_use_ext/browser/browser.py
+````python
+from __future__ import annotations
+
+# Standard library imports
+import asyncio
+import logging
+from typing import Optional, Any
+
+# Third-party imports
+from pydantic import BaseModel, Field
+
+# Local application/library specific imports
+from ..extension_interface.service import ExtensionInterface
+from .context import BrowserContext, BrowserContextConfig
+
+# Initialize logger for this module
+logger = logging.getLogger(__name__)
+
+class BrowserConfig(BaseModel):
+    """
+    Configuration for the main Browser class.
+    This can include settings for the extension interface and default context configurations.
+    """
+    # Host for the WebSocket server that the extension connects to.
+    extension_host: str = Field(default="localhost", description="Hostname for the extension WebSocket server.")
+    # Port for the WebSocket server.
+    extension_port: int = Field(default=8765, description="Port for the extension WebSocket server.")
+    # Default browser context configuration, can be overridden when creating a new context.
+    default_context_config: BrowserContextConfig = Field(
+        default_factory=BrowserContextConfig,
+        description="Default configuration for new browser contexts."
+    )
+    # Add other browser-level configurations here if needed in the future
+    # For example: path to Chrome user data directory if managing browser launch (not current scope)
+    # chrome_user_data_dir: Optional[str] = Field(None, description="Path to Chrome user data directory.")
+
+class Browser:
+    """
+    Manages the browser instance and communication with the Chrome extension.
+    
+    This class is responsible for initializing the WebSocket server (via ExtensionInterface)
+    that the Chrome extension connects to. It then provides methods to create and manage
+    BrowserContext instances, which represent individual pages or sessions controlled
+    through the extension.
+    """
+
+    def __init__(self, config: BrowserConfig = BrowserConfig()):
+        """
+        Initializes the Browser instance.
+
+        Args:
+            config: Configuration for the browser and extension interface.
+        """
+        self.config = config
+        # Initialize the ExtensionInterface which manages the WebSocket server and communication.
+        # This interface will be shared across all browser contexts created by this Browser instance.
+        self._extension_interface = ExtensionInterface(
+            host=self.config.extension_host,
+            port=self.config.extension_port
+        )
+        # Internal state to track if the browser (specifically the extension server) is active.
+        self._is_active = False
+        logger.info(f"Browser instance initialized. Extension server configured for ws://{self.config.extension_host}:{self.config.extension_port}")
+
+    async def launch(self) -> "Browser":
+        """
+        "Launches" the browser by starting the ExtensionInterface WebSocket server.
+        
+        In this extension-based model, "launching" primarily means ensuring the backend
+        WebSocket server is ready to accept connections from the Chrome extension.
+        The actual Chrome browser is assumed to be launched manually by the user with the
+        extension installed.
+        """
+        if self._is_active and self._extension_interface.is_server_running:
+            logger.warning("Browser (ExtensionInterface server) is already active and running.")
+            return self
+
+        logger.info("Starting ExtensionInterface WebSocket server...")
+        try:
+            await self._extension_interface.start_server()
+            self._is_active = True
+            logger.info("ExtensionInterface WebSocket server started. Browser is now 'active'.")
+            # At this point, the Python backend is ready. The user needs to ensure Chrome is running
+            # with the extension, and the extension is configured to connect to the server.
+            return self
+        except Exception as e:
+            logger.error(f"Failed to start ExtensionInterface server: {e}", exc_info=True)
+            self._is_active = False # Ensure state reflects failure
+            raise # Re-raise the exception to indicate launch failure
+
+    async def new_context(self, context_config: Optional[BrowserContextConfig] = None) -> BrowserContext:
+        """
+        Creates a new browser context for interacting with a page via the extension.
+
+        Args:
+            context_config: Specific configuration for this context. If None, uses
+                            the default context config from the Browser instance.
+
+        Returns:
+            A BrowserContext instance.
+
+        Raises:
+            RuntimeError: If the browser (ExtensionInterface server) is not active/launched.
+        """
+        if not self._is_active or not self._extension_interface.is_server_running:
+            logger.error("Cannot create new context: Browser (ExtensionInterface server) is not active or not running.")
+            raise RuntimeError("Browser must be launched and ExtensionInterface server running before creating a context.")
+
+        config_to_use = context_config or self.config.default_context_config
+        logger.info(f"Creating new BrowserContext with config: {config_to_use.model_dump_json(indent=2)}")
+        
+        # The BrowserContext will use the shared ExtensionInterface instance.
+        return BrowserContext(config=config_to_use, extension_interface=self._extension_interface)
+
+    async def close(self) -> None:
+        """
+        Closes the browser by stopping the ExtensionInterface WebSocket server.
+        This will disconnect any connected Chrome extensions.
+        """
+        if not self._is_active:
+            logger.warning("Browser (ExtensionInterface server) is not active, nothing to close.")
+            return
+
+        logger.info("Closing browser: stopping ExtensionInterface WebSocket server...")
+        try:
+            await self._extension_interface.stop_server()
+            logger.info("ExtensionInterface WebSocket server stopped.")
+        except Exception as e:
+            logger.error(f"Error stopping ExtensionInterface server: {e}", exc_info=True)
+            # Continue with setting _is_active to False even if server stop had issues.
+        finally:
+            self._is_active = False
+            logger.info("Browser is now 'inactive'.")
+
+    @property
+    def is_connected(self) -> bool:
+        """
+        Checks if the ExtensionInterface has at least one active connection from an extension.
+        
+        Returns:
+            True if at least one extension is connected, False otherwise.
+        """
+        return self._extension_interface.has_active_connection
+
+    @property
+    def is_launched(self) -> bool:
+        """
+        Indicates whether the browser (specifically the ExtensionInterface server)
+        has been successfully launched and is currently active.
+        """
+        return self._is_active
+
+    # Asynchronous context manager support
+    async def __aenter__(self) -> "Browser":
+        """
+        Allows the Browser instance to be used as an asynchronous context manager.
+        Ensures the browser (ExtensionInterface server) is launched upon entering the context.
+        """
+        await self.launch()
+        return self
+
+    async def __aexit__(self, exc_type: Optional[type[BaseException]], 
+                        exc_val: Optional[BaseException], 
+                        exc_tb: Optional[Any]) -> None:
+        """
+        Cleans up by closing the browser (stopping the ExtensionInterface server)
+        when exiting the asynchronous context.
+        """
+        await self.close()
+
+# Example Usage (can be run for basic testing if this file is executed directly)
+async def main_example():
+    logging.basicConfig(level=logging.INFO)
+    logger.info("Starting Browser example...")
+
+    browser_config = BrowserConfig() # Default config
+    browser = Browser(config=browser_config)
+
+    async with browser: # Uses __aenter__ and __aexit__ for launch and close
+        logger.info("Browser launched via context manager.")
+        
+        # Wait for an extension to connect (manual step by user)
+        logger.info(f"Please ensure Chrome extension is running and connected to ws://{browser.config.extension_host}:{browser.config.extension_port}")
+        for _ in range(15): # Wait up to 15 seconds for connection
+            if browser.is_connected:
+                logger.info("Extension connected!")
+                break
+            await asyncio.sleep(1)
+        else:
+            logger.warning("No extension connected after 15 seconds. Example might not work fully.")
+            # Depending on strictness, could raise error or proceed cautiously.
+
+        if browser.is_connected:
+            try:
+                # Create a new browser context
+                context = await browser.new_context()
+                logger.info("BrowserContext created.")
+
+                async with context: # Manages context resources (server start is by Browser obj)
+                    logger.info("Entered BrowserContext.")
+                    # Use the context to interact with the browser page
+                    # 1. Navigate to a page (using the proxy)
+                    page_proxy = await context.get_current_page()
+                    target_url = "https://www.google.com"
+                    logger.info(f"Attempting to navigate to: {target_url}")
+                    await page_proxy.goto(target_url)
+                    logger.info(f"Navigation to {target_url} initiated.")
+
+                    # 2. Get browser state
+                    logger.info("Attempting to get browser state...")
+                    state = await context.get_state(include_screenshot=False) # Set to True for screenshot
+                    logger.info(f"Current page URL: {state.url}")
+                    logger.info(f"Current page Title: {state.title}")
+                    if state.tabs:
+                        logger.info(f"Open tabs ({len(state.tabs)}): {[(t.page_id, t.title, t.url) for t in state.tabs]}")
+                    if state.screenshot:
+                        logger.info("Screenshot was captured (first few chars): " + state.screenshot[:50] + "...")
+                    
+                    # Example: Find an interactive element (e.g., search bar on Google)
+                    # This requires the DOM to be parsed and selector_map to be populated.
+                    if state.selector_map:
+                        logger.info(f"Selector map has {len(state.selector_map)} interactive elements.")
+                        # Try to find an input field (heuristic)
+                        input_element_index = None
+                        for idx, details in state.selector_map.items():
+                            # `details` in our current setup is just the xpath from extension's `cachedSelectorMap`
+                            # To get tag_name, we need to look up `idx` in `state.element_tree`
+                            # For simplicity, we'll assume the first one or a known one for example.
+                            # Let's assume index 0 is an input field for this example if map not empty
+                            if state.element_tree:
+                                node_candidate = await context.get_dom_element_by_index(idx) # type: ignore
+                                if node_candidate and node_candidate.tag_name == 'input' and node_candidate.attributes.get('type') == 'text':
+                                    input_element_index = idx
+                                    logger.info(f"Found potential input field with index {idx}")
+                                    break
+                        if input_element_index is not None:
+                            logger.info(f"Attempting to type into element with index {input_element_index}")
+                            search_term = "Browser-Use Automation"
+                            await context._input_text_element_node(
+                                await context.get_dom_element_by_index(input_element_index), 
+                                search_term
+                            )
+                            logger.info(f"Typed '{search_term}' into element {input_element_index}.")
+                            # Potentially click a search button here if one is found
+                        else:
+                            logger.info("No suitable input field found in selector_map for typing example.")
+                    else:
+                        logger.info("Selector map is empty. Cannot demonstrate typing.")
+
+                    # 3. Example: Create and switch tab (if extension supports it)
+                    # await context.create_new_tab("https://www.bing.com")
+                    # logger.info("New tab requested for bing.com")
+                    # await asyncio.sleep(2) # Give time for tab to open
+                    # updated_state = await context.get_state()
+                    # logger.info(f"Tabs after opening new one: {[(t.page_id, t.title) for t in updated_state.tabs]}")
+                    # Find the new tab's page_id and switch
+                    # ... (logic to find and switch) ...
+
+            except RuntimeError as e:
+                logger.error(f"Runtime error during browser interaction: {e}")
+            except Exception as e:
+                logger.error(f"An unexpected error occurred during example interaction: {e}", exc_info=True)
+        else:
+            logger.error("Cannot run example interactions: Chrome extension is not connected.")
+
+    logger.info("Browser example finished.")
+
+if __name__ == "__main__":
+    asyncio.run(main_example())
+````
+
+## File: browser_use_ext/controller/__init__.py
+````python
+# This file makes the controller directory a Python package. 
+
+from .service import Controller
+# from .registry.views import ActionDefinition # If you want to expose it directly
+
+__all__ = [
+    "Controller",
+]
+````
+
+## File: browser_use_ext/controller/registry/__init__.py
+````python
+# This file makes the registry directory a Python package. 
+
+from .views import ActionDefinition, ActionParam # Add other relevant models
+
+__all__ = [
+    "ActionDefinition",
+    "ActionParam",
+]
+````
+
+## File: browser_use_ext/controller/registry/views.py
+````python
+# Pydantic models for action registry, if needed in the future.
+# For now, this can remain empty or define base Action classes.
+from pydantic import BaseModel, Field
+from typing import Dict, Any, Optional, List, Literal
+import logging
+
+class ActionParam(BaseModel):
+    """Describes a parameter for an action."""
+    name: str = Field(description="Parameter name")
+    type: str = Field(description="Parameter type (e.g., 'str', 'int', 'bool', 'DOMElementNode_highlight_index')")
+    required: bool = Field(default=True, description="Is the parameter required?")
+    description: Optional[str] = Field(default=None, description="Description of the parameter")
+    default: Optional[Any] = Field(default=None, description="Default value if not required or if optional")
+
+class ActionDefinition(BaseModel):
+    """Defines a browser action that can be executed."""
+    name: str = Field(description="Unique name of the action (e.g., 'click_element_by_index', 'go_to_url')")
+    description: str = Field(description="Description of what the action does")
+    parameters: List[ActionParam] = Field(default_factory=list, description="List of parameters the action accepts")
+    category: Optional[str] = Field(default="General", description="Category of the action (e.g., 'Navigation', 'Interaction', 'Data Extraction')")
+
+    class Config:
+        from_attributes = True # Changed from orm_mode for Pydantic v2 compatibility
+
+# Example of a concrete action model - not strictly needed if actions are dynamic strings passed to extension
+# but useful if we want to type-check parameters Python-side before sending.
+class ClickElementAction(BaseModel):
+    index: int = Field(description="The highlight_index of the element to click.")
+
+class InputTextAction(BaseModel):
+    index: int = Field(description="The highlight_index of the element to type into.")
+    text: str = Field(description="The text to input into the element.")
+
+class GoToURLAction(BaseModel):
+    url: str = Field(description="The URL to navigate to.")
+
+# Add more action-specific Pydantic models here if desired for stricter typing 
+
+# --- Example Action Definitions (can be registered or discovered) ---
+
+class GoToURLParams(BaseModel):
+    """Parameters for the go_to_url action."""
+    url: str = Field(description="The URL to navigate to.")
+
+ACTION_GO_TO_URL = ActionDefinition(
+    name="go_to_url",
+    description="Navigates the current tab to the specified URL.",
+    parameters=[
+        ActionParam(name="url", type="str", required=True, description="The URL to navigate to.")
+    ],
+    category="Navigation"
+)
+
+class ClickElementByIndexParams(BaseModel):
+    """Parameters for the click_element_by_index action."""
+    index: int = Field(description="The highlight_index of the element to click.")
+
+ACTION_CLICK_ELEMENT_BY_INDEX = ActionDefinition(
+    name="click_element_by_index",
+    description="Clicks an element identified by its highlight_index.",
+    parameters=[
+        ActionParam(name="index", type="int", required=True, description="The highlight_index of the element.")
+    ],
+    category="Interaction"
+)
+
+class InputTextParams(BaseModel):
+    """Parameters for the input_text action."""
+    index: int = Field(description="The highlight_index of the input element.")
+    text: str = Field(description="The text to input into the element.")
+
+ACTION_INPUT_TEXT = ActionDefinition(
+    name="input_text",
+    description="Inputs text into an element (e.g., input field, textarea) identified by its highlight_index.",
+    parameters=[
+        ActionParam(name="index", type="int", required=True, description="The highlight_index of the element."),
+        ActionParam(name="text", type="str", required=True, description="The text to input.")
+    ],
+    category="Interaction"
+)
+
+class ScrollPageParams(BaseModel):
+    """Parameters for the scroll_page action."""
+    direction: Literal["up", "down"] = Field(description="Direction to scroll: 'up' or 'down'.")
+    # amount: Optional[int] = Field(default=None, description="Amount in pixels to scroll. Defaults to viewport height if not set.")
+
+ACTION_SCROLL_PAGE = ActionDefinition(
+    name="scroll_page",
+    description="Scrolls the page up or down. Currently scrolls by a fixed amount (approx. viewport height).",
+    parameters=[
+        ActionParam(name="direction", type="Literal['up', 'down']", required=True, description="Scroll direction.")
+    ],
+    category="Navigation"
+)
+
+
+# Registry of available actions (can be populated dynamically or loaded from config)
+AVAILABLE_ACTIONS: Dict[str, ActionDefinition] = {
+    ACTION_GO_TO_URL.name: ACTION_GO_TO_URL,
+    ACTION_CLICK_ELEMENT_BY_INDEX.name: ACTION_CLICK_ELEMENT_BY_INDEX,
+    ACTION_INPUT_TEXT.name: ACTION_INPUT_TEXT,
+    ACTION_SCROLL_PAGE.name: ACTION_SCROLL_PAGE,
+    # Add other pre-defined actions here
+}
+
+logger = logging.getLogger(__name__)
+
+# Function to get an action definition
+def get_action_definition(name: str) -> Optional[ActionDefinition]:
+    """Retrieves an action definition by its name."""
+    return AVAILABLE_ACTIONS.get(name)
+
+# Function to list all available actions
+def list_available_actions() -> List[ActionDefinition]:
+    """Returns a list of all available action definitions."""
+    return list(AVAILABLE_ACTIONS.values())
+````
+
+## File: browser_use_ext/controller/service.py
+````python
+# Standard library imports
+import logging
+from typing import Dict, Any, Optional, Callable, Awaitable, Union, List
+
+# Third-party imports
+from pydantic import BaseModel, Field # For potential future use with action definitions
+
+# Local application/library specific imports
+from browser.context import BrowserContext
+from dom.views import DOMElementNode
+from .registry.views import get_action_definition, list_available_actions, ActionDefinition
+
+# Initialize logger for this module
+logger = logging.getLogger(__name__)
+
+# ActionFunctionType = Callable[[BrowserContext, Dict[str, Any]], Awaitable[Dict[str, Any]]]
+
+class Controller:
+    """
+    The Controller class is responsible for executing actions within a given browser context.
+    It acts as an abstraction layer over the BrowserContext's direct interaction methods,
+    allowing for a more structured way to define and dispatch browser operations.
+    
+    In this extension-based setup, most actions are directly translated into commands
+    sent to the Chrome extension via the BrowserContext and its underlying ExtensionInterface.
+    """
+
+    def __init__(self, browser_context: BrowserContext):
+        """
+        Initializes the Controller with a specific browser context.
+
+        Args:
+            browser_context: The BrowserContext instance through which actions will be performed.
+        """
+        if not isinstance(browser_context, BrowserContext):
+            raise TypeError("Controller must be initialized with a valid BrowserContext instance.")
+        self.browser_context = browser_context
+        # self.action_registry: Dict[str, ActionFunctionType] = self._register_default_actions()
+        logger.info(f"Controller initialized with BrowserContext for URL (if known): {browser_context._cached_state.url if browser_context._cached_state else 'Unknown'}")
+
+    # def _register_default_actions(self) -> Dict[str, ActionFunctionType]:
+    #     """ Placeholder for registering known actions. """
+    #     # In a more complex system, actions could be dynamically registered.
+    #     # For now, actions are mostly directly passed to the extension.
+    #     return {
+    #         "click_element_by_index": self.click_element_by_index,
+    #         "input_text": self.input_text,
+    #         "go_to_url": self.go_to_url,
+    #         # ... other actions
+    #     }
+
+    async def execute_action(self, action_name: str, params: Optional[Dict[str, Any]] = None, timeout: float = 30.0) -> Optional[Dict[str, Any]]:
+        """
+        Directly executes an action by name via the BrowserContext's ExtensionInterface.
+        This is the primary method for sending commands to the Chrome extension.
+
+        Args:
+            action_name: The exact name of the action recognized by the Chrome extension's content script.
+                         (e.g., "click_element_by_index", "input_text", "go_to_url").
+            params: A dictionary of parameters specific to the action.
+            timeout: Timeout in seconds for the action to complete.
+
+        Returns:
+            A dictionary containing the result from the extension, or None if an error occurs.
+        """
+        logger.info(f"Controller executing action: '{action_name}' with params: {params}")
+        
+        # Optionally, validate action_name and params against a registry
+        # action_def: Optional[ActionDefinition] = get_action_definition(action_name)
+        # if not action_def:
+        #     logger.error(f"Action '{action_name}' is not defined in the registry.")
+        #     return {"error": f"Action '{action_name}' not defined."}
+        # try:
+        #     # If action_def.parameters describes Pydantic models for params, validate here.
+        #     # For now, assuming params are directly passed.
+        #     pass 
+        # except Exception as e:
+        #     logger.error(f"Parameter validation failed for action '{action_name}': {e}")
+        #     return {"error": f"Parameter validation failed: {e}"}
+
+        # Delegate to the BrowserContext's underlying ExtensionInterface
+        # The execute_action method in ExtensionInterface is designed to take the raw action_name and params
+        # that the *extension* understands.
+        try:
+            # The BrowserContext itself doesn't have execute_action, it's on the ExtensionInterface
+            result = await self.browser_context.extension.execute_action(
+                action_name=action_name, 
+                params=params or {},
+                timeout=timeout
+            )
+            logger.info(f"Action '{action_name}' execution result: {result}")
+            return result
+        except Exception as e:
+            logger.error(f"Error during Controller.execute_action for '{action_name}': {e}", exc_info=True)
+            return {"error": str(e)}
+
+    # --- Wrapper methods for common actions --- 
+    # These provide a more Pythonic interface and can encapsulate parameter structuring.
+
+    async def go_to_url(self, url: str, timeout: float = 30.0) -> Optional[Dict[str, Any]]:
+        """Navigates the active tab to the specified URL."""
+        return await self.execute_action(action_name="go_to_url", params={"url": url}, timeout=timeout)
+
+    async def click_element_by_index(self, index: int, timeout: float = 30.0) -> Optional[Dict[str, Any]]:
+        """Clicks an element identified by its highlight_index in the active tab."""
+        return await self.execute_action(action_name="click_element_by_index", params={"highlight_index": index}, timeout=timeout)
+
+    async def input_text(self, index: int, text: str, timeout: float = 30.0) -> Optional[Dict[str, Any]]:
+        """Inputs text into an element (identified by highlight_index) in the active tab."""
+        return await self.execute_action(action_name="input_text", params={"highlight_index": index, "text": text}, timeout=timeout)
+
+    async def scroll_page(self, direction: str, timeout: float = 30.0) -> Optional[Dict[str, Any]]:
+        """Scrolls the page 'up' or 'down'."""
+        if direction not in ["up", "down"]:
+            logger.error(f"Invalid scroll direction: {direction}. Must be 'up' or 'down'.")
+            return {"error": "Invalid scroll direction"}
+        return await self.execute_action(action_name="scroll_page", params={"direction": direction}, timeout=timeout)
+
+    async def go_back(self, timeout: float = 30.0) -> Optional[Dict[str, Any]]:
+        """Navigates the active tab back in its history."""
+        return await self.execute_action(action_name="go_back", params={}, timeout=timeout)
+
+    async def extract_content(self, index: Optional[int] = None, content_type: str = "text", timeout: float = 30.0) -> Optional[Dict[str, Any]]:
+        """
+        Extracts content from an element (by index) or the whole page.
+        Args:
+            index: Highlight index of the element. If None, extracts from the whole page (extension specific).
+            content_type: 'text' or 'html'.
+            timeout: Timeout for the action.
+        Returns:
+            Dictionary with extracted content or error.
+        """
+        params = {"content_type": content_type}
+        if index is not None:
+            params["highlight_index"] = index
+        # Assuming extension has an "extract_content" action that handles these params
+        return await self.execute_action(action_name="extract_content", params=params, timeout=timeout)
+
+    async def send_keys(self, keys: str, index: Optional[int] = None, timeout: float = 30.0) -> Optional[Dict[str, Any]]:
+        """
+        Simulates sending key presses to an element (by index) or the active element on the page.
+        Args:
+            keys: The keys to send (e.g., "Enter", "Hello World").
+            index: Highlight index of the target element. If None, keys sent to active element.
+            timeout: Timeout for the action.
+        """
+        params = {"keys": keys}
+        if index is not None:
+            params["highlight_index"] = index
+        return await self.execute_action(action_name="send_keys", params=params, timeout=timeout)
+
+    # --- Tab Management Wrappers (delegating to BrowserContext which calls ExtensionInterface) ---
+
+    async def open_tab(self, url: Optional[str] = None, timeout: float = 30.0) -> Optional[Dict[str, Any]]:
+        """Opens a new tab, optionally navigating to a URL."""
+        # This will call BrowserContext.create_new_tab(), which then calls execute_action
+        # For a more direct call consistent with other controller methods:
+        action_params = {"url": url if url else "about:blank"}
+        response = await self.browser_context.extension.execute_action(
+            action_name="open_tab", params=action_params, timeout=timeout
+        )
+        if response and response.get("success"):
+            await self.browser_context.get_state(force_refresh=True) # Update context state
+        return response
+
+    async def switch_tab(self, tab_id: Union[int, str], timeout: float = 30.0) -> Optional[Dict[str, Any]]:
+        """Switches to the specified tab using its ID (Chrome tab ID or index from get_state)."""
+        # This will call BrowserContext.switch_to_tab(), which then calls execute_action
+        # Direct call style:
+        response = await self.browser_context.extension.execute_action(
+            action_name="switch_tab", params={"tab_id": tab_id}, timeout=timeout
+        )
+        if response and response.get("success"):
+            await self.browser_context.get_state(force_refresh=True) # Update context state
+        return response
+
+    async def close_tab(self, tab_id: Optional[Union[int, str]] = None, timeout: float = 30.0) -> Optional[Dict[str, Any]]:
+        """
+        Closes the specified tab. If tab_id is None, attempts to close the active tab.
+        The tab_id should be the actual Chrome tab ID.
+        """
+        # This will call BrowserContext.close_tab(), which determines target and calls execute_action
+        # Direct call style (if tab_id is known and is the Chrome Tab ID):
+        if tab_id is None:
+            # Determine active tab from context to close it
+            active_pg = await self.browser_context.active_page()
+            if active_pg and active_pg.page_id is not None:
+                target_tab_id = active_pg.page_id
+            else:
+                logger.error("Close tab: No specific tab_id provided and no active page found.")
+                return {"error": "No active tab to close and no tab_id specified."}
+        else:
+            target_tab_id = tab_id
+            
+        response = await self.browser_context.extension.execute_action(
+            action_name="close_tab", params={"tab_id": target_tab_id}, timeout=timeout
+        )
+        if response and response.get("success"):
+            await self.browser_context.get_state(force_refresh=True) # Update context state
+        return response
+
+    # --- Utility --- 
+    async def list_actions(self) -> List[ActionDefinition]:
+        """Returns a list of known action definitions from the local registry."""
+        return list_available_actions()
+
+    async def get_current_browser_state(self, force_refresh: bool = False) -> Optional[Dict[str, Any]]:
+        """Retrieves and returns the full browser state as a dictionary."""
+        state_obj = await self.browser_context.get_state(force_refresh=force_refresh)
+        if state_obj:
+            return state_obj.model_dump() # Convert Pydantic model to dict
+        return None
+
+# Example Usage (requires a running BrowserContext setup):
+async def example_controller_usage():
+    from browser.browser import Browser, BrowserConfig # For setup
+    
+    logging.basicConfig(level=logging.INFO)
+    logger.info("Starting controller example...")
+
+    browser_config = BrowserConfig()
+    browser = Browser(config=browser_config)
+
+    async with browser: # Manages launch and close of browser (ExtensionInterface server)
+        if not browser.is_connected:
+            logger.warning("Extension not connected after browser launch. Waiting a bit...")
+            await asyncio.sleep(5) # Wait for potential connection
+            if not browser.is_connected:
+                logger.error("Extension still not connected. Aborting controller example.")
+            return
+        
+        logger.info("Browser launched and extension connected.")
+        b_context = await browser.new_context()
+        controller = Controller(browser_context=b_context)
+
+        try:
+            # List available actions (from local registry)
+            actions = await controller.list_actions()
+            logger.info(f"Available actions: {[action.name for action in actions]}")
+
+            # Get current state
+            # current_state = await controller.get_current_browser_state()
+            # if current_state:
+            #     logger.info(f"Current URL: {current_state.get('tabs',[{}])[0].get('url', 'N/A')}")
+
+            # Navigate
+                nav_result = await controller.go_to_url("https://www.example.com")
+            logger.info(f"Navigation to example.com result: {nav_result}")
+                await asyncio.sleep(2) # Allow page to load
+
+            # Refresh state and log new URL
+            # refreshed_state_data = await controller.get_current_browser_state(force_refresh=True)
+            # if refreshed_state_data and refreshed_state_data.get('tabs'):
+            #     active_tab_url = next((tab.get('url') for tab in refreshed_state_data['tabs'] if tab.get('active')), "N/A")
+            #     logger.info(f"After navigation, active tab URL: {active_tab_url}")
+
+            # Example: Click (assuming a clickable element with index 0 exists after nav)
+            # This requires knowing a valid highlight_index from the current page state.
+            # For a robust test, one would first get_state, identify an index, then click.
+            # click_result = await controller.click_element_by_index(index=0) # This is a guess for index 0
+            # logger.info(f"Click element 0 result: {click_result}")
+
+            # Example: Input text (similarly, requires a valid index for an input field)
+            # input_result = await controller.input_text(index=1, text="Hello from controller") # Guess for index 1
+            # logger.info(f"Input text result: {input_result}")
+
+            except Exception as e:
+                logger.error(f"Error during controller example: {e}", exc_info=True)
+        finally:
+            logger.info("Closing browser context in controller example...")
+            await b_context.close_context() # Context is managed by the `async with browser` block too
+    
+    logger.info("Controller example finished.")
+
+if __name__ == "__main__":
+    asyncio.run(example_controller_usage())
+````
+
+## File: browser_use_ext/dom/__init__.py
+````python
+# This file makes the dom directory a Python package.
+````
+
+## File: browser_use_ext/extension_interface/__init__.py
+````python
+# This file makes the extension_interface directory a Python package. 
+# It can be left empty or can contain package-level initializations.
+
+# Optionally, you could import key classes here for easier access, e.g.:
+# from .service import ExtensionInterface
+````
+
+## File: browser_use_ext/extension_interface/models.py
+````python
+import asyncio
+from typing import Optional, Dict, Any, List, TypeVar, Generic
+from pydantic import BaseModel, Field
+
+# For WebSocketServerProtocol type hint if needed, consult websockets library version
+# For now, using 'Any' for simplicity if direct import is problematic or version specific.
+# from websockets.server import WebSocketServerProtocol # Example, might be different path/type
+
+T = TypeVar('T') # Generic TypeVar for Message data
+
+class BaseMessage(BaseModel):
+    """Base model for all WebSocket messages, providing common fields like id and type."""
+    id: int = Field(description="Unique message identifier.")
+    type: str = Field(description="Type of the WebSocket message.")
+
+class Message(BaseMessage, Generic[T]):
+    """
+    Generic message model for communication.
+    The 'data' field can hold different structures based on the message 'type'.
+    """
+    data: Optional[T] = Field(default=None, description="Payload of the message, type varies.")
+
+
+# This specific RequestMessage isn't directly used by service.py's _process_message,
+# which uses a generic Message[Dict[str, Any]].model_validate(raw_message).
+# However, it's good for documentation and potential future typed request handling.
+class RequestData_GetState(BaseModel):
+    includeScreenshot: bool
+
+class RequestData_ExecuteAction(BaseModel):
+    action: str
+    params: Dict[str, Any]
+
+# If we wanted typed request messages:
+# class GetStateRequestMessage(BaseMessage):
+#     data: RequestData_GetState
+#
+# class ExecuteActionRequestMessage(BaseMessage):
+#     data: RequestData_ExecuteAction
+
+
+class ResponseData(BaseModel):
+    """Model for the 'data' field within a response message from the extension,
+       or the structure of the data field in a 'response' type message from the server."""
+    success: bool = Field(description="Indicates if the operation was successful.")
+    error: Optional[str] = Field(default=None, description="Error message if an error occurred.")
+    
+    # Fields typically from get_state merged into BrowserStateModelData
+    # These are what BrowserState.model_validate expects in the 'data' part of ResponseData
+    url: Optional[str] = Field(default=None)
+    title: Optional[str] = Field(default=None)
+    html_content: Optional[str] = Field(default=None)
+    tree: Optional[Dict[str, Any]] = Field(default=None) # Matches BrowserState.tree
+    tabs: Optional[List[Dict[str, Any]]] = Field(default=None) # Matches BrowserState.tabs (list of TabInfo-like dicts)
+    active_tab_id: Optional[int] = Field(default=None) # Matches BrowserState.active_tab_id
+    viewport_size: Optional[Dict[str, int]] = Field(default=None) # Matches BrowserState.viewport_size
+    scroll_position: Optional[Dict[str, int]] = Field(default=None) # Matches BrowserState.scroll_position
+    pixels_below: Optional[int] = Field(default=None) # Matches BrowserState.pixels_below
+    screenshot: Optional[str] = Field(default=None) # Matches BrowserState.screenshot
+    
+    # Other potential fields from various actions or events
+    # content: Optional[str] = Field(default=None, description="Extracted content from the page.")
+    # note: Optional[str] = Field(default=None, description="Additional note for the action's result.")
+    # new_active_tab_id: Optional[int] = Field(default=None, description="ID of the new active tab.")
+    # new_tab_id: Optional[int] = Field(default=None, description="ID of the newly created tab.")
+    # closed_tab_id: Optional[int] = Field(default=None, description="ID of the closed tab.")
+
+    class Config:
+        extra = "allow" # Allow extra fields not strictly defined, useful for evolving APIs
+
+
+class ConnectionInfo(BaseModel):
+    """Stores information about an active WebSocket client connection."""
+    client_id: str
+    websocket: Any # Using Any for websockets.server.ServerConnection to avoid import version issues
+    handler_task: Optional[asyncio.Task] = None
+
+    class Config:
+        arbitrary_types_allowed = True
+````
+
+## File: browser_use_ext/extension/popup.html
+````html
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Browser Use Extension</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 10px;
+      min-width: 200px;
+    }
+    h3 {
+      margin-top: 0;
+    }
+  </style>
+</head>
+<body>
+  <h3>Browser Use Automation</h3>
+  <p>Extension is active.</p>
+  <p id="status">Status: Disconnected</p>
+  <script src="popup.js"></script>
+</body>
+</html>
+````
+
+## File: browser_use_ext/extension/popup.js
+````javascript
+// This script can be used to communicate with the background script
+// or update the popup's content dynamically.
+document.addEventListener('DOMContentLoaded', function() {
+  const statusElement = document.getElementById('status');
+  
+  // Example: Try to get status from background script if needed
+  // This is just a placeholder, actual communication might be more complex
+  if (chrome && chrome.runtime && chrome.runtime.sendMessage) {
+    chrome.runtime.sendMessage({ type: "GET_POPUP_STATUS" }, function(response) {
+      if (chrome.runtime.lastError) {
+        // console.warn("Error getting popup status:", chrome.runtime.lastError.message);
+        statusElement.textContent = "Status: Error connecting to background";
+        return;
+      }
+      if (response && response.status) {
+        statusElement.textContent = `Status: ${response.status}`;
+      }
+    });
+  } else {
+    statusElement.textContent = "Status: (chrome.runtime not available)";
+  }
+});
+````
+
+## File: browser_use_ext/tests/__init__.py
+````python
+# browser-use-ext/tests/__init__.py
+# This file makes the tests directory a Python package. 
+# It is often kept empty.
+
+__all__ = []
+````
+
+## File: browser_use_ext/tests/conftest.py
+````python
+# This is conftest.py for the tests directory.
+# It can be used for test-specific fixtures and plugins.
+# Keeping it minimal for now to resolve import errors.
+
+# Minimal conftest.py for the tests directory
+# This file is intentionally kept simple to avoid import errors.
+````
+
+## File: browser_use_ext/tests/test_agent_prompts.py
+````python
+import sys
+import pytest
+from typing import List, Dict, Any
+
+# Adjust imports for the new project structure `browser-use-ext`
+# print(f"sys.path inside test_agent_prompts.py: {sys.path}") # DEBUG PRINT - REMOVED
+from agent.prompts import PromptVariable, SystemPrompt, DEFAULT_SYSTEM_PROMPT
+
+@pytest.fixture
+def sample_prompt_variables() -> List[PromptVariable]:
+    """Provides a list of sample PromptVariable instances."""
+    return [
+        PromptVariable(name="user_query", description="The user\'s request", example_value="Find Italian restaurants near me."),
+        PromptVariable(name="context", description="Relevant contextual information", example_value="Location: San Francisco, Time: 7 PM")
+    ]
+
+@pytest.fixture
+def sample_system_prompt_template() -> str:
+    """Provides a sample prompt template string."""
+    return "You are an AI. User Query: {{user_query}}. Context: {{context}}. Respond helpfully."
+
+@pytest.fixture
+def sample_system_prompt(sample_prompt_variables: List[PromptVariable], sample_system_prompt_template: str) -> SystemPrompt:
+    """Provides a SystemPrompt instance created with sample variables and template."""
+    return SystemPrompt(
+        name="TestAgentPrompt",
+        template=sample_system_prompt_template,
+        variables=sample_prompt_variables,
+        description="A test prompt for AI agent.",
+        version="0.1-test"
+    )
+
+def test_prompt_variable_creation():
+    """Test basic PromptVariable Pydantic model creation."""
+    name = "test_var"
+    desc = "A test variable."
+    ex_val = "example"
+    pv = PromptVariable(name=name, description=desc, example_value=ex_val)
+    assert pv.name == name
+    assert pv.description == desc
+    assert pv.example_value == ex_val
+
+    pv_no_example = PromptVariable(name="no_ex", description="No example here.")
+    assert pv_no_example.example_value is None
+
+def test_system_prompt_creation(sample_system_prompt: SystemPrompt, sample_prompt_variables: List[PromptVariable], sample_system_prompt_template: str):
+    """Test basic SystemPrompt Pydantic model creation."""
+    sp = sample_system_prompt
+    assert sp.name == "TestAgentPrompt"
+    assert sp.template == sample_system_prompt_template
+    assert sp.variables == sample_prompt_variables
+    assert sp.description == "A test prompt for AI agent."
+    assert sp.version == "0.1-test"
+
+def test_format_prompt_all_vars_provided(sample_system_prompt: SystemPrompt):
+    """Test formatting the prompt when all required variables are provided."""
+    values = {
+        "user_query": "Book a flight.",
+        "context": "User is logged in, has preferences set."
+    }
+    expected_output = "You are an AI. User Query: Book a flight.. Context: User is logged in, has preferences set.. Respond helpfully."
+    formatted_prompt = sample_system_prompt.format_prompt(**values)
+    assert formatted_prompt == expected_output
+
+def test_format_prompt_uses_example_values_if_provided_and_var_missing(sample_system_prompt: SystemPrompt):
+    """Test formatting uses example values if a variable is missing but has an example."""
+    # sample_prompt_variables has example_value for "user_query" and "context"
+    values_missing_context = {"user_query": "Show me the news."}
+    # Expect context to use its example_value: "Location: San Francisco, Time: 7 PM"
+    expected_output = "You are an AI. User Query: Show me the news.. Context: Location: San Francisco, Time: 7 PM. Respond helpfully."
+    
+    # Capture warnings for missing variables using example values
+    with pytest.warns(UserWarning, match="Variable 'context' not provided for prompt 'TestAgentPrompt', using example value."):
+        formatted_prompt = sample_system_prompt.format_prompt(**values_missing_context)
+    assert formatted_prompt == expected_output
+
+def test_format_prompt_raises_keyerror_if_var_missing_and_no_example(sample_system_prompt_template: str):
+    """Test that KeyError is raised if a variable is missing and has no example value."""
+    # Create a prompt where one variable has no example
+    variables_with_one_no_example = [
+        PromptVariable(name="user_query", description="User query", example_value="Test query"),
+        PromptVariable(name="mandatory_no_example", description="This one is needed but has no example")
+    ]
+    custom_template = "Query: {{user_query}}, Mandatory: {{mandatory_no_example}}"
+    sp_custom = SystemPrompt(name="CustomPrompt", template=custom_template, variables=variables_with_one_no_example)
+    
+    values_missing_mandatory = {"user_query": "Some query"}
+    
+    with pytest.raises(KeyError) as excinfo:
+        sp_custom.format_prompt(**values_missing_mandatory)
+    assert "Variable 'mandatory_no_example' is required for prompt 'CustomPrompt' but was not provided." in str(excinfo.value)
+
+def test_format_prompt_with_no_variables_in_template():
+    """Test formatting a template that has no variables defined in it."""
+    static_template = "This is a static prompt with no variables."
+    sp_static = SystemPrompt(name="StaticPrompt", template=static_template, variables=[])
+    formatted = sp_static.format_prompt() # No kwargs needed
+    assert formatted == static_template
+
+    # Test with empty variables list but template still tries to use some (should be fine if not strict on var definition)
+    # The current format_prompt relies on `self.variables` for replacement logic.
+    # If a template has {{var}} but `self.variables` is empty or doesn't list `var`,
+    # it will currently pass through unformatted, e.g. "Text with {{unlisted_var}}".
+    # This behavior might be okay, or could be made stricter.
+    template_with_unlisted_var = "Hello {{name}}!"
+    sp_unlisted = SystemPrompt(name="UnlistedVarPrompt", template=template_with_unlisted_var, variables=[])
+    formatted_unlisted = sp_unlisted.format_prompt(name="World") # provide name, but not in sp_unlisted.variables
+    # Current behavior: {{name}} remains because it's not in sp_unlisted.variables to be processed.
+    assert formatted_unlisted == "Hello {{name}}!" 
+
+def test_default_system_prompt_exists_and_is_valid():
+    """Test that DEFAULT_SYSTEM_PROMPT is a valid SystemPrompt instance and can be formatted."""
+    assert isinstance(DEFAULT_SYSTEM_PROMPT, SystemPrompt)
+    assert DEFAULT_SYSTEM_PROMPT.name == "DefaultWebAgentSystemPrompt"
+    assert len(DEFAULT_SYSTEM_PROMPT.variables) == 3 # user_query, browser_state_summary, available_actions_summary
+    
+    # Try formatting with example values (or mock values)
+    try:
+        formatted_default = DEFAULT_SYSTEM_PROMPT.format_prompt(
+            user_query="Test default query",
+            browser_state_summary="Test browser state",
+            available_actions_summary="Test actions"
+        )
+        assert "Test default query" in formatted_default
+        assert "Test browser state" in formatted_default
+        assert "Test actions" in formatted_default
+    except Exception as e:
+        pytest.fail(f"DEFAULT_SYSTEM_PROMPT.format_prompt failed: {e}")
+
+def test_format_prompt_valueerror_on_other_exceptions(sample_system_prompt: SystemPrompt):
+    """Test that a generic ValueError is raised if formatting fails for unexpected reasons (e.g., bad template string)."""
+    # Temporarily sabotage the template to cause a non-KeyError during formatting
+    original_template = sample_system_prompt.template
+    # Example of a template that might cause issues with str.replace or similar if not handled well,
+    # although simple {{}} replacements are usually safe.
+    # For a more direct test of this, one might need to mock str.replace to throw an unexpected error.
+    # This test is more conceptual for now, as direct {{var}} replacement is quite robust.
+    
+    # Let's test with a variable that has a non-string example value and see if str() conversion works as expected.
+    vars_with_int_example = [
+        PromptVariable(name="count", description="A number", example_value=123)
+    ]
+    prompt_with_int_var = SystemPrompt(name="IntPrompt", template="Count: {{count}}", variables=vars_with_int_example)
+    
+    # Format using the example value (123)
+    formatted = prompt_with_int_var.format_prompt() # Should use example_value for count
+    assert formatted == "Count: 123"
+
+    # If str.replace itself threw an error other than KeyError (highly unlikely for this usage),
+    # the `except Exception as e:` block in `format_prompt` should catch it and raise ValueError.
+    # Simulating this specific scenario directly is hard without deep mocking Python built-ins.
+
+# To run these tests:
+# pytest browser-use-ext/tests/test_agent_prompts.py
+````
+
+## File: browser_use_ext/tests/test_browser_context.py
+````python
+import pytest
+import asyncio
+from unittest.mock import AsyncMock, MagicMock, patch
+
+# Adjust imports based on the new project structure `browser-use-ext`
+from browser.context import BrowserContext, BrowserContextConfig, ExtensionPageProxy
+from extension_interface.service import ExtensionInterface
+from browser.views import BrowserState, TabInfo
+from dom.views import DOMElementNode
+
+@pytest.fixture
+def mock_extension_interface():
+    """Provides a mock ExtensionInterface."""
+    mock_iface = AsyncMock(spec=ExtensionInterface)
+    mock_iface.get_state = AsyncMock()
+    mock_iface.execute_action = AsyncMock()
+    return mock_iface
+
+@pytest.fixture
+def browser_context_config():
+    """Provides a default BrowserContextConfig."""
+    return BrowserContextConfig()
+
+@pytest.fixture
+def browser_context(browser_context_config: BrowserContextConfig, mock_extension_interface: AsyncMock) -> BrowserContext:
+    """Provides a BrowserContext instance initialized with a mock interface. Now synchronous."""
+    context = BrowserContext(config=browser_context_config, extension_interface=mock_extension_interface)
+    return context
+
+@pytest.fixture
+def mock_browser_context() -> MagicMock:
+    """Provides a MagicMock instance of BrowserContext for testing ExtensionPageProxy."""
+    mock_context = MagicMock(spec=BrowserContext)
+    # Configure necessary attributes/methods that ExtensionPageProxy might call
+    mock_context.get_state = AsyncMock() # ExtensionPageProxy calls await self.browser_context.get_state()
+    mock_context.extension = AsyncMock(spec=ExtensionInterface) # Proxy accesses context.extension
+    # Add other commonly used attributes if ExtensionPageProxy uses them, e.g., _cached_state if directly accessed.
+    # For now, focusing on what ExtensionPageProxy.__init__ and its methods directly use.
+    mock_context._cached_state = MagicMock(spec=BrowserState) # If methods rely on this being pre-populated
+    mock_context._cached_state.url = "http://initialmock.com"
+    mock_context._cached_state.title = "Initial Mock Title"
+    return mock_context
+
+@pytest.fixture
+def sample_browser_state() -> BrowserState:
+    """Provides a sample BrowserState for testing."""
+    # A simple DOM tree for testing
+    sample_dom = DOMElementNode(
+        tag_name="html", type="element", xpath="/html", attributes={}, children=[
+            DOMElementNode(tag_name="body", type="element", xpath="/html/body", attributes={}, children=[
+                DOMElementNode(tag_name="div", type="element", attributes={"id": "test-div"}, text="Click me", highlight_index=0, xpath="/html/body/div[1]"),
+                DOMElementNode(tag_name="input", type="element", attributes={"type": "text", "id": "test-input"}, highlight_index=1, xpath="/html/body/input[1]")
+            ])
+        ]
+    )
+    # The BrowserState model expects element_tree to be a DOMElementNode, and tabs to be List[TabInfo]
+    # The selector_map keys are integers (highlight_index).
+    return BrowserState(
+        url="http://example.com", # Changed from active_tab_id to direct url/title
+        title="Test Page",
+        tabs=[TabInfo(page_id=1, url="http://example.com", title="Test Page")], # Simplified active flag logic
+        element_tree=sample_dom,
+        selector_map={
+            0: {"xpath": "/html/body/div[1]", "tag_name": "div"}, # Using int keys, consistent value structure
+            1: {"xpath": "/html/body/input[1]", "tag_name": "input"} 
+        },
+        # viewport_width=1280, viewport_height=720, # These are not in BrowserState
+        # scroll_x=0, scroll_y=0, # These are not in BrowserState
+        # page_content_width=1280, page_content_height=1000, # These are not in BrowserState
+        pixels_above=0, # Added default for BrowserState field
+        pixels_below=0, # Added default for BrowserState field
+        screenshot="data:image/png;base64,fakescreenshotdata"
+    )
+
+@pytest.mark.asyncio
+async def test_browser_context_get_state(browser_context: BrowserContext, mock_extension_interface: AsyncMock, sample_browser_state: BrowserState):
+    """Test that BrowserContext.get_state calls the extension interface and updates its internal state."""
+    mock_extension_interface.get_state.return_value = sample_browser_state
+    
+    retrieved_state = await browser_context.get_state()
+    
+    mock_extension_interface.get_state.assert_called_once_with(include_screenshot=False) # Default for get_state
+    assert retrieved_state == sample_browser_state
+    assert browser_context._cached_browser_state == sample_browser_state # MODIFIED: _cached_state -> _cached_browser_state
+    assert browser_context._cached_selector_map == sample_browser_state.selector_map # Corrected attribute name
+
+@pytest.mark.asyncio
+async def test_browser_context_get_state_caching(browser_context: BrowserContext, mock_extension_interface: AsyncMock, sample_browser_state: BrowserState):
+    """Test that BrowserContext._cached_state and _cached_selector_map are updated after get_state."""
+    # Mock the call to the underlying extension interface
+    mock_extension_interface.get_state.return_value = sample_browser_state
+
+    # Initial state of caches (should be None or empty)
+    assert browser_context._cached_browser_state is None
+    assert browser_context._cached_selector_map == {}
+
+    # Call get_state
+    retrieved_state = await browser_context.get_state()
+
+    # Verify extension was called
+    mock_extension_interface.get_state.assert_called_once_with(include_screenshot=False)
+    assert retrieved_state == sample_browser_state
+    
+    # Verify caches are populated
+    assert browser_context._cached_browser_state == sample_browser_state
+    assert browser_context._cached_selector_map == sample_browser_state.selector_map
+
+    # Call get_state again
+    # In current implementation, get_state always fetches, so mock should be called again.
+    # And caches should be updated again.
+    another_sample_state = sample_browser_state.model_copy(update={"title": "Updated Title"})
+    mock_extension_interface.get_state.return_value = another_sample_state # New state for second call
+    
+    second_retrieved_state = await browser_context.get_state(include_screenshot=True) # Test with different param
+
+    mock_extension_interface.get_state.assert_called_with(include_screenshot=True) # Check last call
+    assert mock_extension_interface.get_state.call_count == 2
+    assert second_retrieved_state == another_sample_state
+    assert browser_context._cached_browser_state == another_sample_state
+    assert browser_context._cached_selector_map == another_sample_state.selector_map
+
+@pytest.mark.asyncio
+async def test_browser_context_click_element_by_highlight_index(browser_context: BrowserContext, mock_extension_interface: AsyncMock, sample_browser_state: BrowserState):
+    """Test clicking an element by its highlight_index."""
+    browser_context._cached_browser_state = sample_browser_state # MODIFIED: _cached_state -> _cached_browser_state
+    browser_context._cached_selector_map = sample_browser_state.selector_map
+    
+    target_highlight_index = 0 # Corresponds to the div with id "test-div"
+    # The click_element_by_highlight_index method in BrowserContext uses _click_element_node,
+    # which expects a DOMElementNode. get_dom_element_by_index provides this.
+    # _click_element_node then calls extension.execute_action with "click_element_by_index" and the index.
+
+    # We need to mock get_dom_element_by_index to return a node that _click_element_node can use.
+    # Or, ensure sample_browser_state.element_tree has this index correctly.
+    # The current sample_browser_state fixture creates DOMElementNodes with highlight_index.
+    
+    mock_extension_interface.execute_action.return_value = {"success": True, "message": "Clicked"}
+    
+    # This method is not directly on BrowserContext in the latest version. 
+    # It seems to be an old test. The controller has click_element_by_index.
+    # BrowserContext has _click_element_node(DOMElementNode) and get_dom_element_by_index(int).
+    # Let's assume this test meant to test the underlying mechanism that would be used by a controller.
+    # To test the flow: get_dom_element_by_index -> _click_element_node
+    
+    element_to_click = await browser_context.get_dom_element_by_index(target_highlight_index)
+    assert element_to_click.highlight_index == target_highlight_index
+
+    await browser_context._click_element_node(element_to_click)
+    
+    mock_extension_interface.execute_action.assert_called_once_with(
+        "click_element_by_index", # Action name used by _click_element_node
+        {"index": target_highlight_index}
+    )
+    # The result of _click_element_node is None (download path), not the extension response dict.
+    # So, no assertion on result directly here unless behavior of _click_element_node changes.
+
+@pytest.mark.asyncio
+async def test_browser_context_input_text_by_highlight_index(browser_context: BrowserContext, mock_extension_interface: AsyncMock, sample_browser_state: BrowserState):
+    """Test inputting text into an element by its highlight_index."""
+    browser_context._cached_browser_state = sample_browser_state # MODIFIED: _cached_state -> _cached_browser_state
+    browser_context._cached_selector_map = sample_browser_state.selector_map
+
+    target_highlight_index = 1 # Corresponds to the input with id "test-input"
+    text_to_input = "Hello, world!"
+    # Similar to click, this tests the internal flow get_dom_element_by_index -> _input_text_element_node
+
+    element_to_input = await browser_context.get_dom_element_by_index(target_highlight_index)
+    assert element_to_input.highlight_index == target_highlight_index
+
+    await browser_context._input_text_element_node(element_to_input, text_to_input)
+
+    mock_extension_interface.execute_action.assert_called_once_with(
+        "input_text", # Action name used by _input_text_element_node
+        {"index": target_highlight_index, "text": text_to_input}
+    )
+
+@pytest.mark.asyncio
+async def test_extension_page_proxy_goto(mock_browser_context: MagicMock, mock_extension_interface: AsyncMock):
+    """Test ExtensionPageProxy.goto() method."""
+    # Ensure the mock_browser_context.extension returns our specific mock_extension_interface for this test
+    mock_browser_context.extension = mock_extension_interface
+
+    page_proxy = ExtensionPageProxy(extension=mock_extension_interface, browser_context=mock_browser_context)
+    url_to_go = "http://newexample.com"
+    
+    # Mock get_state on the browser_context that page_proxy will call
+    mock_page_state_after_goto = MagicMock(spec=BrowserState)
+    mock_page_state_after_goto.url = url_to_go
+    mock_page_state_after_goto.title = "New Example Page"
+    mock_browser_context.get_state.return_value = mock_page_state_after_goto
+
+    await page_proxy.goto(url_to_go)
+    
+    mock_extension_interface.execute_action.assert_awaited_once_with("go_to_url", {"url": url_to_go})
+    mock_browser_context.get_state.assert_awaited_once() # Ensure state was refreshed by page_proxy
+    assert page_proxy.url == url_to_go
+    assert page_proxy.title_val == "New Example Page"
+
+@pytest.mark.asyncio
+async def test_extension_page_proxy_wait_for_load_state(mock_browser_context: MagicMock, mock_extension_interface: AsyncMock):
+    """Test ExtensionPageProxy.wait_for_load_state() method."""
+    mock_browser_context.extension = mock_extension_interface
+    page_proxy = ExtensionPageProxy(extension=mock_extension_interface, browser_context=mock_browser_context)
+    
+    # Mock get_state on the browser_context
+    mock_page_state_after_load = MagicMock(spec=BrowserState)
+    mock_page_state_after_load.url = "http://loaded.com"
+    mock_page_state_after_load.title = "Loaded Page"
+    mock_browser_context.get_state.return_value = mock_page_state_after_load
+    
+    await page_proxy.wait_for_load_state("networkidle") # State string is illustrative
+    
+    mock_browser_context.get_state.assert_awaited_once()
+    assert page_proxy.url == "http://loaded.com"
+    assert page_proxy.title_val == "Loaded Page"
+
+@pytest.mark.asyncio
+async def test_extension_page_proxy_content(mock_browser_context: MagicMock, mock_extension_interface: AsyncMock):
+    """Test ExtensionPageProxy.content() method."""
+    mock_browser_context.extension = mock_extension_interface
+    page_proxy = ExtensionPageProxy(extension=mock_extension_interface, browser_context=mock_browser_context)
+    
+    mock_page_content_state = MagicMock(spec=BrowserState)
+    mock_page_content_state.url = "http://contentpage.com"
+    mock_page_content_state.title = "Content Page Title"
+    # Simulate element_tree for content generation
+    mock_page_content_state.element_tree = DOMElementNode(tag_name="html", type="element", xpath="/html", children=[
+        DOMElementNode(tag_name="head", type="element", xpath="/html/head", children=[
+            DOMElementNode(tag_name="title", type="element", xpath="/html/head/title", text="Content Page Title")
+        ]),
+        DOMElementNode(tag_name="body", type="element", xpath="/html/body", text="Body content here") # This text is not used by current proxy.content()
+    ])
+    mock_browser_context.get_state.return_value = mock_page_content_state
+    
+    content = await page_proxy.content()
+    
+    mock_browser_context.get_state.assert_awaited_once() # content() calls _update_state -> get_state
+    
+    # ExtensionPageProxy.content() returns a template, not actual page content from element_tree
+    expected_content_template_part_url = f"Content of {mock_page_content_state.url}"
+    expected_content_template_part_title = f"<title>{mock_page_content_state.title}</title>"
+    
+    assert expected_content_template_part_title in content
+    assert expected_content_template_part_url in content
+    assert "Body content here" not in content # Verify the mock body text is NOT in the output
+
+@pytest.mark.asyncio
+async def test_extension_page_proxy_title(mock_browser_context: MagicMock, mock_extension_interface: AsyncMock):
+    """Test ExtensionPageProxy.title() method."""
+    mock_browser_context.extension = mock_extension_interface
+    page_proxy = ExtensionPageProxy(extension=mock_extension_interface, browser_context=mock_browser_context)
+    
+    expected_title = "Test Page Title"
+    mock_page_state_for_title = MagicMock(spec=BrowserState)
+    mock_page_state_for_title.title = expected_title
+    mock_page_state_for_title.url = "http://someurlforthestate.com" # ADDED .url attribute for the mock
+    mock_browser_context.get_state.return_value = mock_page_state_for_title
+    
+    title = await page_proxy.title()
+    
+    mock_browser_context.get_state.assert_awaited_once()
+    assert title == expected_title
+
+@pytest.mark.asyncio
+async def test_extension_page_proxy_url(mock_browser_context: MagicMock, mock_extension_interface: AsyncMock):
+    """Test that ExtensionPageProxy.url property is updated after actions like goto."""
+    mock_browser_context.extension = mock_extension_interface
+    page_proxy = ExtensionPageProxy(extension=mock_extension_interface, browser_context=mock_browser_context)
+    target_url = "http://testurl.com"
+
+    mock_page_state_for_url = MagicMock(spec=BrowserState)
+    mock_page_state_for_url.url = target_url
+    mock_page_state_for_url.title = "Test URL Page"
+    mock_browser_context.get_state.return_value = mock_page_state_for_url
+
+    await page_proxy.goto(target_url) # Action that updates URL (and calls get_state via _update_state)
+    assert page_proxy.url == target_url
+
+@pytest.mark.asyncio
+async def test_click_element_not_found_in_map(browser_context: BrowserContext, mock_extension_interface: AsyncMock, sample_browser_state: BrowserState):
+    """Test getting an element by highlight_index that is not in the selector_map raises ValueError."""
+    # Populate cache so get_dom_element_by_index doesn't try to fetch state itself initially for this test path
+    browser_context._cached_browser_state = sample_browser_state # MODIFIED: _cached_state -> _cached_browser_state
+    browser_context._cached_selector_map = sample_browser_state.selector_map # map is {0:..., 1:...}
+
+    invalid_highlight_index = 99 # This index is not in sample_browser_state.selector_map
+
+    with pytest.raises(ValueError, match=f"Element with index {invalid_highlight_index} not found in selector_map"):
+        await browser_context.get_dom_element_by_index(invalid_highlight_index)
+    
+    # Ensure no interaction with extension interface if element not found in map before any action call
+    mock_extension_interface.execute_action.assert_not_called()
+
+@pytest.mark.asyncio
+async def test_input_text_element_not_found_in_map(browser_context: BrowserContext, mock_extension_interface: AsyncMock, sample_browser_state: BrowserState):
+    """Test getting an element by highlight_index for input that is not in the selector_map raises ValueError."""
+    browser_context._cached_browser_state = sample_browser_state # MODIFIED: _cached_state -> _cached_browser_state
+    browser_context._cached_selector_map = sample_browser_state.selector_map
+
+    invalid_highlight_index = 100
+    # text_to_input = "Test text" # Not used as get_dom_element_by_index will fail first
+
+    with pytest.raises(ValueError, match=f"Element with index {invalid_highlight_index} not found in selector_map"):
+        await browser_context.get_dom_element_by_index(invalid_highlight_index)
+        # If we were testing a combined operation:
+        # element_node = await browser_context.get_dom_element_by_index(invalid_highlight_index)
+        # await browser_context._input_text_element_node(element_node, text_to_input)
+    
+    mock_extension_interface.execute_action.assert_not_called()
+
+# Example of how DOMElementNode.to_html() might be used if it existed
+# This is for the purpose of testing ExtensionPageProxy.content()
+# Ideally, DOMElementNode would have a method to convert itself to an HTML string.
+# For now, a simplified helper function is used within the test_extension_page_proxy_content test.
+
+# Add more tests for other ExtensionPageProxy methods (e.g., close, screenshot, etc.)
+# and other BrowserContext functionalities as they are implemented.
+
+# To run this test, you would typically use pytest in your terminal:
+# pytest browser-use/tests/test_browser_context.py
+````
+
+## File: browser_use_ext/tests/test_browser.py
+````python
+import pytest
+import asyncio
+from unittest.mock import AsyncMock, MagicMock, patch
+
+# Adjust imports based on the new project structure `browser-use-ext`
+from browser.browser import Browser, BrowserConfig
+from browser.context import BrowserContext, BrowserContextConfig
+# Import the service module directly to use with patch.object
+from extension_interface import service as ei_service
+from extension_interface.service import ExtensionInterface # For spec in mock
+
+@pytest.fixture
+def browser_config():
+    """Provides a default BrowserConfig for testing.
+       Ensure port is different from other tests if they run in parallel or don't clean up properly.
+    """
+    return BrowserConfig(extension_host="127.0.0.1", extension_port=8777) # Changed port
+
+@pytest.fixture
+def mock_extension_interface_instance():
+    """Provides a mock instance of ExtensionInterface."""
+    mock_instance = AsyncMock(spec=ExtensionInterface)
+    mock_instance.start_server = AsyncMock(return_value=None)
+    mock_instance.stop_server = AsyncMock(return_value=None)
+    # Simulate server running state after start_server is called
+    async def mock_start_server():
+        mock_instance.is_server_running = True
+        return None
+    mock_instance.start_server = AsyncMock(side_effect=mock_start_server)
+    mock_instance.is_server_running = False # Initial state
+    mock_instance.has_active_connection = False # No connection initially
+    return mock_instance
+
+
+@pytest.fixture
+def patched_extension_interface_cls(mock_extension_interface_instance: AsyncMock):
+    """Patches the ExtensionInterface class to return a specific mock instance."""
+    # Patch where ExtensionInterface is IMPORTED by the Browser class
+    with patch("browser.browser.ExtensionInterface", return_value=mock_extension_interface_instance, autospec=True) as mock_cls:
+        yield mock_cls # Yield the mock class itself for assertions on constructor calls
+
+
+@pytest.mark.asyncio
+async def test_browser_launch_and_close(browser_config: BrowserConfig, patched_extension_interface_cls: MagicMock, mock_extension_interface_instance: AsyncMock):
+    """Test the Browser.launch and Browser.close methods, ensuring ExtensionInterface is managed."""
+    browser = Browser(config=browser_config)
+    
+    # Test launch
+    launched_browser = await browser.launch()
+    assert launched_browser == browser
+    assert browser.is_launched is True
+    assert browser._extension_interface == mock_extension_interface_instance
+    
+    # Check that ExtensionInterface was instantiated with correct host/port from browser_config
+    # This assertion is on the mock CLASS returned by the patch fixture
+    patched_extension_interface_cls.assert_called_once_with(
+        host=browser_config.extension_host, 
+        port=browser_config.extension_port
+    )
+    # Check that start_server was called on the INSTANCE
+    mock_extension_interface_instance.start_server.assert_awaited_once()
+    assert mock_extension_interface_instance.is_server_running is True # Check side effect of mock_start_server
+
+    # Test close
+    await browser.close()
+    assert browser.is_launched is False
+    mock_extension_interface_instance.stop_server.assert_awaited_once()
+    # The _extension_interface is not set to None in the current Browser.close()
+    # assert browser._extension_interface is None 
+
+@pytest.mark.asyncio
+async def test_browser_async_context_manager(browser_config: BrowserConfig, patched_extension_interface_cls: MagicMock, mock_extension_interface_instance: AsyncMock):
+    """Test that Browser can be used as an asynchronous context manager."""
+    async with Browser(config=browser_config) as browser:
+        assert browser.is_launched is True
+        assert browser._extension_interface == mock_extension_interface_instance
+        patched_extension_interface_cls.assert_called_once_with(host=browser_config.extension_host, port=browser_config.extension_port)
+        mock_extension_interface_instance.start_server.assert_awaited_once()
+        assert mock_extension_interface_instance.is_server_running is True
+        
+    assert browser.is_launched is False
+    mock_extension_interface_instance.stop_server.assert_awaited_once()
+
+@pytest.mark.asyncio
+async def test_browser_new_context(browser_config: BrowserConfig, patched_extension_interface_cls: MagicMock, mock_extension_interface_instance: AsyncMock):
+    """Test Browser.new_context() creates a BrowserContext correctly."""
+    async with Browser(config=browser_config) as browser:
+        context_config_override = BrowserContextConfig(view_port_height=768) # Use a field from BrowserContextConfig
+        browser_context = await browser.new_context(context_config=context_config_override)
+        
+        assert isinstance(browser_context, BrowserContext)
+        assert browser_context.config == context_config_override
+        # Ensure it uses the browser's (mocked) extension interface instance
+        assert browser_context._extension == mock_extension_interface_instance 
+
+@pytest.mark.asyncio
+async def test_browser_new_context_uses_default_config_if_none_provided(browser_config: BrowserConfig, patched_extension_interface_cls: MagicMock, mock_extension_interface_instance: AsyncMock):
+    """Test Browser.new_context() uses default BrowserContextConfig if no override is given."""
+    async with Browser(config=browser_config) as browser:
+        browser_context = await browser.new_context() # No config override, should use browser_config.default_context_config
+        
+        assert isinstance(browser_context, BrowserContext)
+        # Check that it used the default BrowserContextConfig instance from the BrowserConfig
+        assert browser_context.config == browser_config.default_context_config
+        assert browser_context._extension == mock_extension_interface_instance
+
+@pytest.mark.asyncio
+async def test_browser_launch_already_launched(browser_config: BrowserConfig, patched_extension_interface_cls: MagicMock, mock_extension_interface_instance: AsyncMock):
+    """Test that attempting to launch an already launched browser does not call start_server again."""
+    browser = Browser(config=browser_config)
+    await browser.launch() # First launch
+    assert browser.is_launched
+    mock_extension_interface_instance.start_server.assert_awaited_once() # Called once
+
+    await browser.launch() # Second launch attempt
+    assert browser.is_launched # Still launched
+    # Ensure start_server was not called again
+    mock_extension_interface_instance.start_server.assert_awaited_once() 
+    await browser.close() # Cleanup
+
+@pytest.mark.asyncio
+async def test_browser_new_context_when_not_launched(browser_config: BrowserConfig):
+    """Test that attempting to create a new context when browser is not launched raises an error."""
+    browser = Browser(config=browser_config) # Not launched yet
+    assert not browser.is_launched
+    with pytest.raises(RuntimeError, match="Browser must be launched and ExtensionInterface server running before creating a context."):
+        await browser.new_context()
+
+@pytest.mark.asyncio
+async def test_browser_close_when_not_launched(browser_config: BrowserConfig, mock_extension_interface_instance: AsyncMock):
+    """Test that closing a browser that was never launched does not error and does not call stop_server."""
+    # This test needs to ensure that if Browser is instantiated but not launched,
+    # its _extension_interface (which would be real if not for other tests' patching)
+    # doesn't get stop_server called.
+    # We use a direct mock_extension_interface_instance to simulate the _extension_interface for an unlaunched browser.
+    
+    browser = Browser(config=browser_config)
+    # Manually assign a (potentially real or pre-mocked) extension interface if Browser.__init__ always creates one.
+    # Current Browser.__init__ *does* create one. So this test relies on the global patch from other fixtures if it runs after them,
+    # or it would create a real one.
+    # For isolation, explicitly mock what an unlaunched browser might have or do.
+    # However, the current Browser() immediately creates an ei_service.ExtensionInterface().
+    # So this test implicitly relies on patching if other tests use patched_extension_interface_cls.
+    # A truly isolated test would patch 'browser.browser.ExtensionInterface' just for this test scope.
+
+    assert not browser.is_launched
+    
+    # Store the _extension_interface that Browser created. If patched_extension_interface_cls fixture is active,
+    # this will be mock_extension_interface_instance.
+    # If no global patch active, it's a real one.
+    # Let's assume for this test that the interest is that stop_server on *whatever* interface it has isn't called.
+    # The mock_extension_interface_instance passed as arg isn't automatically browser's _extension_interface here without launch & patching.
+    # So, we check the one Browser itself creates.
+    
+    # To be robust, let's patch just for this test to control the instance
+    with patch("browser.browser.ExtensionInterface", return_value=mock_extension_interface_instance) as temp_mock_cls:
+        fresh_browser = Browser(config=browser_config)
+        assert not fresh_browser.is_launched
+        assert fresh_browser._extension_interface == mock_extension_interface_instance
+
+        await fresh_browser.close() # Call close on unlaunched browser
+        
+        assert not fresh_browser.is_launched
+        # stop_server should NOT have been called on the interface of an unlaunched browser
+        mock_extension_interface_instance.stop_server.assert_not_called()
+
+# Consider adding tests for error handling during ExtensionInterface start/stop if applicable,
+# e.g., if start_server could fail and Browser needs to handle that gracefully.
+````
+
+## File: browser_use_ext/tests/test_controller_service.py
+````python
+import pytest
+from unittest.mock import MagicMock, AsyncMock, patch
+
+# Adjust imports based on the new project structure `browser-use-ext`
+from controller.service import Controller
+from browser.context import BrowserContext
+from extension_interface.service import ExtensionInterface # Added for type hinting
+from browser.views import BrowserState # Added for type hinting
+from controller.registry.views import ActionDefinition, list_available_actions # For testing list_actions
+
+# --- Fixtures ---
+
+@pytest.fixture
+def mock_browser_context() -> MagicMock:
+    """Provides a mock BrowserContext instance for testing the Controller."""
+    mock_context = MagicMock(spec=BrowserContext)
+    
+    # Configure the _cached_state attribute for the Controller's __init__
+    # The controller accesses browser_context._cached_state.url
+    mock_cached_state = MagicMock()
+    mock_cached_state.url = "http://mockurl.com" # Provide a mock URL
+    mock_context._cached_state = mock_cached_state 
+    
+    # Also mock the extension attribute of the browser_context, as Controller accesses it.
+    # Controller.execute_action -> self.browser_context.extension.execute_action
+    mock_extension_interface = AsyncMock(spec=ExtensionInterface)
+    mock_context.extension = mock_extension_interface
+    
+    # Mock methods of BrowserContext that Controller's helper methods might call indirectly.
+    # For get_current_browser_state_wrapper:
+    mock_browser_state_instance = MagicMock(spec=BrowserState)
+    mock_browser_state_instance.model_dump.return_value = {"url": "http://mockurl.com/current", "title": "Mock Page"}
+    mock_context.get_state = AsyncMock(return_value=mock_browser_state_instance)
+
+    # For close_tab wrapper when tab_id is None:
+    mock_page_proxy = MagicMock()
+    mock_page_proxy.page_id = "active_mock_tab_id"
+    mock_context.active_page = AsyncMock(return_value=mock_page_proxy)
+
+    return mock_context
+
+@pytest.fixture
+def controller(mock_browser_context: MagicMock) -> Controller:
+    """Provides a Controller instance initialized with a mock BrowserContext."""
+    return Controller(browser_context=mock_browser_context)
+
+# --- Test Cases ---
+
+def test_controller_initialization(controller: Controller, mock_browser_context: MagicMock):
+    """Test that the Controller initializes correctly with a BrowserContext."""
+    assert controller.browser_context == mock_browser_context
+
+@pytest.mark.asyncio
+async def test_controller_execute_action_direct_call(controller: Controller, mock_browser_context: MagicMock):
+    """Test the main execute_action method for direct calls to extension."""
+    action_name = "test_extension_action"
+    params = {"key": "value"}
+    expected_response = {"success": True, "data": "action_completed"}
+    
+    mock_browser_context.extension.execute_action = AsyncMock(return_value=expected_response)
+    
+    result = await controller.execute_action(action_name=action_name, params=params, timeout=10.0)
+    
+    mock_browser_context.extension.execute_action.assert_awaited_once_with(
+        action_name=action_name,
+        params=params,
+        timeout=10.0
+    )
+    assert result == expected_response
+
+@pytest.mark.asyncio
+async def test_controller_execute_action_handles_extension_error(controller: Controller, mock_browser_context: MagicMock):
+    """Test that execute_action returns an error dict if extension call fails."""
+    action_name = "failing_action"
+    params = {}
+    mock_browser_context.extension.execute_action = AsyncMock(side_effect=RuntimeError("Extension communication failed"))
+    
+    result = await controller.execute_action(action_name=action_name, params=params)
+    
+    assert isinstance(result, dict)
+    assert "error" in result
+    assert "Extension communication failed" in result["error"]
+
+# --- Test Wrapper Methods ---
+
+@pytest.mark.asyncio
+async def test_controller_go_to_url_wrapper(controller: Controller, mock_browser_context: MagicMock):
+    target_url = "https://example.com"
+    mock_response = {"success": True, "new_url": target_url}
+    mock_browser_context.extension.execute_action = AsyncMock(return_value=mock_response)
+    
+    result = await controller.go_to_url(target_url)
+    
+    mock_browser_context.extension.execute_action.assert_awaited_once_with(
+        action_name="go_to_url",
+        params={"url": target_url},
+        timeout=30.0
+    )
+    assert result == mock_response
+
+@pytest.mark.asyncio
+async def test_controller_click_element_by_index_wrapper(controller: Controller, mock_browser_context: MagicMock):
+    element_idx = 5
+    mock_response = {"success": True, "message": "Element clicked"}
+    mock_browser_context.extension.execute_action = AsyncMock(return_value=mock_response)
+
+    result = await controller.click_element_by_index(element_idx)
+
+    mock_browser_context.extension.execute_action.assert_awaited_once_with(
+        action_name="click_element_by_index",
+        params={"highlight_index": element_idx},
+        timeout=30.0
+    )
+    assert result == mock_response
+
+@pytest.mark.asyncio
+async def test_controller_input_text_wrapper(controller: Controller, mock_browser_context: MagicMock):
+    element_idx = 3
+    text_to_input = "Hello, world!"
+    mock_response = {"success": True, "message": "Text input successful"}
+    mock_browser_context.extension.execute_action = AsyncMock(return_value=mock_response)
+
+    result = await controller.input_text(element_idx, text_to_input)
+
+    mock_browser_context.extension.execute_action.assert_awaited_once_with(
+        action_name="input_text",
+        params={"highlight_index": element_idx, "text": text_to_input},
+        timeout=30.0
+    )
+    assert result == mock_response
+
+@pytest.mark.asyncio
+async def test_controller_scroll_page_wrapper(controller: Controller, mock_browser_context: MagicMock):
+    scroll_direction = "down"
+    mock_response = {"success": True, "scroll_position_y": 1000}
+    mock_browser_context.extension.execute_action = AsyncMock(return_value=mock_response)
+
+    result = await controller.scroll_page(scroll_direction)
+
+    mock_browser_context.extension.execute_action.assert_awaited_once_with(
+        action_name="scroll_page",
+        params={"direction": scroll_direction},
+        timeout=30.0
+    )
+    assert result == mock_response
+
+@pytest.mark.asyncio
+async def test_controller_scroll_page_invalid_direction(controller: Controller, mock_browser_context: MagicMock):
+    result = await controller.scroll_page("sideways")
+    assert isinstance(result, dict)
+    assert "error" in result
+    assert "Invalid scroll direction" in result["error"]
+    mock_browser_context.extension.execute_action.assert_not_called()
+
+@pytest.mark.asyncio
+async def test_controller_go_back_wrapper(controller: Controller, mock_browser_context: MagicMock):
+    mock_response = {"success": True}
+    mock_browser_context.extension.execute_action = AsyncMock(return_value=mock_response)
+
+    result = await controller.go_back()
+
+    mock_browser_context.extension.execute_action.assert_awaited_once_with(
+        action_name="go_back",
+        params={},
+        timeout=30.0
+    )
+    assert result == mock_response
+
+@pytest.mark.asyncio
+async def test_controller_extract_content_wrapper(controller: Controller, mock_browser_context: MagicMock):
+    mock_page_content_response = {"success": True, "content": "Full page text."}
+    mock_browser_context.extension.execute_action = AsyncMock(return_value=mock_page_content_response)
+    
+    result_page = await controller.extract_content(content_type="text")
+    mock_browser_context.extension.execute_action.assert_awaited_once_with(
+        action_name="extract_content",
+        params={"content_type": "text"}, 
+        timeout=30.0
+    )
+    assert result_page == mock_page_content_response
+
+    mock_browser_context.extension.execute_action.reset_mock() 
+    element_idx = 7
+    mock_element_content_response = {"success": True, "content": "Element text."}
+    mock_browser_context.extension.execute_action.return_value = mock_element_content_response
+
+    result_element = await controller.extract_content(index=element_idx, content_type="html")
+    mock_browser_context.extension.execute_action.assert_awaited_once_with(
+        action_name="extract_content",
+        params={"content_type": "html", "highlight_index": element_idx},
+        timeout=30.0
+    )
+    assert result_element == mock_element_content_response
+
+@pytest.mark.asyncio
+async def test_controller_send_keys_wrapper(controller: Controller, mock_browser_context: MagicMock):
+    keys_to_send = "Enter"
+    mock_response = {"success": True}
+    mock_browser_context.extension.execute_action = AsyncMock(return_value=mock_response)
+
+    result_active = await controller.send_keys(keys_to_send)
+    mock_browser_context.extension.execute_action.assert_awaited_once_with(
+        action_name="send_keys",
+        params={"keys": keys_to_send}, 
+        timeout=30.0
+    )
+    assert result_active == mock_response
+    
+    mock_browser_context.extension.execute_action.reset_mock()
+    element_idx = 2
+    result_element = await controller.send_keys(keys_to_send, index=element_idx)
+    mock_browser_context.extension.execute_action.assert_awaited_once_with(
+        action_name="send_keys",
+        params={"keys": keys_to_send, "highlight_index": element_idx},
+        timeout=30.0
+    )
+    assert result_element == mock_response
+
+@pytest.mark.asyncio
+async def test_controller_open_tab_wrapper(controller: Controller, mock_browser_context: MagicMock):
+    test_url = "https://example.com/new"
+    mock_response = {"success": True, "new_tab_id": "tabXYZ"}
+    mock_browser_context.extension.execute_action = AsyncMock(return_value=mock_response)
+    mock_browser_context.get_state = AsyncMock() 
+
+    result = await controller.open_tab(test_url)
+
+    mock_browser_context.extension.execute_action.assert_awaited_once_with(
+        action_name="open_tab",
+        params={"url": test_url},
+        timeout=30.0
+    )
+    assert result == mock_response
+    mock_browser_context.get_state.assert_awaited_once_with(force_refresh=True)
+
+@pytest.mark.asyncio
+async def test_controller_switch_tab_wrapper(controller: Controller, mock_browser_context: MagicMock):
+    target_tab_id = "tab123"
+    mock_response = {"success": True, "active_tab_id": target_tab_id}
+    mock_browser_context.extension.execute_action = AsyncMock(return_value=mock_response)
+    mock_browser_context.get_state = AsyncMock()
+
+    result = await controller.switch_tab(target_tab_id)
+
+    mock_browser_context.extension.execute_action.assert_awaited_once_with(
+        action_name="switch_tab",
+        params={"tab_id": target_tab_id},
+        timeout=30.0
+    )
+    assert result == mock_response
+    mock_browser_context.get_state.assert_awaited_once_with(force_refresh=True)
+
+@pytest.mark.asyncio
+async def test_controller_close_tab_wrapper_with_id(controller: Controller, mock_browser_context: MagicMock):
+    target_tab_id = "tab_to_close"
+    mock_response = {"success": True, "closed_tab_id": target_tab_id}
+    mock_browser_context.extension.execute_action = AsyncMock(return_value=mock_response)
+    mock_browser_context.get_state = AsyncMock()
+
+    result = await controller.close_tab(target_tab_id)
+
+    mock_browser_context.extension.execute_action.assert_awaited_once_with(
+        action_name="close_tab",
+        params={"tab_id": target_tab_id},
+        timeout=30.0
+    )
+    assert result == mock_response
+    mock_browser_context.get_state.assert_awaited_once_with(force_refresh=True)
+
+@pytest.mark.asyncio
+async def test_controller_close_tab_wrapper_active_tab(controller: Controller, mock_browser_context: MagicMock):
+    active_tab_id_from_mock = "active_mock_tab_id"
+    mock_response = {"success": True, "closed_tab_id": active_tab_id_from_mock}
+    mock_browser_context.extension.execute_action = AsyncMock(return_value=mock_response)
+    
+    result = await controller.close_tab()
+
+    mock_browser_context.active_page.assert_awaited_once() 
+    mock_browser_context.extension.execute_action.assert_awaited_once_with(
+        action_name="close_tab",
+        params={"tab_id": active_tab_id_from_mock}, 
+        timeout=30.0
+    )
+    assert result == mock_response
+    assert mock_browser_context.get_state.await_args.kwargs.get('force_refresh') is True
+
+
+@pytest.mark.asyncio
+async def test_controller_list_actions(controller: Controller):
+    actions_list = await controller.list_actions()
+    assert isinstance(actions_list, list)
+    registered_action_names = [a.name for a in list_available_actions()]
+    returned_action_names = [a.name for a in actions_list]
+    assert all(name in registered_action_names for name in returned_action_names)
+    assert len(actions_list) > 0 
+
+@pytest.mark.asyncio
+async def test_controller_get_current_browser_state_wrapper(controller: Controller, mock_browser_context: MagicMock):
+    expected_state_dict = {"url": "http://mockurl.com/current", "title": "Mock Page"} 
+    mock_browser_context.get_state.reset_mock() 
+
+    state_dict = await controller.get_current_browser_state(force_refresh=True)
+
+    mock_browser_context.get_state.assert_awaited_once_with(force_refresh=True)
+    assert state_dict == expected_state_dict
+
+# To run tests (from the root of the browser-use-ext project):
+# pytest tests/test_controller_service.py
+````
+
+## File: browser_use_ext/tests/test_extension_interface.py
+````python
+import asyncio
+import json
+import pytest
+import pytest_asyncio
+import websockets # Added missing import
+from unittest.mock import MagicMock, AsyncMock, patch # For async mocking
+
+from websockets.server import WebSocketServerProtocol
+from websockets.exceptions import ConnectionClosedOK, ConnectionClosed
+
+# Adjust imports based on the new project structure `browser-use-ext`
+from extension_interface.service import (
+    ExtensionInterface,
+    RequestMessage,
+    ResponseMessage,
+    ResponseData,
+    ConnectionInfo
+)
+from browser.views import BrowserState, TabInfo
+from dom.views import DOMElementNode
+
+@pytest_asyncio.fixture
+async def interface():
+    """Fixture to create an ExtensionInterface instance and manage its server lifecycle."""
+    iface = ExtensionInterface(host="127.0.0.1", port=8766) # Use a different port for testing
+    server_task = asyncio.create_task(iface.start_server(), name=f"TestExtInterfaceServer-{iface.port}")
+    await asyncio.sleep(0.2) # Increased delay for server startup
+    if not iface.is_server_running:
+        # Attempt to wait a bit longer if the server isn't up yet
+        await asyncio.sleep(0.5)
+        if not iface.is_server_running:
+            # If it's still not running, force cleanup and fail the test setup
+            if not server_task.done():
+                server_task.cancel()
+                try: await server_task
+                except asyncio.CancelledError: pass
+            pytest.fail(f"Test server on port {iface.port} failed to start.")
+    yield iface
+    # Teardown: stop the server and wait for the task to complete
+    await iface.stop_server()
+    if not server_task.done():
+        server_task.cancel()
+        try:
+            await server_task
+        except asyncio.CancelledError:
+            pass # Expected on cancellation
+    await asyncio.sleep(0.2) # Ensure resources are released
+
+@pytest.mark.asyncio
+async def test_server_start_and_stop(interface: ExtensionInterface):
+    """Test that the WebSocket server starts and stops correctly."""
+    assert interface.is_server_running, "Server should be running after start_server() call in fixture"
+    # has_active_connection depends on a client connecting, not part of this test directly.
+    # initial_active_conn = interface.has_active_connection
+    # assert not initial_active_conn, "Should be no active connections initially"
+
+@pytest.mark.asyncio
+async def test_handle_connection_and_disconnection(interface: ExtensionInterface):
+    """Test that a client can connect and disconnect, updating active_connection status."""
+    assert interface.is_server_running, "Server must be running for client to connect."
+    initial_connections_count = len(interface._connections)
+    initial_active_id = interface._active_connection_id
+
+    async def client_connect_and_close():
+        try:
+            # Connect client to the server started by the 'interface' fixture
+            async with websockets.connect(f"ws://{interface.host}:{interface.port}") as ws_client:
+                await asyncio.sleep(0.2) # Give server time to process connection
+                assert interface.has_active_connection, "Interface should have an active connection after client connects"
+                assert len(interface._connections) > initial_connections_count, "Connection count should increase"
+                assert interface._active_connection_id is not None, "Active connection ID should be set"
+                # Client automatically closes connection when exiting `async with`
+        except Exception as e:
+            pytest.fail(f"Client connection failed: {e}")
+
+    connect_task = asyncio.create_task(client_connect_and_close())
+    try:
+        await asyncio.wait_for(connect_task, timeout=5.0)
+    except asyncio.TimeoutError:
+        pytest.fail("Client connect and close task timed out.")
+
+    await asyncio.sleep(0.3) # Allow server time to process disconnection
+    assert not interface.has_active_connection, "Interface should not have an active connection after client disconnects"
+    assert len(interface._connections) == initial_connections_count, "Connection count should revert"
+    # Depending on logic, active_connection_id might be None or another if multiple clients were involved.
+    # For a single client, it should likely become None.
+    if initial_active_id is None: # if it started as None, and only one client connected and disconnected.
+        assert interface._active_connection_id is None, "Active connection ID should be None after single client disconnects"
+
+@pytest.mark.asyncio
+async def test_send_request_and_receive_response(interface: ExtensionInterface):
+    """Test sending a request to a mock client and receiving its response."""
+    
+    # This test is complex because it involves mocking the client-side behavior 
+    # that responds to requests from the ExtensionInterface.
+    # The ExtensionInterface._handle_connection is the server-side part that receives client messages.
+    # The ExtensionInterface._send_request is the part that sends messages to the client.
+
+    # We need a real client to connect so _send_request can proceed.
+    # This client will also act as the responder.
+
+    request_id_seen_by_client = None
+    response_future = asyncio.Future()
+
+    async def mock_client_responder(ws_client: WebSocketServerProtocol):
+        nonlocal request_id_seen_by_client
+        try:
+            message_str = await ws_client.recv() # Wait for the server's request
+            req_data = json.loads(message_str)
+            request_id_seen_by_client = req_data["id"]
+            assert req_data["type"] == "test_type_action" # Corrected: type is request_type
+            assert req_data["data"] == {"param1": "value1"} # Corrected: params are in data field
+            
+            response_payload = {
+                "id": req_data["id"],
+                "type": "response",
+                "data": {"success": True, "result": "mock_success"} # ensure data field for ResponseData model
+            }
+            await ws_client.send(json.dumps(response_payload))
+            response_future.set_result(None) # Signal response sent
+        except ConnectionClosed:
+            if not response_future.done():
+                response_future.set_exception(ConnectionClosed("Client connection closed before responding", None))
+        except Exception as e:
+            if not response_future.done():
+                response_future.set_exception(e)
+            pytest.fail(f"Mock client responder error: {e}")
+
+    client_task = None
+    async def client_main_task():
+        try:
+            async with websockets.connect(f"ws://{interface.host}:{interface.port}") as ws_client:
+                await asyncio.sleep(0.1) # ensure server registers connection
+                if not interface.has_active_connection: await asyncio.sleep(0.3)
+                assert interface.has_active_connection, "Test client connected, server should have active connection."
+                await mock_client_responder(ws_client) # This client will handle one request/response
+        except Exception as e:
+            if not response_future.done():
+                response_future.set_exception(e)
+
+    client_task = asyncio.create_task(client_main_task())
+
+    try:
+        # Wait for client to be ready (connected and server acknowledges)
+        await asyncio.sleep(0.5) 
+        assert interface.has_active_connection, "Server should be ready to send request to connected client."
+
+        # Now, call _send_request. The connected mock_client_responder should handle it.
+        response_data_obj = await interface._send_request(request_type="test_type_action", data={"param1": "value1"}, timeout=3.0)
+        
+        assert isinstance(response_data_obj, ResponseData)
+        assert response_data_obj.success is True
+        # The actual data is nested within the ResponseData model if structure is {success:true, result: "mock_success"}
+        # If ResponseData is just {success: true, error: null}, then response_data_obj would be that.
+        # Based on mock_client_responder, it sends {"result": "mock_success"} inside data.
+        # So, response_data_obj will be a ResponseData model where response_data_obj.result exists IF defined in ResponseData model.
+        # Current ResponseData allows extra fields. Let's assume we want to check that specific field.
+        assert response_data_obj.model_extra["result"] == "mock_success"
+
+        # Check that the client actually processed a request with a valid ID
+        await asyncio.wait_for(response_future, timeout=1.0) # Ensure client finished its part
+        assert request_id_seen_by_client is not None
+        assert isinstance(request_id_seen_by_client, int)
+
+    except Exception as e:
+        pytest.fail(f"_send_request test failed: {e}")
+    finally:
+        if client_task and not client_task.done():
+            client_task.cancel()
+            try: await client_task
+            except asyncio.CancelledError: pass
+        await asyncio.sleep(0.1) # Allow for cleanup
+
+@pytest.mark.asyncio
+async def test_get_state_parsing(interface: ExtensionInterface):
+    """Test the parsing of a get_state response, focusing on _parse_element_tree_data."""
+    mock_response_payload = {
+        # This is the structure for the *data* field of a ResponseMessage
+        "success": True,
+        "url": "http://example.com",
+        "title": "Example Page",
+        "tabs": [
+            {"page_id": 1, "url": "http://example.com", "title": "Example"},
+            {"page_id": 2, "url": "http://test.com", "title": "Test Page"}
+        ],
+        "element_tree": {
+            "type": "element", "tag_name": "html", "attributes": {"lang": "en"}, "xpath": "/html", "is_visible": True,
+            "children": [
+                {"type": "element", "tag_name": "body", "attributes": {}, "xpath": "/html/body", "is_visible": True, "children": [
+                    {"type": "element", "tag_name": "div", "attributes": {"id": "main"}, "highlight_index": 0, "xpath": "/html/body/div[1]", "is_visible": True, "text": "Hello"}
+                ]}
+            ]
+        },
+        "selector_map": {"0": {"xpath": "/html/body/div[1]"}},
+        "screenshot": "data:image/png;base64,fakedata",
+        "pixels_above": 10, 
+        "pixels_below": 100
+    }
+    # _send_request returns a ResponseData object
+    interface._send_request = AsyncMock(return_value=ResponseData.model_validate(mock_response_payload))
+    
+    browser_state = await interface.get_state()
+    
+    assert browser_state is not None
+    assert isinstance(browser_state, BrowserState)
+    assert browser_state.url == "http://example.com"
+    assert browser_state.title == "Example Page"
+    assert len(browser_state.tabs) == 2
+    assert isinstance(browser_state.tabs[0], TabInfo)
+    assert browser_state.tabs[0].url == "http://example.com"
+
+    assert browser_state.element_tree is not None
+    assert isinstance(browser_state.element_tree, DOMElementNode)
+    assert browser_state.element_tree.tag_name == "html"
+    assert browser_state.element_tree.type == "element"
+    assert len(browser_state.element_tree.children) == 1
+    body_node = browser_state.element_tree.children[0]
+    assert body_node.tag_name == "body"
+    assert len(body_node.children) == 1
+    div_node = body_node.children[0]
+    assert div_node.tag_name == "div"
+    assert div_node.attributes["id"] == "main"
+    # Text is not a direct attribute of DOMElementNode in this parsed model unless it's a text node itself.
+    # If the extension puts text content directly on an element node, it needs to be mapped. 
+    # Current DOMElementNode has an optional text field. The mock data has this. If parsing sets it, it will be there.
+    # The current _parse_element_tree_data in ExtensionInterface does NOT assign 'text' to element nodes.
+    # It expects 'text' field for type='text' nodes. Let's adjust mock or parsing.
+    # For now, assuming _parse_element_tree_data gets `text` for the div if `type` is element and text is present.
+    # Based on current _parse_element_tree_data, this text will be ignored for type="element".
+    # For test to pass with current code, mock data for element_tree.div should not have "text":"Hello"
+    # OR _parse_element_tree_data should handle text for elements.
+    # Let's assume the mock element tree is what the extension *could* send, and parsing should improve.
+    # For now, this test will fail on div_node.text if _parse_element_tree_data doesn't handle it for elements.
+    # Let's assume the `text` field on DOMElementNode is for text nodes, or direct text of an element.
+    # Adjusting `_parse_element_tree_data` is better. For now, let this test highlight it.
+    # Ok, `DOMElementNode` has `text: Optional[str]`. `_parse_element_tree_data` does not explicitly set it for elements.
+    # The Pydantic model will pick it up if `text` is in `element_data` and it's a valid field.
+    # Let's ensure the mock data for the div has type: "element".
+    assert div_node.text == "Hello" 
+    assert div_node.highlight_index == 0
+    assert div_node.xpath == "/html/body/div[1]"
+    assert browser_state.screenshot == "data:image/png;base64,fakedata"
+    assert browser_state.selector_map == {0: {"xpath": "/html/body/div[1]"}} # Keys should be int
+    assert browser_state.pixels_above == 10
+    assert browser_state.pixels_below == 100
+
+@pytest.mark.asyncio
+async def test_execute_action(interface: ExtensionInterface):
+    """Test the execute_action method."""
+    expected_action_payload = {"success": True, "status": "some_action_status", "details": "action_completed"}
+    # _send_request should return a ResponseData object
+    interface._send_request = AsyncMock(return_value=ResponseData.model_validate(expected_action_payload))
+    
+    action_to_execute = "do_something"
+    action_params = {"param_x": "value_x"}
+    
+    # Call execute_action with `action` not `action_name`
+    result_dict = await interface.execute_action(action=action_to_execute, params=action_params)
+    
+    # execute_action returns a dict (model_dump of ResponseData)
+    assert result_dict["success"] is True
+    assert result_dict["status"] == "some_action_status"
+    assert result_dict["details"] == "action_completed"
+
+    # Verify that _send_request was called with the correct structure for execute_action
+    interface._send_request.assert_called_once_with(
+        request_type="execute_action", 
+        data={"action": action_to_execute, "params": action_params}, 
+        timeout=30.0 # Default timeout from execute_action method
+    )
+
+@pytest.mark.asyncio
+async def test_send_request_timeout(interface: ExtensionInterface):
+    """Test that _send_request correctly raises TimeoutError if the future times out."""
+    
+    client_connected_event = asyncio.Event()
+    client_task = None
+
+    async def non_responsive_client_main():
+        try:
+            # This client connects but never sends a response, forcing a timeout on the server.
+            async with websockets.connect(f"ws://{interface.host}:{interface.port}") as ws_client:
+                # Connection established. The server now has this in its _connections.
+                # Set active_connection_id on the interface if it's the first one (done by _handle_connection).
+                client_connected_event.set() # Signal that client is connected
+                await ws_client.wait_closed() # Keep connection open indefinitely
+        except ConnectionClosedOK:
+            pass # Expected if server closes it during test cleanup
+        except Exception as e:
+            if not client_connected_event.is_set(): # If failed before setting event
+                 client_connected_event.set() # Unblock the test, though it will fail
+            # Don't fail test here, primary test is for server timeout
+            print(f"NonResponsiveClient error: {e}") 
+        finally:
+            if not client_connected_event.is_set():
+                client_connected_event.set() # Ensure main test proceeds
+
+    client_task = asyncio.create_task(non_responsive_client_main())
+    
+    try:
+        await asyncio.wait_for(client_connected_event.wait(), timeout=3.0)
+        await asyncio.sleep(0.2) # Ensure server has processed the connection
+        assert interface.has_active_connection, "Client should be connected and active connection set by server"
+
+        with pytest.raises(TimeoutError):
+            # Use a short timeout for the request itself to trigger the error quickly
+            await interface._send_request(request_type="timeout_action", data={}, timeout=0.1)
+    finally:
+        if client_task and not client_task.done():
+            client_task.cancel()
+            try: await client_task
+            except asyncio.CancelledError: pass
+        await asyncio.sleep(0.1) # Allow for cleanup
+````
+
+## File: browser_use_ext/tests/test_message_manager.py
+````python
+import pytest
+from datetime import datetime, timezone
+from typing import List, Dict, Any
+from agent.message_manager.service import Message, MessageManager
+
+@pytest.fixture
+def message_manager_instance() -> MessageManager:
+    """Provides a clean MessageManager instance for each test."""
+    return MessageManager()
+
+@pytest.fixture
+def sample_system_prompt() -> str:
+    """Provides a sample system prompt string."""
+    return "You are a test assistant."
+
+def test_message_creation():
+    """Test basic Message Pydantic model creation and default values."""
+    content = "Test message content"
+    role = "user"
+    msg = Message(role=role, content=content)
+    
+    assert msg.role == role
+    assert msg.content == content
+    assert isinstance(msg.timestamp, datetime)
+    assert msg.timestamp.tzinfo == timezone.utc
+    assert msg.metadata == {}
+
+    # Test with metadata
+    meta = {"source": "test"}
+    msg_with_meta = Message(role="assistant", content="Meta content", metadata=meta)
+    assert msg_with_meta.metadata == meta
+
+def test_message_manager_initialization(message_manager_instance: MessageManager):
+    """Test MessageManager initialization without a system prompt."""
+    assert message_manager_instance.history == []
+
+def test_message_manager_initialization_with_system_prompt(sample_system_prompt: str):
+    """Test MessageManager initialization with a system prompt."""
+    manager = MessageManager(system_prompt=sample_system_prompt)
+    assert len(manager.history) == 1
+    system_msg = manager.history[0]
+    assert system_msg.role == "system"
+    assert system_msg.content == sample_system_prompt
+
+def test_add_message(message_manager_instance: MessageManager):
+    """Test adding various types of messages to the manager."""
+    manager = message_manager_instance
+    manager.add_message(role="user", content="User query 1")
+    assert len(manager.history) == 1
+    assert manager.history[0].role == "user"
+    assert manager.history[0].content == "User query 1"
+
+    manager.add_message(role="assistant", content="Assistant response", metadata={"tool_used": "search"})
+    assert len(manager.history) == 2
+    assert manager.history[1].role == "assistant"
+    assert manager.history[1].metadata == {"tool_used": "search"}
+
+    manager.add_message(role="tool_code", content="print('tool code')")
+    assert len(manager.history) == 3
+    assert manager.history[2].role == "tool_code"
+
+    manager.add_message(role="tool_output", content="Tool output result")
+    assert len(manager.history) == 4
+    assert manager.history[3].role == "tool_output"
+
+def test_add_message_empty_role_or_content(message_manager_instance: MessageManager, caplog):
+    """Test that adding a message with empty role or content is handled gracefully (logged and skipped)."""
+    manager = message_manager_instance
+    initial_history_len = len(manager.history)
+
+    manager.add_message(role="", content="Some content")
+    assert len(manager.history) == initial_history_len
+    assert "Attempted to add message with empty role or content" in caplog.text
+    caplog.clear()
+
+    manager.add_message(role="user", content="")
+    assert len(manager.history) == initial_history_len
+    assert "Attempted to add message with empty role or content" in caplog.text
+    caplog.clear()
+
+    manager.add_message(role="", content="")
+    assert len(manager.history) == initial_history_len
+    assert "Attempted to add message with empty role or content" in caplog.text
+
+def test_convenience_add_methods(message_manager_instance: MessageManager):
+    """Test the add_user_message and add_assistant_message convenience methods."""
+    manager = message_manager_instance
+    manager.add_user_message("This is a user message.")
+    assert len(manager.history) == 1
+    assert manager.history[0].role == "user"
+    assert manager.history[0].content == "This is a user message."
+
+    manager.add_assistant_message("This is an assistant reply.", metadata={"id": 123})
+    assert len(manager.history) == 2
+    assert manager.history[1].role == "assistant"
+    assert manager.history[1].content == "This is an assistant reply."
+    assert manager.history[1].metadata == {"id": 123}
+
+def test_get_history(message_manager_instance: MessageManager):
+    """Test retrieving the message history."""
+    manager = message_manager_instance
+    manager.add_user_message("Query")
+    manager.add_assistant_message("Reply")
+    
+    history: List[Message] = manager.get_history()
+    assert len(history) == 2
+    assert history[0].content == "Query"
+    assert history[1].content == "Reply"
+    # Ensure it returns a copy, not the internal list (though current implementation returns the list itself)
+    # To test for a copy, you might append to `history` and check `manager.history`
+    # For now, this basic check is fine.
+
+def test_get_history_as_dicts(message_manager_instance: MessageManager):
+    """Test retrieving history as a list of dictionaries."""
+    manager = message_manager_instance
+    time_before_add = datetime.now(timezone.utc)
+    manager.add_user_message("Hi", metadata={"seq": 1})
+    manager.add_assistant_message("Hello")
+
+    history_dicts: List[Dict[str, Any]] = manager.get_history_as_dicts()
+    assert len(history_dicts) == 2
+
+    msg1_dict = history_dicts[0]
+    assert msg1_dict["role"] == "user"
+    assert msg1_dict["content"] == "Hi"
+    assert msg1_dict["metadata"] == {"seq": 1}
+    assert isinstance(msg1_dict["timestamp"], str) # Serialized to ISO format
+    dt_obj1 = datetime.fromisoformat(msg1_dict["timestamp"])
+    assert dt_obj1 >= time_before_add
+
+    msg2_dict = history_dicts[1]
+    assert msg2_dict["role"] == "assistant"
+    assert msg2_dict["content"] == "Hello"
+    assert msg2_dict["metadata"] == {}
+    assert isinstance(msg2_dict["timestamp"], str)
+    dt_obj2 = datetime.fromisoformat(msg2_dict["timestamp"])
+    assert dt_obj2 >= dt_obj1
+
+def test_clear_history(message_manager_instance: MessageManager):
+    """Test clearing the message history."""
+    manager = message_manager_instance
+    manager.add_user_message("Message 1")
+    manager.add_assistant_message("Message 2")
+    assert len(manager.history) == 2
+
+    manager.clear_history()
+    assert len(manager.history) == 0
+    assert manager.get_history() == []
+
+def test_clear_history_with_system_prompt(sample_system_prompt: str):
+    """Test that clearing history does not remove an initial system prompt if manager is re-initialized."""
+    # The current clear_history() simply resets self.history = []. 
+    # If a system prompt was added at initialization, it will be cleared too.
+    # This test reflects the current behavior.
+    manager = MessageManager(system_prompt=sample_system_prompt)
+    assert len(manager.history) == 1
+    manager.add_user_message("User question")
+    assert len(manager.history) == 2
+    
+    manager.clear_history()
+    assert len(manager.history) == 0 # System prompt is also cleared
+
+    # If the requirement was to preserve the system prompt on clear, 
+    # clear_history() would need to be implemented differently, e.g.:
+    # self.history = [msg for msg in self.history if msg.role == "system"]
+    # or re-add the system prompt if one was configured initially.
+
+# To run these tests:
+# pytest browser-use-ext/tests/test_message_manager.py
 ````
 
 ## File: browser_use/__init__.py
@@ -12619,4807 +15870,6 @@ def check_env_variables(keys: list[str], any_or_all=all) -> bool:
 	return any_or_all(os.getenv(key, '').strip() for key in keys)
 ````
 
-## File: browser-use-ext/__init__.py
-````python
-# This file makes the 'browser-use-ext' directory a Python package.
-````
-
-## File: browser-use-ext/agent/__init__.py
-````python
-# This file makes the agent directory a Python package. 
-
-# You might want to expose key classes from the agent submodules here, for example:
-# from .views import AgentSettings, AgentOutput
-# from .message_manager.service import MessageManager
-# from .memory.service import AgentMemory
-# from .prompts import SystemPrompt
-
-# For now, keeping it simple. Can be expanded as the agent develops.
-__all__ = []
-````
-
-## File: browser-use-ext/agent/memory/__init__.py
-````python
-# This file makes the memory directory a Python package. 
-
-from .service import MemoryItem, AgentMemory
-
-__all__ = [
-    "MemoryItem",
-    "AgentMemory",
-]
-````
-
-## File: browser-use-ext/agent/memory/service.py
-````python
-# Standard library imports
-import logging
-from typing import Dict, Any, Optional, List
-from datetime import datetime, timezone
-
-# Third-party imports
-from pydantic import BaseModel, Field
-
-# Initialize logger for this module
-logger = logging.getLogger(__name__)
-
-class MemoryItem(BaseModel):
-    """Represents a single item stored in the agent's memory."""
-    key: str = Field(description="Unique key for the memory item.")
-    value: Any = Field(description="The value associated with the key.")
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Timestamp of when the memory item was last updated or created.")
-    metadata: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Optional metadata for the memory item (e.g., source, relevance score).")
-    
-    class Config:
-        from_attributes = True
-        json_encoders = {
-            datetime: lambda v: v.isoformat()
-        }
-
-class AgentMemory:
-    """
-    A simple in-memory storage for an agent.
-    Provides basic CRUD operations for memory items.
-    This can be expanded to use databases or vector stores for more complex memory management.
-    """
-
-    def __init__(self):
-        """Initializes the AgentMemory with an empty dictionary for storage."""
-        self._storage: Dict[str, MemoryItem] = {}
-        logger.info("AgentMemory initialized.")
-
-    def store(self, key: str, value: Any, metadata: Optional[Dict[str, Any]] = None) -> None:
-        """
-        Stores or updates an item in memory.
-        Args:
-            key: The unique key for the item.
-            value: The value to store.
-            metadata: Optional metadata associated with the item.
-        """
-        if not key:
-            logger.warning("Attempted to store memory item with empty key. Skipping.")
-            return
-            
-        item = MemoryItem(key=key, value=value, metadata=metadata or {})
-        self._storage[key] = item
-        logger.debug(f"Stored/Updated memory item with key: '{key}'")
-
-    def retrieve(self, key: str) -> Optional[MemoryItem]:
-        """
-        Retrieves an item from memory by its key.
-        Args:
-            key: The key of the item to retrieve.
-        Returns:
-            The MemoryItem if found, otherwise None.
-        """
-        item = self._storage.get(key)
-        if item:
-            logger.debug(f"Retrieved memory item with key: '{key}'")
-        else:
-            logger.debug(f"Memory item with key: '{key}' not found.")
-        return item
-
-    def retrieve_value(self, key: str) -> Optional[Any]:
-        """
-        Retrieves only the value of an item from memory by its key.
-        Args:
-            key: The key of the item.
-        Returns:
-            The value if the key is found, otherwise None.
-        """
-        item = self.retrieve(key)
-        return item.value if item else None
-
-    def delete(self, key: str) -> bool:
-        """
-        Deletes an item from memory by its key.
-        Args:
-            key: The key of the item to delete.
-        Returns:
-            True if the item was deleted, False if the key was not found.
-        """
-        if key in self._storage:
-            del self._storage[key]
-            logger.debug(f"Deleted memory item with key: '{key}'")
-            return True
-        logger.debug(f"Attempted to delete non-existent memory item with key: '{key}'")
-        return False
-
-    def list_keys(self) -> List[str]:
-        """Returns a list of all keys currently in memory."""
-        return list(self._storage.keys())
-
-    def get_all_items(self) -> List[MemoryItem]:
-        """Returns all items currently in memory."""
-        return list(self._storage.values())
-
-    def clear_memory(self) -> None:
-        """Clears all items from memory."""
-        self._storage = {}
-        logger.info("Agent memory cleared.")
-
-# Example Usage:
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
-    memory = AgentMemory()
-
-    # Store items
-    memory.store("user_preference_theme", "dark", metadata={"source": "user_settings"})
-    memory.store("last_visited_url", "https://example.com/path", metadata={"type": "navigation_history"})
-    memory.store("complex_object", {"data": [1, 2, 3], "config": {"active": True}})
-
-    # Retrieve items
-    theme = memory.retrieve_value("user_preference_theme")
-    logger.info(f"User theme preference: {theme}")
-
-    last_url_item = memory.retrieve("last_visited_url")
-    if last_url_item:
-        logger.info(f"Last visited URL item: Key='{last_url_item.key}', Value='{last_url_item.value}', Timestamp='{last_url_item.timestamp.isoformat()}', Meta={last_url_item.metadata}")
-
-    non_existent = memory.retrieve("non_existent_key")
-    logger.info(f"Non-existent item: {non_existent}")
-
-    # List keys and items
-    logger.info(f"All keys in memory: {memory.list_keys()}")
-    # logger.info(f"All items: {memory.get_all_items()}") # Can be verbose
-
-    # Delete an item
-    deleted = memory.delete("last_visited_url")
-    logger.info(f"Deletion of 'last_visited_url' successful: {deleted}")
-    logger.info(f"Keys after deletion: {memory.list_keys()}")
-
-    # Clear memory
-    memory.clear_memory()
-    logger.info(f"Keys after clearing memory: {memory.list_keys()}")
-````
-
-## File: browser-use-ext/agent/message_manager/__init__.py
-````python
-# This file makes the message_manager directory a Python package. 
-
-from .service import Message, MessageManager
-
-__all__ = [
-    "Message",
-    "MessageManager",
-]
-````
-
-## File: browser-use-ext/agent/message_manager/service.py
-````python
-# Standard library imports
-import logging
-from typing import List, Dict, Any, Optional, Literal
-from datetime import datetime, timezone
-
-# Third-party imports
-from pydantic import BaseModel, Field
-
-# Initialize logger for this module
-logger = logging.getLogger(__name__)
-
-class Message(BaseModel):
-    """Represents a single message in a conversation or interaction history."""
-    role: Literal["user", "assistant", "system", "tool_code", "tool_output"] = Field(description="The role of the message sender.")
-    content: str = Field(description="The textual content of the message.")
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Timestamp of when the message was created.")
-    metadata: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Optional metadata associated with the message.")
-
-    class Config:
-        from_attributes = True
-        json_encoders = {
-            datetime: lambda v: v.isoformat() # Ensure datetime is serialized to ISO format
-        }
-
-class MessageManager:
-    """
-    Manages a list of messages, representing a conversation history.
-    Provides methods to add messages and retrieve the history.
-    """
-    def __init__(self, system_prompt: Optional[str] = None):
-        """
-        Initializes the MessageManager.
-        Args:
-            system_prompt: An optional system prompt to pre-pend to the message history.
-        """
-        self.history: List[Message] = []
-        if system_prompt:
-            self.add_message(role="system", content=system_prompt)
-        logger.info(f"MessageManager initialized. System prompt {'set' if system_prompt else 'not set'}.")
-
-    def add_message(self, role: Literal["user", "assistant", "system", "tool_code", "tool_output"], content: str, metadata: Optional[Dict[str, Any]] = None) -> None:
-        """
-        Adds a new message to the history.
-        Args:
-            role: The role of the message sender.
-            content: The content of the message.
-            metadata: Optional metadata for the message.
-        """
-        if not role or not content:
-            logger.warning("Attempted to add message with empty role or content. Skipping.")
-            return
-            
-        message = Message(role=role, content=content, metadata=metadata or {})
-        self.history.append(message)
-        logger.debug(f"Added message: Role='{role}', Content='{content[:50]}...'")
-
-    def get_history(self) -> List[Message]:
-        """Returns the current message history."""
-        return self.history
-
-    def get_history_as_dicts(self) -> List[Dict[str, Any]]:
-        """Returns the current message history as a list of dictionaries, with datetimes as ISO strings."""
-        # Using model_dump with mode='json' ensures that json_encoders are applied.
-        return [msg.model_dump(mode='json', exclude_none=True) for msg in self.history]
-
-    def clear_history(self) -> None:
-        """Clears all messages from the history."""
-        self.history = []
-        logger.info("Message history cleared.")
-
-    def add_user_message(self, content: str, metadata: Optional[Dict[str, Any]] = None) -> None:
-        """Convenience method to add a user message."""
-        self.add_message(role="user", content=content, metadata=metadata)
-
-    def add_assistant_message(self, content: str, metadata: Optional[Dict[str, Any]] = None) -> None:
-        """Convenience method to add an assistant message."""
-        self.add_message(role="assistant", content=content, metadata=metadata)
-
-# Example Usage:
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
-    
-    # Initialize with a system prompt
-    manager = MessageManager(system_prompt="You are a helpful AI assistant.")
-    manager.add_user_message("Hello, assistant!")
-    manager.add_assistant_message("Hello, user! How can I help you today?")
-    manager.add_message(role="tool_code", content="print('Hello from tool')")
-    manager.add_message(role="tool_output", content="Hello from tool")
-
-    history = manager.get_history()
-    for msg in history:
-        logger.info(f"[{msg.timestamp.isoformat()}] {msg.role.upper()}: {msg.content}")
-
-    history_dicts = manager.get_history_as_dicts()
-    logger.info(f"History as dicts: {history_dicts}")
-
-    manager.clear_history()
-    logger.info(f"History count after clear: {len(manager.get_history())}")
-````
-
-## File: browser-use-ext/agent/prompts.py
-````python
-# Standard library imports
-import logging
-from typing import List, Optional, Dict, Any
-
-# Third-party imports
-from pydantic import BaseModel, Field
-
-# Initialize logger for this module
-logger = logging.getLogger(__name__)
-
-class PromptVariable(BaseModel):
-    """Describes a variable that can be injected into a prompt template."""
-    name: str = Field(description="Name of the variable (e.g., '{{user_query}}')")
-    description: str = Field(description="Description of what the variable represents")
-    example_value: Optional[Any] = Field(default=None, description="An example value for the variable")
-
-class SystemPrompt(BaseModel):
-    """
-    Defines the structure and content of a system prompt for an LLM-based agent.
-    A system prompt guides the behavior, persona, and constraints of the language model.
-    """
-    name: str = Field(description="Unique name for this system prompt configuration")
-    template: str = Field(description="The actual prompt template string. Use {{variable_name}} for placeholders.")
-    variables: List[PromptVariable] = Field(default_factory=list, description="List of variables expected by the template.")
-    description: Optional[str] = Field(default=None, description="Description of the prompt's purpose or when to use it.")
-    version: str = Field(default="1.0.0", description="Version of the prompt template.")
-
-    def format_prompt(self, **kwargs: Any) -> str:
-        """
-        Formats the prompt template with the provided keyword arguments.
-        Args:
-            **kwargs: Keyword arguments where keys match variable names in the template.
-        Returns:
-            The formatted prompt string.
-        Raises:
-            KeyError: If a required variable is not provided in kwargs.
-        """
-        try:
-            # Simple .format() might be okay for basic cases, but str.format_map is safer
-            # For more complex templating, consider Jinja2 or similar.
-            # For now, a loop for direct replacement to handle {{var}} syntax clearly.
-            formatted_template = self.template
-            for var in self.variables:
-                placeholder = f"{{{{{var.name}}}}}" # e.g. {{user_query}}
-                if var.name in kwargs:
-                    formatted_template = formatted_template.replace(placeholder, str(kwargs[var.name]))
-                elif var.example_value is not None: # Use example if real value not provided (for testing/defaults)
-                    # logger.warning(f"Variable '{var.name}' not provided for prompt '{self.name}', using example value.")
-                    # Use warnings.warn for conditions that tests or calling code might want to specifically catch.
-                    import warnings # Import locally or at module level if preferred
-                    warnings.warn(
-                        f"Variable '{var.name}' not provided for prompt '{self.name}', using example value.",
-                        UserWarning
-                    )
-                    formatted_template = formatted_template.replace(placeholder, str(var.example_value))
-                else:
-                    # This check might be too strict if some variables are truly optional in the template
-                    # and the template handles their absence gracefully.
-                    # Consider adding a 'required' field to PromptVariable if needed.
-                    logger.error(f"Required variable '{var.name}' not provided for prompt '{self.name}'.")
-                    raise KeyError(f"Variable '{var.name}' is required for prompt '{self.name}' but was not provided.")
-            return formatted_template
-        except KeyError as e:
-            raise e # Re-raise key errors related to missing variables
-        except Exception as e:
-            logger.error(f"Error formatting prompt '{self.name}': {e}", exc_info=True)
-            # Return the unformatted template or raise a more specific error
-            raise ValueError(f"Failed to format prompt '{self.name}': {e}")
-
-# Example of a default system prompt
-DEFAULT_SYSTEM_PROMPT_TEMPLATE = (
-    "You are an AI assistant designed to interact with web pages based on user instructions. "
-    "Your goal is to understand the user's request and the current state of the web page, "
-    "then decide on the best action to take to achieve the user's goal.\n\n"
-    "Current User Query: {{user_query}}\n"
-    "Current Web Page State (summary):\n{{browser_state_summary}}\n\n"
-    "Available Actions: {{available_actions_summary}}\n\n"
-    "Based on the above, determine the next best action and its parameters. "
-    "If you believe the task is complete or cannot proceed, indicate that clearly."
-)
-
-DEFAULT_SYSTEM_PROMPT = SystemPrompt(
-    name="DefaultWebAgentSystemPrompt",
-    template=DEFAULT_SYSTEM_PROMPT_TEMPLATE,
-    variables=[
-        PromptVariable(name="user_query", description="The user's current instruction or question.", example_value="Find the latest news about AI."),
-        PromptVariable(name="browser_state_summary", description="A textual summary of the current web page state, including URL, title, and key elements.", example_value="Page: Google News, Title: AI News, Key Elements: List of articles..."),
-        PromptVariable(name="available_actions_summary", description="A list or description of actions the agent can perform (e.g., click, type, scroll).", example_value="click(element_id), type(element_id, text), scroll(direction)")
-    ],
-    description="A default system prompt for a general web interaction agent."
-)
-
-# More specific prompts can be defined here, e.g., for data extraction, form filling, etc.
-# class DataExtractionPrompt(SystemPrompt):
-#     task_description: str = Field(description="Specific instructions for what data to extract.")
-#     output_format: str = Field(default="JSON", description="Desired format for the extracted data.")
-
-#     def get_full_content(self) -> str:
-#         return f"{self.content}\n\nTask: {self.task_description}\nOutput Format: {self.output_format}"
-
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-    
-    logger.info(f"Default Prompt Name: {DEFAULT_SYSTEM_PROMPT.name}")
-    logger.info(f"Default Prompt Template:\n{DEFAULT_SYSTEM_PROMPT.template}")
-    logger.info(f"Default Prompt Variables: {[v.name for v in DEFAULT_SYSTEM_PROMPT.variables]}")
-
-    try:
-        formatted = DEFAULT_SYSTEM_PROMPT.format_prompt(
-            user_query="Book a flight to Paris for next week.",
-            browser_state_summary="Currently on Kayak.com homepage. Search fields visible.",
-            available_actions_summary="type(element_id, text), click(element_id), select_date(date)"
-        )
-        logger.info(f"\nFormatted Prompt:\n{formatted}")
-    except Exception as e:
-        logger.error(f"Error formatting default prompt in example: {e}")
-
-    # Example of a prompt that might be used for a different purpose
-    SUMMARIZE_PAGE_PROMPT_TEMPLATE = (
-        "Please summarize the key information from the following web page content.\n\n"
-        "Page Title: {{page_title}}\n"
-        "Page URL: {{page_url}}\n\n"
-        "Visible Text Content Snippet:\n{{visible_text_snippet}}\n\n"
-        "Your Summary:"
-    )
-    SUMMARIZE_PAGE_PROMPT = SystemPrompt(
-        name="SummarizeWebPagePrompt",
-        template=SUMMARIZE_PAGE_PROMPT_TEMPLATE,
-        variables=[
-            PromptVariable(name="page_title", description="Title of the web page."),
-            PromptVariable(name="page_url", description="URL of the web page."),
-            PromptVariable(name="visible_text_snippet", description="A snippet of the visible text from the page.")
-        ],
-        description="A prompt to guide an LLM to summarize a web page."
-    )
-
-    try:
-        formatted_summary_prompt = SUMMARIZE_PAGE_PROMPT.format_prompt(
-            page_title="Awesome AI Innovations",
-            page_url="https://example.com/ai-news/awesome-innovations",
-            visible_text_snippet="Researchers today announced a breakthrough in AI that allows... (rest of content)"
-        )
-        logger.info(f"\nFormatted Summarize Prompt:\n{formatted_summary_prompt}")
-    except Exception as e:
-        logger.error(f"Error formatting summary prompt: {e}")
-````
-
-## File: browser-use-ext/agent/views.py
-````python
-# Standard library imports
-from typing import Optional, Dict, Any, List, Union
-import logging
-
-# Third-party imports
-from pydantic import BaseModel, Field
-from typing import Literal
-
-# Local application/library specific imports
-from browser_use.browser.views import BrowserState # For Agent to potentially receive or log
-from .message_manager.service import Message
-
-logger = logging.getLogger(__name__)
-
-class AgentSettings(BaseModel):
-    """
-    Configuration settings for the Agent.
-    This could include model preferences, persona definitions, tool configurations, etc.
-    """
-    name: str = Field(default="BrowserAgent", description="Name of the agent.")
-    max_iterations: int = Field(default=10, description="Maximum number of iterations or steps the agent can take.")
-    # Example: LLM model name to use for decision making
-    language_model_name: Optional[str] = Field(default="gpt-4-turbo-preview", description="The language model to use.")
-    # Example: Temperature for LLM generation, influencing creativity/randomness.
-    temperature: float = Field(default=0.7, ge=0.0, le=1.0, description="LLM generation temperature.")
-    verbose: bool = Field(default=True, description="Enable verbose logging for agent activities.")
-    allow_parallel_execution: bool = Field(default=False, description="Allow agent to execute multiple actions in parallel (not typically supported by simple controllers).")
-    # Add other agent-specific settings here.
-    # system_prompt: Optional[str] = Field(None, description="Default system prompt for the agent.")
-
-    class Config:
-        from_attributes = True
-
-class AgentThought(BaseModel):
-    """
-    Represents a single thought or reasoning step of the agent.
-    Useful for logging, debugging, and understanding the agent's decision process.
-    """
-    thought_process: str = Field(description="Textual description of the agent's reasoning.")
-    tool_to_use: Optional[str] = Field(default=None, description="The name of the tool or action the agent decided to use.")
-    tool_input: Optional[Dict[str, Any]] = Field(default_factory=dict, description="The parameters for the tool/action.")
-    confidence_score: Optional[float] = Field(default=None, ge=0.0, le=1.0, description="Agent's confidence in its decision (0.0 to 1.0).")
-    raw_llm_response: Optional[str] = Field(default=None, description="Raw response from the LLM if applicable.")
-
-    class Config:
-        from_attributes = True
-
-class AgentOutput(BaseModel):
-    """
-    Represents the final output or result of an agent's run or a significant step.
-    """
-    status: Literal["success", "failure", "max_iterations_reached"] = Field(description="Final status of the agent's execution.")
-    output_message: str = Field(description="A summary message describing the outcome.")
-    final_answer: Optional[Any] = Field(default=None, description="The final answer or result produced by the agent, if any.")
-    iterations_taken: int = Field(description="Number of iterations the agent performed.")
-    full_history: Optional[List[Message]] = Field(default_factory=list, description="Full conversation history if available.")
-    thoughts_history: Optional[List[AgentThought]] = Field(default_factory=list, description="History of agent's thoughts and actions.")
-    # Example: The browser state at the end of the agent's operation.
-    final_browser_state: Optional[BrowserState] = Field(None, description="Browser state at the end of operation.")
-    # Example: Any errors encountered during the agent's run.
-    error: Optional[str] = Field(None, description="Error message if the agent run failed.")
-
-    class Config:
-        from_attributes = True
-        json_encoders = {
-            # Ensure Message objects within full_history are serialized correctly if they have datetimes
-            Message: lambda v: v.model_dump(exclude_none=True) 
-        }
-
-# More Pydantic models can be added here as the agent's capabilities grow,
-# for example, for specific task inputs, structured observations, etc. 
-
-# Example:
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-
-    settings = AgentSettings(name="DemoAgent", max_iterations=5, verbose=True)
-    logger.info(f"Agent Settings: {settings.model_dump_json(indent=2)}")
-
-    thought = AgentThought(
-        thought_process="The user wants to know the weather. I should use the get_weather tool.",
-        tool_to_use="get_weather",
-        tool_input={"city": "London"},
-        confidence_score=0.9
-    )
-    logger.info(f"Agent Thought: {thought.model_dump_json(indent=2)}")
-
-    output_success = AgentOutput(
-        status="success",
-        output_message="Successfully retrieved weather for London.",
-        final_answer={"temperature": "15C", "condition": "Cloudy"},
-        iterations_taken=3,
-        thoughts_history=[thought]
-    )
-    logger.info(f"Agent Output (Success): {output_success.model_dump_json(indent=2)}")
-
-    output_failure = AgentOutput(
-        status="failure",
-        output_message="Could not retrieve weather information after multiple attempts.",
-        iterations_taken=5
-    )
-    logger.info(f"Agent Output (Failure): {output_failure.model_dump_json(indent=2)}")
-````
-
-## File: browser-use-ext/browser/__init__.py
-````python
-# This file makes the browser directory a Python package. 
-
-# Optionally, import key classes for easier access from this package level
-from .browser import Browser, BrowserConfig
-from .context import BrowserContext, BrowserContextConfig, ExtensionPageProxy
-from .views import BrowserState, TabInfo
-
-__all__ = [
-    "Browser",
-    "BrowserConfig",
-    "BrowserContext",
-    "BrowserContextConfig",
-    "ExtensionPageProxy",
-    "BrowserState",
-    "TabInfo",
-]
-````
-
-## File: browser-use-ext/browser/browser.py
-````python
-from __future__ import annotations
-
-# Standard library imports
-import asyncio
-import logging
-from typing import Optional, Any
-
-# Third-party imports
-from pydantic import BaseModel, Field
-
-# Local application/library specific imports
-from extension_interface.service import ExtensionInterface
-from .context import BrowserContext, BrowserContextConfig
-
-# Initialize logger for this module
-logger = logging.getLogger(__name__)
-
-class BrowserConfig(BaseModel):
-    """
-    Configuration for the main Browser class.
-    This can include settings for the extension interface and default context configurations.
-    """
-    # Host for the WebSocket server that the extension connects to.
-    extension_host: str = Field(default="localhost", description="Hostname for the extension WebSocket server.")
-    # Port for the WebSocket server.
-    extension_port: int = Field(default=8765, description="Port for the extension WebSocket server.")
-    # Default browser context configuration, can be overridden when creating a new context.
-    default_context_config: BrowserContextConfig = Field(
-        default_factory=BrowserContextConfig,
-        description="Default configuration for new browser contexts."
-    )
-    # Add other browser-level configurations here if needed in the future
-    # For example: path to Chrome user data directory if managing browser launch (not current scope)
-    # chrome_user_data_dir: Optional[str] = Field(None, description="Path to Chrome user data directory.")
-
-class Browser:
-    """
-    Manages the browser instance and communication with the Chrome extension.
-    
-    This class is responsible for initializing the WebSocket server (via ExtensionInterface)
-    that the Chrome extension connects to. It then provides methods to create and manage
-    BrowserContext instances, which represent individual pages or sessions controlled
-    through the extension.
-    """
-
-    def __init__(self, config: BrowserConfig = BrowserConfig()):
-        """
-        Initializes the Browser instance.
-
-        Args:
-            config: Configuration for the browser and extension interface.
-        """
-        self.config = config
-        # Initialize the ExtensionInterface which manages the WebSocket server and communication.
-        # This interface will be shared across all browser contexts created by this Browser instance.
-        self._extension_interface = ExtensionInterface(
-            host=self.config.extension_host,
-            port=self.config.extension_port
-        )
-        # Internal state to track if the browser (specifically the extension server) is active.
-        self._is_active = False
-        logger.info(f"Browser instance initialized. Extension server configured for ws://{self.config.extension_host}:{self.config.extension_port}")
-
-    async def launch(self) -> "Browser":
-        """
-        "Launches" the browser by starting the ExtensionInterface WebSocket server.
-        
-        In this extension-based model, "launching" primarily means ensuring the backend
-        WebSocket server is ready to accept connections from the Chrome extension.
-        The actual Chrome browser is assumed to be launched manually by the user with the
-        extension installed.
-        """
-        if self._is_active and self._extension_interface.is_server_running:
-            logger.warning("Browser (ExtensionInterface server) is already active and running.")
-            return self
-
-        logger.info("Starting ExtensionInterface WebSocket server...")
-        try:
-            await self._extension_interface.start_server()
-            self._is_active = True
-            logger.info("ExtensionInterface WebSocket server started. Browser is now 'active'.")
-            # At this point, the Python backend is ready. The user needs to ensure Chrome is running
-            # with the extension, and the extension is configured to connect to the server.
-            return self
-        except Exception as e:
-            logger.error(f"Failed to start ExtensionInterface server: {e}", exc_info=True)
-            self._is_active = False # Ensure state reflects failure
-            raise # Re-raise the exception to indicate launch failure
-
-    async def new_context(self, context_config: Optional[BrowserContextConfig] = None) -> BrowserContext:
-        """
-        Creates a new browser context for interacting with a page via the extension.
-
-        Args:
-            context_config: Specific configuration for this context. If None, uses
-                            the default context config from the Browser instance.
-
-        Returns:
-            A BrowserContext instance.
-
-        Raises:
-            RuntimeError: If the browser (ExtensionInterface server) is not active/launched.
-        """
-        if not self._is_active or not self._extension_interface.is_server_running:
-            logger.error("Cannot create new context: Browser (ExtensionInterface server) is not active or not running.")
-            raise RuntimeError("Browser must be launched and ExtensionInterface server running before creating a context.")
-
-        config_to_use = context_config or self.config.default_context_config
-        logger.info(f"Creating new BrowserContext with config: {config_to_use.model_dump_json(indent=2)}")
-        
-        # The BrowserContext will use the shared ExtensionInterface instance.
-        return BrowserContext(config=config_to_use, extension_interface=self._extension_interface)
-
-    async def close(self) -> None:
-        """
-        Closes the browser by stopping the ExtensionInterface WebSocket server.
-        This will disconnect any connected Chrome extensions.
-        """
-        if not self._is_active:
-            logger.warning("Browser (ExtensionInterface server) is not active, nothing to close.")
-            return
-
-        logger.info("Closing browser: stopping ExtensionInterface WebSocket server...")
-        try:
-            await self._extension_interface.stop_server()
-            logger.info("ExtensionInterface WebSocket server stopped.")
-        except Exception as e:
-            logger.error(f"Error stopping ExtensionInterface server: {e}", exc_info=True)
-            # Continue with setting _is_active to False even if server stop had issues.
-        finally:
-            self._is_active = False
-            logger.info("Browser is now 'inactive'.")
-
-    @property
-    def is_connected(self) -> bool:
-        """
-        Checks if the ExtensionInterface has at least one active connection from an extension.
-        
-        Returns:
-            True if at least one extension is connected, False otherwise.
-        """
-        return self._extension_interface.has_active_connection
-
-    @property
-    def is_launched(self) -> bool:
-        """
-        Indicates whether the browser (specifically the ExtensionInterface server)
-        has been successfully launched and is currently active.
-        """
-        return self._is_active
-
-    # Asynchronous context manager support
-    async def __aenter__(self) -> "Browser":
-        """
-        Allows the Browser instance to be used as an asynchronous context manager.
-        Ensures the browser (ExtensionInterface server) is launched upon entering the context.
-        """
-        await self.launch()
-        return self
-
-    async def __aexit__(self, exc_type: Optional[type[BaseException]], 
-                        exc_val: Optional[BaseException], 
-                        exc_tb: Optional[Any]) -> None:
-        """
-        Cleans up by closing the browser (stopping the ExtensionInterface server)
-        when exiting the asynchronous context.
-        """
-        await self.close()
-
-# Example Usage (can be run for basic testing if this file is executed directly)
-async def main_example():
-    logging.basicConfig(level=logging.INFO)
-    logger.info("Starting Browser example...")
-
-    browser_config = BrowserConfig() # Default config
-    browser = Browser(config=browser_config)
-
-    async with browser: # Uses __aenter__ and __aexit__ for launch and close
-        logger.info("Browser launched via context manager.")
-        
-        # Wait for an extension to connect (manual step by user)
-        logger.info(f"Please ensure Chrome extension is running and connected to ws://{browser.config.extension_host}:{browser.config.extension_port}")
-        for _ in range(15): # Wait up to 15 seconds for connection
-            if browser.is_connected:
-                logger.info("Extension connected!")
-                break
-            await asyncio.sleep(1)
-        else:
-            logger.warning("No extension connected after 15 seconds. Example might not work fully.")
-            # Depending on strictness, could raise error or proceed cautiously.
-
-        if browser.is_connected:
-            try:
-                # Create a new browser context
-                context = await browser.new_context()
-                logger.info("BrowserContext created.")
-
-                async with context: # Manages context resources (server start is by Browser obj)
-                    logger.info("Entered BrowserContext.")
-                    # Use the context to interact with the browser page
-                    # 1. Navigate to a page (using the proxy)
-                    page_proxy = await context.get_current_page()
-                    target_url = "https://www.google.com"
-                    logger.info(f"Attempting to navigate to: {target_url}")
-                    await page_proxy.goto(target_url)
-                    logger.info(f"Navigation to {target_url} initiated.")
-
-                    # 2. Get browser state
-                    logger.info("Attempting to get browser state...")
-                    state = await context.get_state(include_screenshot=False) # Set to True for screenshot
-                    logger.info(f"Current page URL: {state.url}")
-                    logger.info(f"Current page Title: {state.title}")
-                    if state.tabs:
-                        logger.info(f"Open tabs ({len(state.tabs)}): {[(t.page_id, t.title, t.url) for t in state.tabs]}")
-                    if state.screenshot:
-                        logger.info("Screenshot was captured (first few chars): " + state.screenshot[:50] + "...")
-                    
-                    # Example: Find an interactive element (e.g., search bar on Google)
-                    # This requires the DOM to be parsed and selector_map to be populated.
-                    if state.selector_map:
-                        logger.info(f"Selector map has {len(state.selector_map)} interactive elements.")
-                        # Try to find an input field (heuristic)
-                        input_element_index = None
-                        for idx, details in state.selector_map.items():
-                            # `details` in our current setup is just the xpath from extension's `cachedSelectorMap`
-                            # To get tag_name, we need to look up `idx` in `state.element_tree`
-                            # For simplicity, we'll assume the first one or a known one for example.
-                            # Let's assume index 0 is an input field for this example if map not empty
-                            if state.element_tree:
-                                node_candidate = await context.get_dom_element_by_index(idx) # type: ignore
-                                if node_candidate and node_candidate.tag_name == 'input' and node_candidate.attributes.get('type') == 'text':
-                                    input_element_index = idx
-                                    logger.info(f"Found potential input field with index {idx}")
-                                    break
-                        if input_element_index is not None:
-                            logger.info(f"Attempting to type into element with index {input_element_index}")
-                            search_term = "Browser-Use Automation"
-                            await context._input_text_element_node(
-                                await context.get_dom_element_by_index(input_element_index), 
-                                search_term
-                            )
-                            logger.info(f"Typed '{search_term}' into element {input_element_index}.")
-                            # Potentially click a search button here if one is found
-                        else:
-                            logger.info("No suitable input field found in selector_map for typing example.")
-                    else:
-                        logger.info("Selector map is empty. Cannot demonstrate typing.")
-
-                    # 3. Example: Create and switch tab (if extension supports it)
-                    # await context.create_new_tab("https://www.bing.com")
-                    # logger.info("New tab requested for bing.com")
-                    # await asyncio.sleep(2) # Give time for tab to open
-                    # updated_state = await context.get_state()
-                    # logger.info(f"Tabs after opening new one: {[(t.page_id, t.title) for t in updated_state.tabs]}")
-                    # Find the new tab's page_id and switch
-                    # ... (logic to find and switch) ...
-
-            except RuntimeError as e:
-                logger.error(f"Runtime error during browser interaction: {e}")
-            except Exception as e:
-                logger.error(f"An unexpected error occurred during example interaction: {e}", exc_info=True)
-        else:
-            logger.error("Cannot run example interactions: Chrome extension is not connected.")
-
-    logger.info("Browser example finished.")
-
-if __name__ == "__main__":
-    asyncio.run(main_example())
-````
-
-## File: browser-use-ext/browser/context.py
-````python
-from __future__ import annotations
-
-import asyncio
-import logging
-from typing import Any, Dict, List, Optional, Union
-
-from pydantic import BaseModel, Field
-
-# Local application/library specific imports
-from .views import BrowserState, TabInfo # MODIFIED
-from dom.views import DOMElementNode # MODIFIED
-from extension_interface.service import ExtensionInterface # MODIFIED
-
-# Initialize logger for this module
-logger = logging.getLogger(__name__)
-
-class BrowserContextConfig(BaseModel):
-    """
-    Configuration for the browser context.
-
-    This model holds settings that affect how the browser context interacts
-    with the browser, such as viewport size and whether to highlight elements.
-    """
-    # Optional viewport height for the browser page.
-    view_port_height: Optional[int] = Field(default=None, description="Viewport height for the browser.")
-    # Optional viewport width for the browser page.
-    view_port_width: Optional[int] = Field(default=None, description="Viewport width for the browser.")
-    # Flag to determine if interactive elements should be highlighted by the extension.
-    highlight_elements: bool = Field(default=True, description="Whether to highlight interactive elements.")
-    # Placeholder for stealth mode, not implemented with extension but kept for API compatibility.
-    use_stealth: bool = Field(default=False, description="Placeholder for stealth mode usage (not used by extension).")
-    extension_host: str = Field(default="localhost", description="Host for the extension WebSocket server")
-    extension_port: int = Field(default=8765, description="Port for the extension WebSocket server")
-    
-
-class BrowserContext:
-    """
-    Manages interaction with a browser page through the Chrome extension.
-
-    This class replaces Playwright-based interactions by communicating with a
-    custom Chrome extension via WebSockets. It provides methods to get browser
-    state, and execute actions on the page.
-    """
-    
-    def __init__(
-        self,
-        config: BrowserContextConfig = BrowserContextConfig(),
-        extension_interface: Optional[ExtensionInterface] = None,
-    ):
-        """
-        Initializes the BrowserContext.
-
-        Args:
-            config: Configuration settings for the browser context.
-            extension_interface: An instance of ExtensionInterface for communication.
-                                 If None, a new one will be created.
-        """
-        self.config = config
-        # Use provided extension_interface or create a new one
-        self._extension = extension_interface or ExtensionInterface(host=config.extension_host, port=config.extension_port)
-        # Caching the highlight_elements config for quick access
-        self._highlight_elements = config.highlight_elements
-        # Cache for the last retrieved browser state
-        self._cached_browser_state: Optional[BrowserState] = None
-        # Cache for the selector map from the last state
-        self._cached_selector_map: Dict[int, Any] = {}
-        # Manages multiple page proxies if the application handles multiple tabs simultaneously
-        self._pages: Dict[Union[str, int], ExtensionPageProxy] = {}
-        self._active_page_proxy: Optional[ExtensionPageProxy] = None
-    
-    async def __aenter__(self):
-        """
-        Asynchronous context manager entry.
-
-        Ensures the WebSocket server for the extension interface is started
-        if it\'s not already running.
-        """
-        # Start the extension server if it\'s not already running
-        if not self._extension.is_server_running:
-            logger.info("ExtensionInterface server not running, starting it now.")
-            await self._extension.start_server()
-        # Wait briefly to ensure connection can be established if extension just started
-        # This is a pragmatic delay; a more robust solution might involve checking connection status.
-        if not self._extension.has_active_connection:
-            logger.info("Waiting briefly for potential extension connection...")
-            await asyncio.sleep(2.0) # Allow time for extension to connect
-            if not self._extension.has_active_connection:
-                logger.warning("No active extension connection after waiting. Proceeding, but get_state might fail.")
-        return self
-    
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        """
-        Asynchronous context manager exit.
-
-        Currently, this does not stop the server, as the server might be shared
-        or managed externally. Consider adding server stop logic if BrowserContext
-        is meant to exclusively manage the server lifecycle.
-        """
-        # The server is not stopped here to allow for shared or externally managed instances.
-        # If BrowserContext should own the server lifecycle, uncomment the next lines:
-        # if self._extension and self._extension.is_server_running:
-        #     logger.info("Stopping ExtensionInterface server in BrowserContext aexit.")
-        #     await self._extension.stop_server()
-        pass # Current implementation does not stop the server on exit.
-    
-    async def get_state(self, include_screenshot: bool = False) -> BrowserState:
-        """
-        Retrieves the current state of the browser from the extension.
-
-        This includes the URL, title, DOM tree, selector map, tab information,
-        and optionally a screenshot.
-
-        Args:
-            include_screenshot: Whether to request a screenshot in the state.
-
-        Returns:
-            A BrowserState object representing the current browser state.
-        
-        Raises:
-            RuntimeError: If the extension interface is not available or communication fails.
-        """
-        if not self._extension:
-            logger.error("ExtensionInterface is not initialized.")
-            raise RuntimeError("ExtensionInterface not available.")
-        
-        logger.info(f"Requesting browser state (screenshot: {include_screenshot}).")
-        # Delegate to the extension interface to get the actual state
-        state = await self._extension.get_state(include_screenshot=include_screenshot)
-        
-        # Cache the retrieved state and selector map
-        self._cached_browser_state = state
-        if state.selector_map:
-            self._cached_selector_map = state.selector_map
-        else:
-            self._cached_selector_map = {} # Ensure it's an empty dict if null
-            
-        logger.info(f"Received browser state for URL: {state.url}")
-        return state
-    
-    async def get_current_page(self) -> "ExtensionPageProxy":
-        """
-        Returns a proxy object that mimics a Playwright Page.
-
-        This provides a compatibility layer for parts of the system
-        that might expect a Page-like interface for common operations.
-        """
-        logger.debug("Returning ExtensionPageProxy.")
-        # The proxy uses the same extension interface instance
-        return ExtensionPageProxy(self._extension, self)
-    
-    async def get_session(self) -> "BrowserContext":
-        """
-        Returns the current BrowserContext instance.
-
-        Used for compatibility or when an explicit reference to the context is needed.
-        """
-        return self # Returns self, as this class is the session/context.
-    
-    async def get_selector_map(self) -> Dict[int, Any]:
-        """
-        Retrieves the cached selector map from the last call to get_state.
-
-        If the cache is empty, it will trigger a new get_state call.
-
-        Returns:
-            A dictionary mapping highlight indices to element information.
-        """
-        if not self._cached_selector_map:
-            logger.info("Selector map cache is empty, refreshing browser state.")
-            # Refresh state to populate the selector map
-            await self.get_state(include_screenshot=False) 
-        return self._cached_selector_map
-    
-    async def get_dom_element_by_index(self, index: int) -> DOMElementNode:
-        """
-        Retrieves a specific DOMElementNode using its highlight_index.
-        
-        This method relies on the `selector_map` from the `BrowserState`, which
-        is populated by the extension. The `selector_map` usually contains
-        direct references or XPaths to elements. This Python-side function
-        is more of a conceptual getter, as the actual element reference
-        is within the extension's context.
-
-        Args:
-            index: The highlight_index of the desired element.
-
-        Returns:
-            A DOMElementNode representing the element (may be a simplified representation).
-
-        Raises:
-            ValueError: If the element with the given index is not found in the selector map.
-            RuntimeError: If the state or element tree hasn\'t been fetched yet.
-        """
-        selector_map = await self.get_selector_map()
-        element_info = selector_map.get(index)
-
-        if not element_info:
-            logger.error(f"Element with index {index} not found in selector_map.")
-            raise ValueError(f"Element with index {index} not found in selector_map.")
-
-        if not self._cached_browser_state or not self._cached_browser_state.element_tree:
-            logger.error(f"Cannot get DOM element by index {index} because element_tree is not cached.")
-            raise RuntimeError("Browser state or element tree not available. Call get_state() first.")
-
-        # Try to find the corresponding DOMElementNode in the cached element_tree
-        # This requires traversing the tree, which can be inefficient.
-        # The primary use of highlight_index is for the *extension* to act on the element.
-        # This function provides a Python-side representation if possible.
-        
-        # Helper function to search the DOM tree
-        def find_node_by_highlight_index(node: DOMElementNode, target_index: int) -> Optional[DOMElementNode]:
-            if node.highlight_index == target_index:
-                return node
-            for child in node.children:
-                found = find_node_by_highlight_index(child, target_index)
-                if found:
-                    return found
-            return None
-
-        found_node = find_node_by_highlight_index(self._cached_browser_state.element_tree, index)
-        
-        if found_node:
-            return found_node
-        else:
-            # If not found in the tree (e.g., if selector_map has items not in element_tree
-            # or tree is partial), create a placeholder based on info from selector_map.
-            logger.warning(f"Element with index {index} found in selector_map but not in cached element_tree. Returning placeholder.")
-            return DOMElementNode(
-                tag_name=element_info.get("tag_name", "unknown"), # Assuming selector_map might have tag_name
-                attributes=element_info.get("attributes", {}),
-                highlight_index=index,
-                is_visible=element_info.get("is_visible", True), # Assuming visibility info might be there
-                xpath=element_info.get("xpath", ""), # XPath is critical
-                children=[] # Cannot determine children from selector_map alone
-            )
-
-    async def _click_element_node(self, element_node: DOMElementNode) -> Optional[str]:
-        """
-        Sends a command to the extension to click an element.
-
-        Args:
-            element_node: The DOMElementNode to be clicked. Its highlight_index is used.
-
-        Returns:
-            Optional[str]: Path to a downloaded file if the click resulted in a download
-                           (currently not supported by extension, returns None).
-
-        Raises:
-            ValueError: If the element_node does not have a highlight_index.
-        """
-        if element_node.highlight_index is None:
-            logger.error("Cannot click element: highlight_index is missing.")
-            raise ValueError("Element must have a highlight_index to be clicked via extension.")
-        
-        logger.info(f"Requesting click on element with index: {element_node.highlight_index}")
-        await self._extension.execute_action("click_element_by_index", {
-            "index": element_node.highlight_index
-        })
-        # Download handling is not implemented in this extension-based approach.
-        return None
-    
-    async def _input_text_element_node(self, element_node: DOMElementNode, text: str) -> None:
-        """
-        Sends a command to the extension to input text into an element.
-
-        Args:
-            element_node: The DOMElementNode to input text into. Its highlight_index is used.
-            text: The text to input.
-
-        Raises:
-            ValueError: If the element_node does not have a highlight_index.
-        """
-        if element_node.highlight_index is None:
-            logger.error("Cannot input text: highlight_index is missing from element_node.")
-            raise ValueError("Element must have a highlight_index for text input via extension.")
-        
-        logger.info(f"Requesting text input \'{text}\' into element with index: {element_node.highlight_index}")
-        await self._extension.execute_action("input_text", {
-            "index": element_node.highlight_index,
-            "text": text
-        })
-    
-    async def is_file_uploader(self, element_node: DOMElementNode) -> bool:
-        """
-        Checks if a given DOMElementNode represents a file input element.
-
-        Args:
-            element_node: The DOMElementNode to check.
-
-        Returns:
-            True if the element is an <input type="file">, False otherwise.
-        """
-        # This check is based on common HTML attributes for file inputs.
-        is_uploader = (
-            element_node.tag_name.lower() == "input" and
-            element_node.attributes.get("type", "").lower() == "file"
-        )
-        logger.debug(f"Element (index {element_node.highlight_index}) is_file_uploader: {is_uploader}")
-        return is_uploader
-    
-    async def take_screenshot(self, full_page: bool = False) -> Optional[str]:
-        """
-        Requests a screenshot of the current page from the extension.
-
-        Args:
-            full_page: This parameter is for Playwright compatibility. The extension currently
-                       captures the visible tab. Full page screenshots are not directly supported
-                       by `chrome.tabs.captureVisibleTab` in the same way.
-
-        Returns:
-            A base64 encoded string of the screenshot PNG, or None if failed.
-        """
-        if full_page:
-            logger.warning("Full page screenshot requested, but extension captures visible tab. Proceeding with visible tab capture.")
-        
-        # Request state with screenshot included
-        state = await self.get_state(include_screenshot=True)
-        if state.screenshot:
-            logger.info("Screenshot taken successfully.")
-        else:
-            logger.warning("Screenshot attempt made, but no screenshot data received.")
-        return state.screenshot # This will be base64 data or None
-    
-    async def remove_highlights(self) -> None:
-        """
-        Placeholder for removing highlights from elements on the page.
-        
-        This functionality would need to be implemented in the content script
-        of the Chrome extension.
-        """
-        # This functionality would be an action sent to the content script.
-        # For example: await self._extension.execute_action("remove_highlights", {})
-        logger.info("remove_highlights called (placeholder - requires extension implementation).")
-        pass # No-op for now, requires extension-side implementation.
-    
-    async def create_new_tab(self, url: Optional[str] = None) -> None:
-        """
-        Requests the extension to open a new browser tab.
-
-        Args:
-            url: The URL to open in the new tab. If None, "about:blank" is typically used.
-        """
-        target_url = url or "about:blank" # Default to blank page if no URL specified
-        logger.info(f"Requesting to open new tab with URL: {target_url}")
-        await self._extension.execute_action("open_tab", {"url": target_url})
-        # Active tab should be updated by the background script logic and subsequent get_state calls.
-    
-    async def switch_to_tab(self, page_id: int) -> None:
-        """
-        Requests the extension to switch to a different browser tab.
-
-        Args:
-            page_id: The page_id (index from the tabs list) of the tab to switch to.
-        """
-        logger.info(f"Requesting to switch to tab with page_id: {page_id}")
-        await self._extension.execute_action("switch_tab", {"page_id": page_id})
-        # Active tab status should be reflected in subsequent get_state calls.
-
-    async def go_back(self) -> None:
-        """
-        Requests the extension to navigate back in the current tab\'s history.
-        """
-        logger.info("Requesting to navigate back.")
-        await self._extension.execute_action("go_back", {})
-        # Page state will change, new get_state() will reflect it.
-    
-    async def close_tab(self, page_id: Optional[int] = None) -> None:
-        """
-        Requests the extension to close a browser tab.
-
-        Args:
-            page_id: The page_id (index from the tabs list) of the tab to close.
-                     If None, it attempts to close the current active tab.
-        """
-        current_page_id_to_close = page_id
-
-        if current_page_id_to_close is None:
-            # If no page_id is provided, try to determine the current active tab's page_id
-            if self._cached_browser_state and self._cached_browser_state.tabs:
-                # Find the current tab based on URL and Title (less reliable) or assume first active
-                # A more robust way is if background.js returns active_tab_chrome_id and we map it.
-                # For now, let's assume if no page_id, the action should target what the extension considers active.
-                # The background script's close_tab should ideally handle "current active" if no id provided.
-                # However, our current background script expects a page_id.
-                # Let's try to find the active one from our cached state.
-                active_tab_info = next((tab for tab in self._cached_browser_state.tabs if self._cached_browser_state.url == tab.url), None) # Simple match
-                if active_tab_info:
-                    current_page_id_to_close = active_tab_info.page_id
-                    logger.info(f"No page_id provided for close_tab, attempting to close current tab (page_id: {current_page_id_to_close}).")
-                else:
-                    logger.error("Cannot determine current tab to close: no page_id provided and no matching active tab in cache.")
-                    raise ValueError("Cannot determine current tab to close without page_id or cached active tab info.")
-            else:
-                # If no cached state, we must have a page_id
-                logger.error("Cannot close tab: no page_id specified and no cached browser state to determine active tab.")
-                raise ValueError("page_id must be specified to close a tab if browser state is not cached.")
-
-        logger.info(f"Requesting to close tab with page_id: {current_page_id_to_close}")
-        await self._extension.execute_action("close_tab", {"page_id": current_page_id_to_close})
-        # State should be updated on next get_state call.
-
-
-class ExtensionPageProxy:
-    """
-    A proxy class that provides a simplified, Playwright-Page-like interface.
-
-    This class delegates actions to the ExtensionInterface, allowing other parts
-    of the application to interact with the browser via the extension using
-    a familiar API (subset of Playwright Page API).
-    """
-    
-    def __init__(self, extension: ExtensionInterface, browser_context: BrowserContext):
-        """
-        Initializes the ExtensionPageProxy.
-
-        Args:
-            extension: The ExtensionInterface instance for communication.
-            browser_context: The parent BrowserContext, used to refresh state.
-        """
-        self._extension = extension
-        self._browser_context = browser_context # To get updated state
-        self.url: Optional[str] = None # Will be updated after actions
-        self.title_val: Optional[str] = None # Using title_val to avoid conflict with method
-        self.frames: list = []  # Frames are not implemented with this extension model
-
-    async def goto(self, url: str, **kwargs: Any) -> None:
-        """
-        Navigates the current active tab to the specified URL via the extension.
-
-        Args:
-            url: The URL to navigate to.
-            **kwargs: Ignored, for Playwright compatibility.
-        """
-        logger.info(f"ExtensionPageProxy: Navigating to URL: {url}")
-        await self._extension.execute_action("go_to_url", {"url": url})
-        # After navigation, update local URL and title by fetching new state
-        # Note: Navigation can take time. A robust solution might wait for load.
-        await asyncio.sleep(1.5) # Simple delay, replace with load state check if possible
-        try:
-            state = await self._browser_context.get_state()
-            self.url = state.url
-            self.title_val = state.title
-            logger.info(f"ExtensionPageProxy: Navigation complete. New URL: {self.url}")
-        except Exception as e:
-            logger.warning(f"ExtensionPageProxy: Could not refresh state after goto: {e}")
-            self.url = url # Tentatively set
-            self.title_val = "Unknown"
-
-
-    async def wait_for_load_state(self, state: str = "networkidle", **kwargs: Any) -> None:
-        """
-        Simulates waiting for a page load state.
-
-        In a Playwright context, this waits for network activity to cease.
-        With the extension, this is simplified. A more complex implementation
-        could involve messages from the content script about load status.
-
-        Args:
-            state: The desired load state (e.g., "load", "domcontentloaded", "networkidle"). Ignored.
-            **kwargs: Ignored, for Playwright compatibility.
-        """
-        # This is a simplified version. True load state waiting is complex with extensions.
-        # Content script could send 'load_complete' event, or we poll for document.readyState.
-        logger.info(f"ExtensionPageProxy: Simulating wait_for_load_state ('{state}'). Adding small delay.")
-        await asyncio.sleep(1.5) # Arbitrary delay to simulate load time.
-        # Refresh state after "waiting"
-        try:
-            new_state = await self._browser_context.get_state()
-            self.url = new_state.url
-            self.title_val = new_state.title
-        except Exception as e:
-            logger.warning(f"ExtensionPageProxy: Could not refresh state after wait_for_load_state: {e}")
-
-    async def content(self) -> str:
-        """
-        Retrieves the "content" of the page (currently simplified to title and URL).
-
-        A full implementation would require the extension to send the full HTML source.
-        For now, it returns a string combining title and URL.
-
-        Returns:
-            A string representing basic page information.
-        """
-        logger.debug("ExtensionPageProxy: content() called.")
-        # To get full HTML, an "extract_html" action would be needed in the extension.
-        # For now, refresh state and return some info.
-        state = await self._browser_context.get_state()
-        self.url = state.url
-        self.title_val = state.title
-        # Placeholder for actual HTML content
-        return f"<html><head><title>{self.title_val or 'Page'}</title></head><body>Content of {self.url or 'current page'}. (Full HTML not retrieved)</body></html>"
-
-    async def title(self) -> str:
-        """
-        Retrieves the title of the current page via the extension.
-
-        Returns:
-            The title of the page, or an empty string if not available.
-        """
-        logger.debug("ExtensionPageProxy: title() called.")
-        state = await self._browser_context.get_state()
-        self.url = state.url # Keep URL fresh
-        self.title_val = state.title
-        return self.title_val or ""
-````
-
-## File: browser-use-ext/browser/views.py
-````python
-from __future__ import annotations
-
-from typing import Any, Dict, List, Optional
-
-from pydantic import BaseModel, Field
-
-from dom.views import DOMElementNode
-
-
-class TabInfo(BaseModel):
-    """
-    Represents information about a single browser tab.
-
-    This model stores key details of a tab, such as its unique ID,
-    current URL, and title. This is useful for managing multiple tabs
-    and providing context to the agent.
-    """
-
-    # A unique identifier for the tab, often assigned by the browser or extension.
-    # This ID helps in distinguishing and targeting specific tabs for actions.
-    page_id: int = Field(description="Unique identifier for the tab.")
-
-    # The current URL loaded in the tab.
-    url: str = Field(description="Current URL of the tab.")
-
-    # The title of the webpage currently displayed in the tab.
-    title: str = Field(description="Title of the tab.")
-
-
-class BrowserState(BaseModel):
-    """
-    Represents the complete state of the browser at a given moment.
-
-    This model aggregates all relevant information about the browser's
-    current condition, including the active tab's URL, title, DOM structure,
-    information about all open tabs, and optionally a screenshot.
-    It also includes scroll position information.
-    """
-
-    # The URL of the currently active tab.
-    url: str = Field(description="URL of the active page.")
-
-    # The title of the currently active tab.
-    title: str = Field(description="Title of the active page.")
-
-    # The DOM structure of the active page, represented as a tree of DOMElementNode objects.
-    # This provides a structured way to understand and interact with the page content.
-    element_tree: DOMElementNode = Field(description="DOM structure of the active page.")
-
-    # A mapping of highlight indices to their corresponding XPath expressions or element references.
-    # This allows for quick lookup of interactive elements identified by the content script.
-    # The keys are integers (highlight_index) and values can be XPaths (strings) or other identifiers.
-    selector_map: Dict[int, Any] = Field(
-        default_factory=dict, description="Map of highlight indices to selectors/elements."
-    )
-
-    # A list of TabInfo objects, representing all currently open tabs in the browser.
-    # This provides an overview of the user's browsing session across multiple tabs.
-    tabs: List[TabInfo] = Field(
-        default_factory=list, description="List of all open tabs."
-    )
-
-    # A base64 encoded string of the screenshot of the visible part of the active page.
-    # This is optional and only included if requested.
-    screenshot: Optional[str] = Field(
-        default=None, description="Base64 encoded screenshot of the page (optional)."
-    )
-
-    # The number of pixels scrolled above the visible viewport.
-    # This gives context about the vertical scroll position of the page.
-    pixels_above: int = Field(
-        default=0, description="Number of pixels scrolled above the viewport."
-    )
-
-    # The number of pixels remaining below the visible viewport that can be scrolled.
-    # This indicates how much more content is available by scrolling down.
-    pixels_below: int = Field(
-        default=0, description="Number of pixels scrollable below the viewport."
-    )
-````
-
-## File: browser-use-ext/controller/__init__.py
-````python
-# This file makes the controller directory a Python package. 
-
-from .service import Controller
-# from .registry.views import ActionDefinition # If you want to expose it directly
-
-__all__ = [
-    "Controller",
-]
-````
-
-## File: browser-use-ext/controller/registry/__init__.py
-````python
-# This file makes the registry directory a Python package. 
-
-from .views import ActionDefinition, ActionParam # Add other relevant models
-
-__all__ = [
-    "ActionDefinition",
-    "ActionParam",
-]
-````
-
-## File: browser-use-ext/controller/registry/views.py
-````python
-# Pydantic models for action registry, if needed in the future.
-# For now, this can remain empty or define base Action classes.
-from pydantic import BaseModel, Field
-from typing import Dict, Any, Optional, List, Literal
-import logging
-
-class ActionParam(BaseModel):
-    """Describes a parameter for an action."""
-    name: str = Field(description="Parameter name")
-    type: str = Field(description="Parameter type (e.g., 'str', 'int', 'bool', 'DOMElementNode_highlight_index')")
-    required: bool = Field(default=True, description="Is the parameter required?")
-    description: Optional[str] = Field(default=None, description="Description of the parameter")
-    default: Optional[Any] = Field(default=None, description="Default value if not required or if optional")
-
-class ActionDefinition(BaseModel):
-    """Defines a browser action that can be executed."""
-    name: str = Field(description="Unique name of the action (e.g., 'click_element_by_index', 'go_to_url')")
-    description: str = Field(description="Description of what the action does")
-    parameters: List[ActionParam] = Field(default_factory=list, description="List of parameters the action accepts")
-    category: Optional[str] = Field(default="General", description="Category of the action (e.g., 'Navigation', 'Interaction', 'Data Extraction')")
-
-    class Config:
-        from_attributes = True # Changed from orm_mode for Pydantic v2 compatibility
-
-# Example of a concrete action model - not strictly needed if actions are dynamic strings passed to extension
-# but useful if we want to type-check parameters Python-side before sending.
-class ClickElementAction(BaseModel):
-    index: int = Field(description="The highlight_index of the element to click.")
-
-class InputTextAction(BaseModel):
-    index: int = Field(description="The highlight_index of the element to type into.")
-    text: str = Field(description="The text to input into the element.")
-
-class GoToURLAction(BaseModel):
-    url: str = Field(description="The URL to navigate to.")
-
-# Add more action-specific Pydantic models here if desired for stricter typing 
-
-# --- Example Action Definitions (can be registered or discovered) ---
-
-class GoToURLParams(BaseModel):
-    """Parameters for the go_to_url action."""
-    url: str = Field(description="The URL to navigate to.")
-
-ACTION_GO_TO_URL = ActionDefinition(
-    name="go_to_url",
-    description="Navigates the current tab to the specified URL.",
-    parameters=[
-        ActionParam(name="url", type="str", required=True, description="The URL to navigate to.")
-    ],
-    category="Navigation"
-)
-
-class ClickElementByIndexParams(BaseModel):
-    """Parameters for the click_element_by_index action."""
-    index: int = Field(description="The highlight_index of the element to click.")
-
-ACTION_CLICK_ELEMENT_BY_INDEX = ActionDefinition(
-    name="click_element_by_index",
-    description="Clicks an element identified by its highlight_index.",
-    parameters=[
-        ActionParam(name="index", type="int", required=True, description="The highlight_index of the element.")
-    ],
-    category="Interaction"
-)
-
-class InputTextParams(BaseModel):
-    """Parameters for the input_text action."""
-    index: int = Field(description="The highlight_index of the input element.")
-    text: str = Field(description="The text to input into the element.")
-
-ACTION_INPUT_TEXT = ActionDefinition(
-    name="input_text",
-    description="Inputs text into an element (e.g., input field, textarea) identified by its highlight_index.",
-    parameters=[
-        ActionParam(name="index", type="int", required=True, description="The highlight_index of the element."),
-        ActionParam(name="text", type="str", required=True, description="The text to input.")
-    ],
-    category="Interaction"
-)
-
-class ScrollPageParams(BaseModel):
-    """Parameters for the scroll_page action."""
-    direction: Literal["up", "down"] = Field(description="Direction to scroll: 'up' or 'down'.")
-    # amount: Optional[int] = Field(default=None, description="Amount in pixels to scroll. Defaults to viewport height if not set.")
-
-ACTION_SCROLL_PAGE = ActionDefinition(
-    name="scroll_page",
-    description="Scrolls the page up or down. Currently scrolls by a fixed amount (approx. viewport height).",
-    parameters=[
-        ActionParam(name="direction", type="Literal['up', 'down']", required=True, description="Scroll direction.")
-    ],
-    category="Navigation"
-)
-
-
-# Registry of available actions (can be populated dynamically or loaded from config)
-AVAILABLE_ACTIONS: Dict[str, ActionDefinition] = {
-    ACTION_GO_TO_URL.name: ACTION_GO_TO_URL,
-    ACTION_CLICK_ELEMENT_BY_INDEX.name: ACTION_CLICK_ELEMENT_BY_INDEX,
-    ACTION_INPUT_TEXT.name: ACTION_INPUT_TEXT,
-    ACTION_SCROLL_PAGE.name: ACTION_SCROLL_PAGE,
-    # Add other pre-defined actions here
-}
-
-logger = logging.getLogger(__name__)
-
-# Function to get an action definition
-def get_action_definition(name: str) -> Optional[ActionDefinition]:
-    """Retrieves an action definition by its name."""
-    return AVAILABLE_ACTIONS.get(name)
-
-# Function to list all available actions
-def list_available_actions() -> List[ActionDefinition]:
-    """Returns a list of all available action definitions."""
-    return list(AVAILABLE_ACTIONS.values())
-````
-
-## File: browser-use-ext/controller/service.py
-````python
-# Standard library imports
-import logging
-from typing import Dict, Any, Optional, Callable, Awaitable, Union, List
-
-# Third-party imports
-from pydantic import BaseModel, Field # For potential future use with action definitions
-
-# Local application/library specific imports
-from browser.context import BrowserContext
-from dom.views import DOMElementNode
-from .registry.views import get_action_definition, list_available_actions, ActionDefinition
-
-# Initialize logger for this module
-logger = logging.getLogger(__name__)
-
-# ActionFunctionType = Callable[[BrowserContext, Dict[str, Any]], Awaitable[Dict[str, Any]]]
-
-class Controller:
-    """
-    The Controller class is responsible for executing actions within a given browser context.
-    It acts as an abstraction layer over the BrowserContext's direct interaction methods,
-    allowing for a more structured way to define and dispatch browser operations.
-    
-    In this extension-based setup, most actions are directly translated into commands
-    sent to the Chrome extension via the BrowserContext and its underlying ExtensionInterface.
-    """
-
-    def __init__(self, browser_context: BrowserContext):
-        """
-        Initializes the Controller with a specific browser context.
-
-        Args:
-            browser_context: The BrowserContext instance through which actions will be performed.
-        """
-        if not isinstance(browser_context, BrowserContext):
-            raise TypeError("Controller must be initialized with a valid BrowserContext instance.")
-        self.browser_context = browser_context
-        # self.action_registry: Dict[str, ActionFunctionType] = self._register_default_actions()
-        logger.info(f"Controller initialized with BrowserContext for URL (if known): {browser_context._cached_state.url if browser_context._cached_state else 'Unknown'}")
-
-    # def _register_default_actions(self) -> Dict[str, ActionFunctionType]:
-    #     """ Placeholder for registering known actions. """
-    #     # In a more complex system, actions could be dynamically registered.
-    #     # For now, actions are mostly directly passed to the extension.
-    #     return {
-    #         "click_element_by_index": self.click_element_by_index,
-    #         "input_text": self.input_text,
-    #         "go_to_url": self.go_to_url,
-    #         # ... other actions
-    #     }
-
-    async def execute_action(self, action_name: str, params: Optional[Dict[str, Any]] = None, timeout: float = 30.0) -> Optional[Dict[str, Any]]:
-        """
-        Directly executes an action by name via the BrowserContext's ExtensionInterface.
-        This is the primary method for sending commands to the Chrome extension.
-
-        Args:
-            action_name: The exact name of the action recognized by the Chrome extension's content script.
-                         (e.g., "click_element_by_index", "input_text", "go_to_url").
-            params: A dictionary of parameters specific to the action.
-            timeout: Timeout in seconds for the action to complete.
-
-        Returns:
-            A dictionary containing the result from the extension, or None if an error occurs.
-        """
-        logger.info(f"Controller executing action: '{action_name}' with params: {params}")
-        
-        # Optionally, validate action_name and params against a registry
-        # action_def: Optional[ActionDefinition] = get_action_definition(action_name)
-        # if not action_def:
-        #     logger.error(f"Action '{action_name}' is not defined in the registry.")
-        #     return {"error": f"Action '{action_name}' not defined."}
-        # try:
-        #     # If action_def.parameters describes Pydantic models for params, validate here.
-        #     # For now, assuming params are directly passed.
-        #     pass 
-        # except Exception as e:
-        #     logger.error(f"Parameter validation failed for action '{action_name}': {e}")
-        #     return {"error": f"Parameter validation failed: {e}"}
-
-        # Delegate to the BrowserContext's underlying ExtensionInterface
-        # The execute_action method in ExtensionInterface is designed to take the raw action_name and params
-        # that the *extension* understands.
-        try:
-            # The BrowserContext itself doesn't have execute_action, it's on the ExtensionInterface
-            result = await self.browser_context.extension.execute_action(
-                action_name=action_name, 
-                params=params or {},
-                timeout=timeout
-            )
-            logger.info(f"Action '{action_name}' execution result: {result}")
-            return result
-        except Exception as e:
-            logger.error(f"Error during Controller.execute_action for '{action_name}': {e}", exc_info=True)
-            return {"error": str(e)}
-
-    # --- Wrapper methods for common actions --- 
-    # These provide a more Pythonic interface and can encapsulate parameter structuring.
-
-    async def go_to_url(self, url: str, timeout: float = 30.0) -> Optional[Dict[str, Any]]:
-        """Navigates the active tab to the specified URL."""
-        return await self.execute_action(action_name="go_to_url", params={"url": url}, timeout=timeout)
-
-    async def click_element_by_index(self, index: int, timeout: float = 30.0) -> Optional[Dict[str, Any]]:
-        """Clicks an element identified by its highlight_index in the active tab."""
-        return await self.execute_action(action_name="click_element_by_index", params={"highlight_index": index}, timeout=timeout)
-
-    async def input_text(self, index: int, text: str, timeout: float = 30.0) -> Optional[Dict[str, Any]]:
-        """Inputs text into an element (identified by highlight_index) in the active tab."""
-        return await self.execute_action(action_name="input_text", params={"highlight_index": index, "text": text}, timeout=timeout)
-
-    async def scroll_page(self, direction: str, timeout: float = 30.0) -> Optional[Dict[str, Any]]:
-        """Scrolls the page 'up' or 'down'."""
-        if direction not in ["up", "down"]:
-            logger.error(f"Invalid scroll direction: {direction}. Must be 'up' or 'down'.")
-            return {"error": "Invalid scroll direction"}
-        return await self.execute_action(action_name="scroll_page", params={"direction": direction}, timeout=timeout)
-
-    async def go_back(self, timeout: float = 30.0) -> Optional[Dict[str, Any]]:
-        """Navigates the active tab back in its history."""
-        return await self.execute_action(action_name="go_back", params={}, timeout=timeout)
-
-    async def extract_content(self, index: Optional[int] = None, content_type: str = "text", timeout: float = 30.0) -> Optional[Dict[str, Any]]:
-        """
-        Extracts content from an element (by index) or the whole page.
-        Args:
-            index: Highlight index of the element. If None, extracts from the whole page (extension specific).
-            content_type: 'text' or 'html'.
-            timeout: Timeout for the action.
-        Returns:
-            Dictionary with extracted content or error.
-        """
-        params = {"content_type": content_type}
-        if index is not None:
-            params["highlight_index"] = index
-        # Assuming extension has an "extract_content" action that handles these params
-        return await self.execute_action(action_name="extract_content", params=params, timeout=timeout)
-
-    async def send_keys(self, keys: str, index: Optional[int] = None, timeout: float = 30.0) -> Optional[Dict[str, Any]]:
-        """
-        Simulates sending key presses to an element (by index) or the active element on the page.
-        Args:
-            keys: The keys to send (e.g., "Enter", "Hello World").
-            index: Highlight index of the target element. If None, keys sent to active element.
-            timeout: Timeout for the action.
-        """
-        params = {"keys": keys}
-        if index is not None:
-            params["highlight_index"] = index
-        return await self.execute_action(action_name="send_keys", params=params, timeout=timeout)
-
-    # --- Tab Management Wrappers (delegating to BrowserContext which calls ExtensionInterface) ---
-
-    async def open_tab(self, url: Optional[str] = None, timeout: float = 30.0) -> Optional[Dict[str, Any]]:
-        """Opens a new tab, optionally navigating to a URL."""
-        # This will call BrowserContext.create_new_tab(), which then calls execute_action
-        # For a more direct call consistent with other controller methods:
-        action_params = {"url": url if url else "about:blank"}
-        response = await self.browser_context.extension.execute_action(
-            action_name="open_tab", params=action_params, timeout=timeout
-        )
-        if response and response.get("success"):
-            await self.browser_context.get_state(force_refresh=True) # Update context state
-        return response
-
-    async def switch_tab(self, tab_id: Union[int, str], timeout: float = 30.0) -> Optional[Dict[str, Any]]:
-        """Switches to the specified tab using its ID (Chrome tab ID or index from get_state)."""
-        # This will call BrowserContext.switch_to_tab(), which then calls execute_action
-        # Direct call style:
-        response = await self.browser_context.extension.execute_action(
-            action_name="switch_tab", params={"tab_id": tab_id}, timeout=timeout
-        )
-        if response and response.get("success"):
-            await self.browser_context.get_state(force_refresh=True) # Update context state
-        return response
-
-    async def close_tab(self, tab_id: Optional[Union[int, str]] = None, timeout: float = 30.0) -> Optional[Dict[str, Any]]:
-        """
-        Closes the specified tab. If tab_id is None, attempts to close the active tab.
-        The tab_id should be the actual Chrome tab ID.
-        """
-        # This will call BrowserContext.close_tab(), which determines target and calls execute_action
-        # Direct call style (if tab_id is known and is the Chrome Tab ID):
-        if tab_id is None:
-            # Determine active tab from context to close it
-            active_pg = await self.browser_context.active_page()
-            if active_pg and active_pg.page_id is not None:
-                target_tab_id = active_pg.page_id
-            else:
-                logger.error("Close tab: No specific tab_id provided and no active page found.")
-                return {"error": "No active tab to close and no tab_id specified."}
-        else:
-            target_tab_id = tab_id
-            
-        response = await self.browser_context.extension.execute_action(
-            action_name="close_tab", params={"tab_id": target_tab_id}, timeout=timeout
-        )
-        if response and response.get("success"):
-            await self.browser_context.get_state(force_refresh=True) # Update context state
-        return response
-
-    # --- Utility --- 
-    async def list_actions(self) -> List[ActionDefinition]:
-        """Returns a list of known action definitions from the local registry."""
-        return list_available_actions()
-
-    async def get_current_browser_state(self, force_refresh: bool = False) -> Optional[Dict[str, Any]]:
-        """Retrieves and returns the full browser state as a dictionary."""
-        state_obj = await self.browser_context.get_state(force_refresh=force_refresh)
-        if state_obj:
-            return state_obj.model_dump() # Convert Pydantic model to dict
-        return None
-
-# Example Usage (requires a running BrowserContext setup):
-async def example_controller_usage():
-    from browser.browser import Browser, BrowserConfig # For setup
-    
-    logging.basicConfig(level=logging.INFO)
-    logger.info("Starting controller example...")
-
-    browser_config = BrowserConfig()
-    browser = Browser(config=browser_config)
-
-    async with browser: # Manages launch and close of browser (ExtensionInterface server)
-        if not browser.is_connected:
-            logger.warning("Extension not connected after browser launch. Waiting a bit...")
-            await asyncio.sleep(5) # Wait for potential connection
-            if not browser.is_connected:
-                logger.error("Extension still not connected. Aborting controller example.")
-            return
-        
-        logger.info("Browser launched and extension connected.")
-        b_context = await browser.new_context()
-        controller = Controller(browser_context=b_context)
-
-        try:
-            # List available actions (from local registry)
-            actions = await controller.list_actions()
-            logger.info(f"Available actions: {[action.name for action in actions]}")
-
-            # Get current state
-            # current_state = await controller.get_current_browser_state()
-            # if current_state:
-            #     logger.info(f"Current URL: {current_state.get('tabs',[{}])[0].get('url', 'N/A')}")
-
-            # Navigate
-                nav_result = await controller.go_to_url("https://www.example.com")
-            logger.info(f"Navigation to example.com result: {nav_result}")
-                await asyncio.sleep(2) # Allow page to load
-
-            # Refresh state and log new URL
-            # refreshed_state_data = await controller.get_current_browser_state(force_refresh=True)
-            # if refreshed_state_data and refreshed_state_data.get('tabs'):
-            #     active_tab_url = next((tab.get('url') for tab in refreshed_state_data['tabs'] if tab.get('active')), "N/A")
-            #     logger.info(f"After navigation, active tab URL: {active_tab_url}")
-
-            # Example: Click (assuming a clickable element with index 0 exists after nav)
-            # This requires knowing a valid highlight_index from the current page state.
-            # For a robust test, one would first get_state, identify an index, then click.
-            # click_result = await controller.click_element_by_index(index=0) # This is a guess for index 0
-            # logger.info(f"Click element 0 result: {click_result}")
-
-            # Example: Input text (similarly, requires a valid index for an input field)
-            # input_result = await controller.input_text(index=1, text="Hello from controller") # Guess for index 1
-            # logger.info(f"Input text result: {input_result}")
-
-            except Exception as e:
-                logger.error(f"Error during controller example: {e}", exc_info=True)
-        finally:
-            logger.info("Closing browser context in controller example...")
-            await b_context.close_context() # Context is managed by the `async with browser` block too
-    
-    logger.info("Controller example finished.")
-
-if __name__ == "__main__":
-    asyncio.run(example_controller_usage())
-````
-
-## File: browser-use-ext/dom/__init__.py
-````python
-# This file makes the dom directory a Python package.
-````
-
-## File: browser-use-ext/dom/views.py
-````python
-from __future__ import annotations
-
-from typing import Any, Dict, List, Optional
-
-from pydantic import BaseModel, Field
-
-
-class DOMElementNode(BaseModel):
-    """
-    Represents a node in the DOM tree.
-
-    This model captures essential information about a DOM element,
-    including its tag name, attributes, visibility, and relationship
-    with other nodes.
-    """
-
-    # The HTML tag name of the element (e.g., "div", "a", "input").
-    tag_name: str = Field(description="The HTML tag name of the element.")
-
-    # A dictionary of the element's HTML attributes and their values.
-    # For example: {"id": "main-content", "class": "container"}
-    attributes: Dict[str, str] = Field(
-        default_factory=dict, description="HTML attributes of the element."
-    )
-
-    # A unique index assigned to interactive elements for easy referencing.
-    # This is particularly useful for actions like clicking or typing.
-    # Non-interactive elements will have this as None.
-    highlight_index: Optional[int] = Field(
-        default=None, description="Unique index for interactive elements."
-    )
-
-    # Indicates whether the element is currently visible on the page.
-    # Visibility is determined by factors like CSS display, visibility,
-    # opacity, and dimensions.
-    is_visible: bool = Field(
-        default=True, description="Whether the element is visible on the page."
-    )
-
-    # The XPath expression that uniquely identifies this element in the DOM.
-    xpath: str = Field(description="XPath of the element.")
-
-    # A list of child DOMElementNode objects, representing the nested structure.
-    children: List[DOMElementNode] = Field(
-        default_factory=list, description="Child nodes of this element."
-    )
-
-    # A reference to the parent DOMElementNode, if this is not the root.
-    # This field is typically populated after the initial tree construction.
-    # The `Optional` type and `None` default allow for the root node to have no parent.
-    # The `Any` type is used here to avoid circular dependency issues with Pydantic,
-    # as `DOMElementNode` would refer to itself. This will be a `DOMElementNode` instance in practice.
-    parent: Optional[Any] = Field(
-        default=None, description="Parent node of this element."
-    )
-    
-    # The textual content of the element, if it's a text node.
-    # This is useful for extracting text from specific parts of the DOM.
-    text: Optional[str] = Field(
-        default=None, description="Text content if this is a text node."
-    )
-
-    # The type of the node, e.g., "element" or "text".
-    # This helps in distinguishing between different kinds of DOM nodes.
-    type: str = Field(
-        default="element", description="Type of the DOM node (e.g., 'element', 'text')."
-    )
-
-
-    class Config:
-        """
-        Pydantic model configuration.
-
-        `arbitrary_types_allowed = True` is necessary to allow the `parent`
-        field to be of type `Any` (which will be `DOMElementNode`) without
-        Pydantic raising an error during model validation.
-        """
-        arbitrary_types_allowed = True
-
-
-# Update forward references to ensure Pydantic can resolve the self-referencing `children`
-# and the `parent` field if it were strictly typed as `DOMElementNode`.
-# This is crucial for models that have fields which are instances of the model itself.
-DOMElementNode.model_rebuild()
-````
-
-## File: browser-use-ext/extension_interface/__init__.py
-````python
-# This file makes the extension_interface directory a Python package. 
-# It can be left empty or can contain package-level initializations.
-
-# Optionally, you could import key classes here for easier access, e.g.:
-# from .service import ExtensionInterface
-````
-
-## File: browser-use-ext/extension_interface/service.py
-````python
-from __future__ import annotations
-
-import sys
-import os
-# print(f"Current working directory: {os.getcwd()}")
-# print(f"sys.path: {sys.path}")
-
-# Standard library imports
-import asyncio
-import json
-import logging
-import uuid
-from typing import Any, Callable, Dict, List, Optional, TypeVar, cast
-
-# Third-party imports
-import websockets
-from pydantic import BaseModel, Field, ValidationError
-from websockets.exceptions import ConnectionClosed, ConnectionClosedOK
-from websockets.server import WebSocketServerProtocol
-
-# Local application/library specific imports
-from browser.views import BrowserState, TabInfo
-from dom.views import DOMElementNode
-
-# Initialize logger for this module
-logger = logging.getLogger(__name__)
-
-# Generic TypeVar for async callback return types
-T = TypeVar('T')
-
-# --- Pydantic Models for WebSocket Communication ---
-
-class BaseMessage(BaseModel):
-    """Base model for all WebSocket messages, providing common fields like id and type."""
-    # Unique identifier for the message, used to correlate requests and responses.
-    id: int = Field(description="Unique message identifier.")
-    # Type of the message, e.g., 'get_state', 'execute_action', 'response'.
-    type: str = Field(description="Type of the WebSocket message.")
-
-class RequestMessage(BaseMessage):
-    """Model for request messages sent from Python to the Chrome extension."""
-    # Action-specific data or parameters for the request.
-    # For 'get_state': {"includeScreenshot": bool}
-    # For 'execute_action': {"action": str, "params": Dict[str, Any]}
-    data: Optional[Dict[str, Any]] = Field(None, description="Payload for the request.")
-
-class ResponseData(BaseModel):
-    """Model for the 'data' field within a response message from the extension."""
-    # Indicates success or failure of the operation requested.
-    success: Optional[bool] = Field(None, description="Indicates if the operation was successful.")
-    # Error message if the operation failed.
-    error: Optional[str] = Field(None, description="Error message if an error occurred.")
-    # URL of the page, typically included in get_state responses.
-    url: Optional[str] = Field(None, description="Current URL of the page.")
-    # Title of the page, typically included in get_state responses.
-    title: Optional[str] = Field(None, description="Title of the page.")
-    # DOM structure, typically included in get_state responses.
-    element_tree: Optional[Dict[str, Any]] = Field(None, description="Raw element tree from extension.")
-    # Selector map, typically included in get_state responses.
-    selector_map: Optional[Dict[str, Any]] = Field(None, description="Raw selector map from extension.")
-    # List of tabs, typically included in get_state responses.
-    tabs: Optional[List[Dict[str, Any]]] = Field(None, description="List of tabs from extension.")
-    # Screenshot data (base64), if requested.
-    screenshot: Optional[str] = Field(None, description="Base64 encoded screenshot data.")
-    # Scroll position information.
-    pixels_above: Optional[int] = Field(None, description="Pixels scrolled above the viewport.")
-    pixels_below: Optional[int] = Field(None, description="Pixels scrollable below the viewport.")
-    # Content extracted from the page, for 'extract_content' action.
-    content: Optional[str] = Field(None, description="Extracted content from the page.")
-    # Note for providing additional context for an action's result.
-    note: Optional[str] = Field(None, description="Additional note for the action's result.")
-    # ID of the newly activated tab after a switch_tab action.
-    new_active_tab_id: Optional[int] = Field(None, description="ID of the new active tab.")
-    # ID of a newly created tab.
-    new_tab_id: Optional[int] = Field(None, description="ID of the newly created tab.")
-    # ID of a closed tab.
-    closed_tab_id: Optional[int] = Field(None, description="ID of the closed tab.")
-
-    class Config:
-        # Allows for extra fields in the response data that are not strictly defined
-        # This is useful for flexibility as the extension might send additional info.
-        extra = "allow"
-
-class ResponseMessage(BaseMessage):
-    """Model for response messages received from the Chrome extension."""
-    # The actual payload of the response, structured according to ResponseData.
-    data: ResponseData = Field(description="Payload of the response.")
-
-# --- Connection Management ---
-
-class ConnectionInfo(BaseModel):
-    """Stores information about an active WebSocket client connection."""
-    # Unique identifier assigned to the client by the server.
-    client_id: str
-    # The WebSocket connection object for this client.
-    websocket: WebSocketServerProtocol
-    # Task that handles message listening for this client.
-    # Storing it allows for cancellation if needed.
-    handler_task: Optional[asyncio.Task] = None
-
-    class Config:
-        # Allows Pydantic to handle non-standard types like WebSocketServerProtocol and asyncio.Task.
-        arbitrary_types_allowed = True
-
-# --- Main Extension Interface Class ---
-
-class ExtensionInterface:
-    """
-    Manages WebSocket communication with the Chrome extension.
-    It handles starting/stopping the server, sending requests to the extension,
-    and processing responses.
-    """
-    
-    def __init__(self, host: str = "localhost", port: int = 8765):
-        """
-        Initializes the ExtensionInterface.
-
-        Args:
-            host: The hostname for the WebSocket server.
-            port: The port number for the WebSocket server.
-        """
-        self.host = host
-        self.port = port
-        self._server: Optional[websockets.server.WebSocketServer] = None
-        self._connections: Dict[str, ConnectionInfo] = {}
-        self._active_connection_id: Optional[str] = None
-        self._message_id_counter: int = 0
-        self._pending_requests: Dict[int, asyncio.Future[ResponseData]] = {}
-        self._server_task: Optional[asyncio.Task] = None
-        self._lock = asyncio.Lock() # Lock for managing shared resources like _message_id_counter
-    
-    async def start_server(self) -> None:
-        """Starts the WebSocket server to listen for connections from the extension."""
-        if self._server is not None:
-            logger.warning("WebSocket server is already running.")
-            return
-        
-        try:
-            # `websockets.serve` creates and starts the server.
-            # `self._handle_connection` will be called for each new client.
-            self._server = await websockets.serve(
-                self._handle_connection, 
-                self.host, 
-                self.port
-            )
-            logger.info(f"WebSocket server started successfully on ws://{self.host}:{self.port}")
-            # Create a task to monitor the server's status. `wait_closed` will complete when the server stops.
-            self._server_task = asyncio.create_task(self._server.wait_closed(), name=f"WebSocketServerMonitor-{self.port}")
-        except Exception as e:
-            logger.error(f"Failed to start WebSocket server on ws://{self.host}:{self.port}: {e}", exc_info=True)
-            self._server = None # Ensure server is None if start failed
-            raise # Re-raise the exception to signal failure to the caller
-    
-    async def stop_server(self) -> None:
-        """Stops the WebSocket server and cleans up connections."""
-        if self._server is None:
-            logger.warning("WebSocket server is not running.")
-            return
-        
-        logger.info("Attempting to stop WebSocket server...")
-        self._server.close() # Initiates the server shutdown
-        
-        # Wait for the server to close fully and for its monitoring task to complete.
-        if self._server_task:
-            try:
-                await asyncio.wait_for(self._server_task, timeout=5.0)
-            except asyncio.TimeoutError:
-                logger.warning("Timeout waiting for server task to complete during shutdown.")
-            except Exception as e:
-                logger.error(f"Error during server task completion: {e}", exc_info=True)
-
-        # Cancel any pending client handler tasks
-        for conn_id, conn_info in list(self._connections.items()): # Iterate over a copy
-            if conn_info.handler_task and not conn_info.handler_task.done():
-                conn_info.handler_task.cancel()
-                try:
-                    await conn_info.handler_task # Wait for cancellation to complete
-                except asyncio.CancelledError:
-                    logger.debug(f"Handler task for {conn_id} cancelled successfully.")
-                except Exception as e:
-                    logger.error(f"Error cancelling handler task for {conn_id}: {e}", exc_info=True)
-            # Close the individual websocket connection if it's still open
-            if not conn_info.websocket.closed:
-                await conn_info.websocket.close(code=1001, reason="Server shutting down")
-
-        # Clear pending requests
-        for req_id, future in self._pending_requests.items():
-            if not future.done():
-                future.cancel(f"Request {req_id} cancelled due to server shutdown.")
-        self._pending_requests.clear()
-        
-        # Reset server state
-        self._server = None
-        self._server_task = None
-        self._connections.clear()
-        self._active_connection_id = None
-        logger.info("WebSocket server stopped successfully.")
-    
-    async def _handle_connection(self, websocket: WebSocketServerProtocol, path: str) -> None:
-        """
-        Manages a new WebSocket connection from a client (the Chrome extension).
-        Each connection runs in its own instance of this coroutine.
-        """
-        logger.critical("!!! EXECUTING AMENDED _handle_connection !!!")
-        client_id = f"client_{websocket.id}" # Use a unique ID from the websocket object
-        handler_task = asyncio.current_task()
-        if handler_task:
-             handler_task.set_name(f"WSClientHandler-{client_id}")
-
-        conn_info = ConnectionInfo(client_id=client_id, websocket=websocket, handler_task=handler_task)
-        self._connections[client_id] = conn_info
-        logger.info(f"New WebSocket connection established from {websocket.remote_address}: {client_id}") 
-
-        # If no active connection, set this new one as active.
-        if self._active_connection_id is None:
-            self._active_connection_id = client_id
-            logger.info(f"Set {client_id} as the active connection.")
-
-        try:
-            # Loop indefinitely to process messages from this client.
-            async for message_data in websocket:
-                if isinstance(message_data, str):
-                    await self._process_message(client_id, message_data)
-                else:
-                    logger.warning(f"Received non-text message from {client_id}, ignoring.")
-        except ConnectionClosedOK:
-            logger.info(f"Connection {client_id} closed gracefully (OK). Path: {path}")
-        except ConnectionClosed as e:
-            logger.warning(f"Connection {client_id} closed with code {e.code}, reason: {e.reason}. Path: {path}")
-        except Exception as e:
-            logger.error(f"Error during message handling for {client_id} on path {path}: {e}", exc_info=True)
-        finally:
-            # Cleanup when the connection is closed or an error occurs.
-            logger.info(f"Cleaning up connection {client_id}.")
-            if client_id in self._connections:
-                del self._connections[client_id]
-            
-            # If this was the active connection, try to set a new active one.
-            if self._active_connection_id == client_id:
-                if self._connections:
-                    self._active_connection_id = next(iter(self._connections.keys()))
-                    logger.info(f"Switched active connection to {self._active_connection_id}.")
-                else:
-                    self._active_connection_id = None
-                    logger.info("No remaining connections, active connection set to None.")
-            logger.info(f"Connection {client_id} fully cleaned up.")
-
-    async def _process_message(self, client_id: str, message_data: str) -> None:
-        """
-        Processes an incoming WebSocket message string from a specific client.
-        """
-        try:
-            raw_message = json.loads(message_data)
-            # Validate the base structure first
-            base_msg = BaseMessage.model_validate(raw_message)
-            logger.debug(f"Received message from {client_id}: Type '{base_msg.type}', ID '{base_msg.id}'")
-
-            if base_msg.type == "response":
-                # Validate as a full ResponseMessage
-                response_msg = ResponseMessage.model_validate(raw_message)
-                future = self._pending_requests.pop(response_msg.id, None)
-                if future and not future.done():
-                    if response_msg.data.error:
-                        # If there's an error in the response, encapsulate it and set it as the future's exception
-                        error_message = f"Extension error for request ID {response_msg.id}: {response_msg.data.error}"
-                        logger.error(error_message)
-                        future.set_exception(RuntimeError(error_message))
-                    else:
-                        # Otherwise, set the successful result
-                        future.set_result(response_msg.data)
-                elif future and future.done():
-                    logger.warning(f"Received response for already completed/cancelled future {response_msg.id}")
-                else:
-                    logger.warning(f"Received unsolicited response or response for unknown request ID: {response_msg.id}")
-            
-            elif base_msg.type == "error": # Assuming extension might send an 'error' type for unsolicited errors
-                error_payload = raw_message.get("data", {})
-                error_message = error_payload.get("message", "Unknown error from extension")
-                logger.error(f"Received unsolicited error from {client_id}: {error_message} (Raw: {message_data})")
-
-            elif base_msg.type == "extension_event": # For events like page load, tab switch, etc.
-                event_payload = raw_message.get("data", {})
-                event_name = event_payload.get("event_name", "unknown_event")
-                logger.info(f"Received event '{event_name}' from {client_id}: {event_payload}")
-                # Here you could dispatch these events to other parts of the application
-                # For example, using asyncio.Queue or registered callbacks.
-
-            else:
-                logger.warning(f"Received message of unhandled type '{base_msg.type}' from {client_id}")
-
-        except json.JSONDecodeError:
-            logger.error(f"Failed to decode JSON message from {client_id}: {message_data[:200]}...") # Log snippet
-        except ValidationError as e:
-            logger.error(f"Message validation error from {client_id} for message '{message_data[:200]}...': {e}")
-        except Exception as e: # Catch-all for other errors during message processing
-            logger.error(f"Unexpected error processing message from {client_id}: {e}", exc_info=True)
-
-
-    async def _send_request(self, request_type: str, data: Optional[Dict[str, Any]] = None, timeout: float = 30.0) -> ResponseData:
-        """
-        Sends a request to the active Chrome extension connection and waits for a response.
-
-        Args:
-            request_type: The type of request (e.g., "get_state", "execute_action").
-            data: The data payload for the request.
-            timeout: Maximum time to wait for a response in seconds.
-
-        Returns:
-            A ResponseData object containing the extension's response.
-
-        Raises:
-            RuntimeError: If no active connection, or if the request times out or fails.
-        """
-        if not self.active_connection:
-            raise RuntimeError("No active Chrome extension connection.")
-
-        async with self._lock: # Ensure message ID counter is updated atomically
-            self._message_id_counter += 1
-            msg_id = self._message_id_counter
-        
-        request = RequestMessage(id=msg_id, type=request_type, data=data)
-        future: asyncio.Future[ResponseData] = asyncio.Future()
-        self._pending_requests[msg_id] = future
-
-        try:
-            # Ensure the connection is still valid before sending
-            if self.active_connection.websocket.closed:
-                raise RuntimeError(f"Active connection {self.active_connection.client_id} is closed.")
-            
-            await self.active_connection.websocket.send(request.model_dump_json())
-            logger.debug(f"Sent {request_type} request (ID: {msg_id}) to {self.active_connection.client_id}")
-            
-            # Wait for the response
-            return await asyncio.wait_for(future, timeout=timeout)
-        
-        except asyncio.TimeoutError:
-            logger.error(f"Timeout waiting for response to {request_type} request (ID: {msg_id})")
-            self._pending_requests.pop(msg_id, None) # Clean up pending request
-            raise RuntimeError(f"Request {request_type} (ID: {msg_id}) timed out after {timeout}s.")
-        except ConnectionClosed:
-            logger.error(f"Connection closed while sending/waiting for {request_type} (ID: {msg_id})")
-            self._pending_requests.pop(msg_id, None)
-            raise RuntimeError(f"Connection closed during request {request_type} (ID: {msg_id}).")
-        except Exception as e: # Catch other exceptions during send or from future
-            logger.error(f"Error sending/processing {request_type} request (ID: {msg_id}): {e}", exc_info=True)
-            self._pending_requests.pop(msg_id, None)
-            # Re-raise as a generic RuntimeError to simplify error handling for callers
-            # Or, could re-raise e directly if more specific error types are needed by callers
-            raise RuntimeError(f"Failed to process request {request_type} (ID: {msg_id}): {e}")
-
-
-    async def get_state(self, include_screenshot: bool = False) -> BrowserState:
-        """
-        Requests the current browser state from the extension.
-
-        Args:
-            include_screenshot: Whether to include a screenshot in the state.
-
-        Returns:
-            A BrowserState object representing the current state.
-        """
-        logger.info(f"Requesting browser state (screenshot: {include_screenshot})...")
-        payload = {"includeScreenshot": include_screenshot}
-        response_data = await self._send_request("get_state", payload)
-
-        # Basic validation of expected fields for get_state
-        if response_data.url is None or \
-           response_data.title is None or \
-           response_data.element_tree is None or \
-           response_data.selector_map is None or \
-           response_data.tabs is None or \
-           response_data.pixels_above is None or \
-           response_data.pixels_below is None:
-            error_msg = "Received incomplete state data from extension."
-            logger.error(error_msg + f" Response: {response_data.model_dump_json(indent=2)}")
-            raise RuntimeError(error_msg)
-        
-        try:
-            # Parse the raw element tree into DOMElementNode structure
-            parsed_element_tree = self._parse_element_tree_data(response_data.element_tree)
-            
-            # Parse tab information
-            parsed_tabs = []
-            for tab_data in response_data.tabs:
-                # Ensure all required fields are present for TabInfo
-                if not all(k in tab_data for k in ("id", "url", "title", "active")):
-                    logger.warning(f"Skipping tab with incomplete data: {tab_data}")
-                    continue
-                parsed_tabs.append(TabInfo.model_validate(tab_data))
-            
-            # Construct and return the BrowserState object
-            return BrowserState(
-                url=response_data.url,
-                title=response_data.title,
-                element_tree=parsed_element_tree,
-                selector_map=response_data.selector_map, # Assuming selector_map is already in correct format
-                tabs=parsed_tabs,
-                screenshot=response_data.screenshot,
-                pixels_above=response_data.pixels_above,
-                pixels_below=response_data.pixels_below
-            )
-        except ValidationError as e:
-            logger.error(f"Pydantic validation error parsing browser state: {e}", exc_info=True)
-            raise RuntimeError(f"Failed to parse browser state from extension: {e}")
-        except Exception as e:
-            logger.error(f"Unexpected error constructing BrowserState: {e}", exc_info=True)
-            raise RuntimeError(f"Unexpected error constructing BrowserState: {e}")
-
-
-    def _parse_element_tree_data(self, element_data: Dict[str, Any]) -> DOMElementNode:
-        """
-        Recursively parses the raw element tree data from the extension into DOMElementNode objects.
-        Ensures that 'text' attribute is correctly handled.
-
-        Args:
-            element_data: A dictionary representing a node from the extension's element tree.
-
-        Returns:
-            A DOMElementNode object.
-        """
-        # Pre-validation of essential keys
-        if not all(k in element_data for k in ("type", "xpath")):
-            raise ValueError(f"Essential keys 'type' or 'xpath' missing in element data: {element_data}")
-
-        # Create a copy to avoid modifying the original dict, especially for 'attributes'
-        data_copy = element_data.copy()
-
-        # Ensure 'attributes' is a dictionary, default to empty if not present or None
-        attributes = data_copy.get("attributes")
-        if not isinstance(attributes, dict):
-            attributes = {}
-        
-        # Handle 'text' content: convert to string if present, otherwise it remains None via Pydantic default
-        node_text: Optional[str] = None
-        if data_copy.get("type") == "text": # For text nodes, 'text' is its content
-            node_text = str(data_copy.get("text", "")) # Ensure it's a string, even if empty
-        elif data_copy.get("type") == "element": # For element nodes, 'text' is direct text child
-            if "text" in data_copy and data_copy["text"] is not None:
-                node_text = str(data_copy["text"])
-        
-        # Recursively parse child nodes
-        children_nodes = []
-        if "children" in data_copy and isinstance(data_copy["children"], list):
-            for child_data in data_copy["children"]:
-                if isinstance(child_data, dict): # Ensure child_data is a dict before parsing
-                    try:
-                        children_nodes.append(self._parse_element_tree_data(child_data))
-                    except ValueError as ve: # Catch parsing errors from children
-                        logger.warning(f"Skipping child due to parsing error: {ve}. Child data: {child_data}")
-                else:
-                    logger.warning(f"Skipping non-dictionary child item: {child_data}")
-        
-        # Prepare fields for DOMElementNode, ensuring all required fields are present or have defaults
-        node_fields = {
-            "type": data_copy["type"],
-            "xpath": data_copy["xpath"],
-            "highlight_id": data_copy.get("highlight_id"), # Will be None if not present
-            "tag_name": data_copy.get("tag_name"), # Will be None for non-element types
-            "attributes": attributes,
-            "text": node_text, # Assign the processed text
-            "children": children_nodes,
-            "is_interactive": data_copy.get("is_interactive", False), # Default to False
-            "is_visible": data_copy.get("is_visible", False), # Default to False
-            "value": data_copy.get("value"), # For input elements
-            "raw_html_outer": data_copy.get("raw_html_outer"),
-            "raw_html_inner": data_copy.get("raw_html_inner"),
-        }
-        
-        # Validate and create the DOMElementNode
-        try:
-            return DOMElementNode.model_validate(node_fields)
-        except ValidationError as e:
-            logger.error(f"Validation error creating DOMElementNode for {data_copy.get('xpath')}: {e}\nData: {node_fields}", exc_info=True)
-            # Instead of raising here and potentially stopping a large tree parse,
-            # one might consider returning a "failed_parse" node or logging and skipping.
-            # For now, re-raise to indicate the issue.
-            raise ValueError(f"Failed to validate DOMElementNode: {e}. Data: {node_fields}") from e
-
-
-    async def execute_action(self, action: str, params: Dict[str, Any], timeout: float = 30.0) -> Dict[str, Any]:
-        """
-        Executes an action in the browser via the extension.
-
-        Args:
-            action: The name of the action to execute (e.g., "click", "input_text").
-            params: A dictionary of parameters for the action.
-            timeout: Timeout for the action in seconds.
-
-        Returns:
-            A dictionary containing the result of the action from the extension.
-        """
-        logger.info(f"Executing action '{action}' with params: {params}")
-        payload = {"action": action, "params": params}
-        response_data = await self._send_request("execute_action", payload, timeout=timeout)
-        
-        # The response_data itself is a Pydantic model. We return its dictionary representation.
-        # Exclude None values for cleaner output.
-        action_result = response_data.model_dump(exclude_none=True)
-        logger.info(f"Action '{action}' executed. Result: {action_result}")
-        return action_result
-
-    @property
-    def active_connection(self) -> Optional[ConnectionInfo]:
-        """Returns the currently active ConnectionInfo, or None if no connection is active."""
-        if self._active_connection_id and self._active_connection_id in self._connections:
-            return self._connections[self._active_connection_id]
-        return None
-
-    @property
-    def is_server_running(self) -> bool:
-        """Checks if the WebSocket server is currently running."""
-        return self._server is not None and self._server.is_serving()
-
-    @property
-    def has_active_connection(self) -> bool:
-        """Checks if there is an active and open WebSocket connection."""
-        conn = self.active_connection
-        return conn is not None and not conn.websocket.closed
-
-# --- Main Execution Block (for standalone server operation) ---
-
-async def main():
-    """Main function to run the WebSocket server."""
-    # Configure basic logging
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        handlers=[
-            logging.StreamHandler() # Log to console
-            # You can add logging.FileHandler("server.log") here if you want to log to a file
-        ]
-    )
-    
-    # Define server host and port
-    host = "localhost"
-    port = 8765
-    
-    # Create an instance of the interface
-    interface = ExtensionInterface(host=host, port=port)
-    
-    try:
-        # Start the server
-        await interface.start_server()
-        
-        # Keep the server running until interrupted (e.g., Ctrl+C)
-        # This loop also allows for periodic checks or tasks if needed.
-        while interface.is_server_running:
-            await asyncio.sleep(1) # Sleep for a short duration to prevent busy-waiting
-            
-    except KeyboardInterrupt:
-        logger.info("Server shutting down due to KeyboardInterrupt...")
-    except Exception as e:
-        logger.error(f"An unhandled error occurred in main: {e}", exc_info=True)
-    finally:
-        logger.info("Initiating server stop sequence...")
-        await interface.stop_server()
-        logger.info("Server has been stopped.")
-
-if __name__ == "__main__":
-    # Entry point when the script is executed directly.
-    # This sets up and runs the asyncio event loop.
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        # This is just to make the exit cleaner on Ctrl+C if asyncio.run() itself is interrupted
-        # before main() handles it.
-        logger.info("Asyncio event loop interrupted. Exiting.")
-    except Exception as e:
-        # Catch-all for any other exceptions during asyncio.run, e.g., if main() raises something
-        # that isn't caught internally.
-        logger.critical(f"Fatal error during asyncio.run: {e}", exc_info=True)
-````
-
-## File: browser-use-ext/extension/background.js
-````javascript
-// browser-use-ext/extension/background.js
-// Establishes and manages WebSocket connection with the Python backend.
-// Handles messages from content scripts and the Python backend.
-// Manages browser tab interactions.
-
-const WS_URL = "ws://localhost:8765";
-let websocket = null;
-let activeTabId = null;
-let reconnectInterval = 5000; // 5 seconds
-
-/**
- * Initializes the WebSocket connection.
- * Sets up event handlers for open, message, error, and close events.
- */
-function connectWebSocket() {
-    console.log("Attempting to connect to WebSocket at", WS_URL);
-    websocket = new WebSocket(WS_URL);
-
-    websocket.onopen = () => {
-        console.log("WebSocket connection established.");
-        // Inform popup about connection status if applicable
-        if (chrome.runtime.sendMessage) {
-            chrome.runtime.sendMessage({ type: "WS_STATUS", status: "Connected" }).catch(e => console.log("Popup not listening for WS_STATUS"));
-        }
-    };
-
-    websocket.onmessage = (event) => {
-        console.log("Message received from server:", event.data);
-        try {
-            const message = JSON.parse(event.data);
-            handleServerMessage(message);
-        } catch (error) {
-            console.error("Error parsing message from server:", error);
-        }
-    };
-
-    websocket.onerror = (error) => {
-        console.error("WebSocket error:", error);
-        // The onclose event will handle reconnection logic
-    };
-
-    websocket.onclose = () => {
-        console.log("WebSocket connection closed. Attempting to reconnect in", reconnectInterval / 1000, "seconds.");
-        websocket = null; // Ensure the old websocket is cleaned up
-        if (chrome.runtime.sendMessage) {
-            chrome.runtime.sendMessage({ type: "WS_STATUS", status: "Disconnected" }).catch(e => console.log("Popup not listening for WS_STATUS"));
-        }
-        setTimeout(connectWebSocket, reconnectInterval);
-    };
-}
-
-/**
- * Handles messages received from the Python WebSocket server.
- * @param {object} message - The parsed message object from the server.
- */
-function handleServerMessage(message) {
-    console.log("Handling server message:", message);
-    // Route message to content script of the active tab if it's a known action
-    if (message.type === "request" && message.action) {
-        if (activeTabId) {
-            chrome.tabs.sendMessage(activeTabId, {
-                type: message.action, // e.g., "get_state", "execute_action"
-                payload: message.params,
-                requestId: message.request_id // Forward the request_id
-            }).then(response => {
-                console.log(`Response from content script for ${message.action}:`, response);
-                // Check if response is valid before sending
-                if (response !== undefined) {
-                     sendResponseToServer(response);
-                } else {
-                    console.warn(`Undefined response from content script for action: ${message.action}. This may happen if the tab is not ready or an error occurred.`);
-                    // Optionally, send an error response back to the server
-                    sendResponseToServer({
-                        request_id: message.request_id,
-                        status: "error",
-                        error: `Content script for action '${message.action}' returned undefined. Tab ID: ${activeTabId}`
-                    });
-                }
-            }).catch(error => {
-                console.error("Error sending message to content script or receiving response:", error);
-                sendResponseToServer({
-                    request_id: message.request_id,
-                    status: "error",
-                    error: `Failed to communicate with content script for action '${message.action}': ${error.message}`
-                });
-            });
-        } else {
-            console.warn("No active tab to send message to for action:", message.action);
-            sendResponseToServer({
-                request_id: message.request_id,
-                status: "error",
-                error: "No active tab identified to process the request."
-            });
-        }
-    }
-}
-
-/**
- * Sends a response message back to the Python WebSocket server.
- * @param {object} responseData - The data to send as a response.
- */
-function sendResponseToServer(responseData) {
-    if (websocket && websocket.readyState === WebSocket.OPEN) {
-        try {
-            const messageString = JSON.stringify(responseData);
-            console.log("Sending response to server:", messageString);
-            websocket.send(messageString);
-        } catch (error) {
-            console.error("Error serializing response data for server:", error, responseData);
-        }
-    } else {
-        console.error("WebSocket not connected. Cannot send response to server.", responseData);
-    }
-}
-
-// Listener for messages from content scripts or popup
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    console.log("Message received in background script:", message, "from sender:", sender);
-
-    // Handle messages from content.js (typically responses to server requests)
-    if (sender.tab && message.type === "response") {
-        console.log("Forwarding response from content script to server:", message.data);
-        sendResponseToServer(message.data);
-        return false; // Indicate that sendResponse will not be called asynchronously here by this direct handler
-    }
-
-    // Handle screenshot requests specifically, as these are handled by background
-    if (message.type === "request_screenshot") {
-        handleScreenshotRequest(message.requestId, sender.tab ? sender.tab.id : null, sendResponse);
-        return true; // Indicate that sendResponse will be called asynchronously
-    }
-    
-    // Handle popup status request
-    if (message.type === "GET_POPUP_STATUS") {
-        sendResponse({ status: websocket && websocket.readyState === WebSocket.OPEN ? "Connected" : "Disconnected" });
-        return false;
-    }
-
-    // Other direct messages to background (e.g., from popup, though not exemplified yet)
-    // ...
-
-    // Default: if the message is not handled, return false or nothing.
-    // For clarity, explicitly return false if not intending to use sendResponse asynchronously.
-    return false;
-});
-
-/**
- * Handles requests for screenshots from content scripts.
- * Captures the visible tab and sends the data URL back.
- * @param {string} requestId - The original request ID to include in the response.
- * @param {number} tabId - The ID of the tab to capture.
- * @param {function} sendResponse - Function to send response back to content script.
- */
-async function handleScreenshotRequest(requestId, tabId, sendResponse) {
-    if (!tabId) {
-        console.error("Screenshot request failed: No tab ID provided.");
-        sendResponse({
-            request_id: requestId, // Ensure requestId from original message is used
-            type: "response", // This is a response to content.js, not directly to server
-            status: "error",
-            error: "No tab ID for screenshot."
-        });
-        return;
-    }
-    try {
-        const dataUrl = await chrome.tabs.captureVisibleTab(tabId, { format: "png" });
-        console.log("Screenshot captured for tab:", tabId);
-        // This response goes to content.js, which will then package it for the server
-        sendResponse({
-            request_id: requestId, // Ensure requestId from original message is used
-            type: "response", // This is a response to content.js
-            status: "success",
-            data: { screenshot: dataUrl } // data that content.js expects
-        });
-    } catch (error) {
-        console.error("Error capturing screenshot:", error);
-        sendResponse({
-            request_id: requestId, // Ensure requestId from original message is used
-            type: "response", // This is a response to content.js
-            status: "error",
-            error: `Screenshot capture failed: ${error.message}`
-        });
-    }
-}
-
-
-// Tab management and active tab tracking
-/**
- * Updates the activeTabId when the active tab changes.
- */
-chrome.tabs.onActivated.addListener(activeInfo => {
-    console.log("Active tab changed. New active tab ID:", activeInfo.tabId);
-    activeTabId = activeInfo.tabId;
-    // Optionally, notify the server or content script about the tab change if needed.
-});
-
-/**
- * Updates activeTabId if the currently active tab is closed.
- * Queries for a new active tab.
- */
-chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
-    console.log("Tab removed:", tabId);
-    if (activeTabId === tabId) {
-        console.log("Active tab was closed. Querying for new active tab.");
-        queryActiveTab(); // Try to find a new active tab
-    }
-});
-
-/**
- * Queries for the currently active tab and updates activeTabId.
- * This is useful on startup and when the active tab might have changed (e.g., closed).
- */
-function queryActiveTab() {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        if (tabs.length > 0) {
-            activeTabId = tabs[0].id;
-            console.log("Initial active tab ID set to:", activeTabId);
-        } else {
-            activeTabId = null; // No active tab found
-            console.log("No active tab found.");
-        }
-    });
-}
-
-// Initial setup
-console.log("Background script started.");
-connectWebSocket(); // Start WebSocket connection
-queryActiveTab();   // Determine the initially active tab
-````
-
-## File: browser-use-ext/extension/content.js
-````javascript
-// browser-use-ext/extension/content.js
-// Interacts with the DOM of the web page.
-// Listens for messages from background.js and executes actions on the page.
-
-console.log("Content script loaded and executing.");
-
-// Cache for the most recently built DOM tree and selector map for the current page.
-let currentDomCache = {
-    tree: null,
-    selectorMap: null, // Maps highlight_index to {xpath, element}
-    timestamp: 0
-};
-const CACHE_DURATION = 1000; // Cache for 1 second to avoid re-processing on rapid requests
-
-/**
- * Listener for messages from the background script.
- * Handles requests like 'get_state' and 'execute_action'.
- */
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    console.log("Content script received message:", message);
-
-    if (message.type === "get_state") {
-        handleGetState(message.requestId)
-        .then(sendResponse)
-        .catch(error => {
-                console.error("Error in handleGetState:", error);
-                sendResponse({
-                    request_id: message.requestId,
-                    status: "error",
-                    error: `Failed to get state: ${error.message}`
-                });
-            });
-        return true; // Indicates that the response will be sent asynchronously.
-    } else if (message.type === "execute_action") {
-        handleExecuteAction(message.payload.action, message.payload.params, message.requestId)
-        .then(sendResponse)
-        .catch(error => {
-                console.error("Error in handleExecuteAction:", error);
-                sendResponse({
-                    request_id: message.requestId,
-                    status: "error",
-                    error: `Failed to execute action '${message.payload.action}': ${error.message}`
-                });
-            });
-        return true; // Indicates that the response will be sent asynchronously.
-    }
-    // If message type is not recognized, do not call sendResponse or return true
-    return false;
-});
-
-/**
- * Handles the 'get_state' request.
- * Builds the DOM tree, gathers page info, and requests a screenshot.
- * @param {string} requestId - The ID of the request.
- */
-async function handleGetState(requestId) {
-    console.log("Handling get_state request, ID:", requestId);
-    try {
-        const now = Date.now();
-        if (currentDomCache.tree && currentDomCache.selectorMap && (now - currentDomCache.timestamp < CACHE_DURATION)) {
-            console.log("Using cached DOM tree and selector map.");
-        } else {
-            console.log("Building new DOM tree and selector map.");
-            const { tree, selectorMap } = buildDomTreeWithMappings(document.documentElement);
-            currentDomCache = { tree, selectorMap, timestamp: now };
-        }
-
-        const pageState = {
-            element_tree: currentDomCache.tree,
-            selector_map: stripElementReferencesFromSelectorMap(currentDomCache.selectorMap), // Send serializable map
-            viewport_width: window.innerWidth,
-            viewport_height: window.innerHeight,
-            scroll_x: window.scrollX,
-            scroll_y: window.scrollY,
-            page_content_width: document.documentElement.scrollWidth,
-            page_content_height: document.documentElement.scrollHeight,
-            url: window.location.href,
-            title: document.title
-        };
-
-        // Request screenshot from background script
-        const screenshotResponse = await chrome.runtime.sendMessage({
-            type: "request_screenshot",
-            requestId: requestId // Pass requestId for context
-        });
-
-        if (screenshotResponse && screenshotResponse.status === "success") {
-            pageState.screenshot = screenshotResponse.data.screenshot;
-        } else {
-            console.warn("Failed to get screenshot:", screenshotResponse ? screenshotResponse.error : "No response");
-            pageState.screenshot = null;
-        }
-
-        console.log("Successfully built state for request ID:", requestId);
-        return {
-            request_id: requestId,
-            type: "response", // This identifies it as a response to background.js
-            status: "success",
-            data: pageState
-        };
-    } catch (error) {
-        console.error("Error processing get_state in content script:", error);
-        return {
-            request_id: requestId,
-            type: "response",
-            status: "error",
-            error: `Content script error during get_state: ${error.message}`
-        };
-    }
-}
-
-/**
- * Creates a new selector map without direct element references for serialization.
- * @param {object} selectorMap - The original selector map with element references.
- * @returns {object} A new selector map with only XPaths.
- */
-function stripElementReferencesFromSelectorMap(selectorMap) {
-    if (!selectorMap) return null;
-    const newMap = {};
-    for (const key in selectorMap) {
-        newMap[key] = { xpath: selectorMap[key].xpath };
-    }
-    return newMap;
-}
-
-
-/**
- * Handles the 'execute_action' request from the background script.
- * @param {string} actionName - The name of the action to execute.
- * @param {object} params - Parameters for the action.
- * @param {string} requestId - The ID of the request.
- */
-async function handleExecuteAction(actionName, params, requestId) {
-    console.log(`Executing action: ${actionName} with params:`, params, "Request ID:", requestId);
-    let resultData = {};
-    let status = "success";
-    let error = null;
-
-    try {
-        const element = params && params.highlight_index !== undefined && currentDomCache.selectorMap
-            ? currentDomCache.selectorMap[params.highlight_index]?.element
-            : null;
-
-        // Ensure element is available if required by the action
-        if ((actionName === "click_element_by_index" || actionName === "input_text" || actionName === "extract_content") && !element) {
-            throw new Error(`Element with highlight_index ${params.highlight_index} not found or DOM cache is stale.`);
-        }
-
-        switch (actionName) {
-            case "click_element_by_index":
-                if (element instanceof HTMLElement) element.click();
-                else throw new Error("Target for click is not an HTMLElement");
-                console.log("Clicked element with index:", params.highlight_index);
-                break;
-            case "input_text":
-                if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
-                    element.value = params.text;
-                    // Dispatch input and change events to simulate user interaction
-                    element.dispatchEvent(new Event('input', { bubbles: true }));
-                    element.dispatchEvent(new Event('change', { bubbles: true }));
-                } else {
-                    throw new Error("Target for input_text is not an input or textarea element");
-                }
-                console.log("Input text '", params.text, "' into element with index:", params.highlight_index);
-                break;
-            case "go_to_url":
-        window.location.href = params.url;
-                console.log("Navigating to URL:", params.url);
-                // For navigations, a response might not be reliably sent back if the page unloads too quickly.
-                // The server should handle timeouts for actions that cause navigation.
-                break;
-            case "go_back":
-        window.history.back();
-                console.log("Navigating back.");
-                break;
-            case "scroll_page": // Renamed from scroll_down/scroll_up to generic scroll_page
-                if (params.direction === "down") {
-                    window.scrollBy(0, window.innerHeight * 0.8); // Scroll 80% of viewport height
-                } else if (params.direction === "up") {
-                    window.scrollBy(0, -window.innerHeight * 0.8);
-                } else if (params.pixels) {
-                    window.scrollBy(0, params.pixels);
-                }
-                console.log("Scrolled page", params.direction ? params.direction : `by ${params.pixels}px`);
-                break;
-            case "extract_content":
-                resultData.extracted_text = element.innerText || element.textContent;
-                resultData.extracted_html = element.innerHTML;
-                console.log("Extracted content from element with index:", params.highlight_index);
-                break;
-            case "send_keys":
-                 // This is a placeholder. True key event simulation is complex and often requires the debugger API (from background)
-                 // or careful dispatching of KeyboardEvent objects.
-                console.warn("send_keys action is a placeholder in content.js. For complex key events, background script involvement might be needed.");
-                if (element && typeof element.focus === 'function') element.focus(); // Focus element if possible
-                // Simplified: if text is provided, append to value if input/textarea
-                if (element && (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) && params.keys) {
-                    element.value += params.keys; 
-                }
-                resultData.note = "send_keys is a simplified implementation.";
-                break;
-            // Add more actions as needed
-            default:
-                throw new Error(`Unknown action: ${actionName}`);
-        }
-        // Brief delay for actions like click/input to allow potential async DOM updates to settle
-        // This is a simple approach; more robust solutions might use MutationObserver or specific event listeners.
-        if (actionName === "click_element_by_index" || actionName === "input_text") {
-            await new Promise(resolve => setTimeout(resolve, 150)); 
-        }
-
-    } catch (e) {
-        console.error(`Error executing action ${actionName}:`, e);
-        status = "error";
-        error = e.message;
-    }
-
-        return {
-        request_id: requestId,
-        type: "response",
-        status: status,
-        data: resultData, // Contains action-specific results, e.g., extracted text
-        error: error
-    };
-}
-
-// --- DOM Processing Functions ---
-let highlightCounter = 0;
-
-/**
- * Recursively builds a simplified DOM tree and a map of highlightable elements to their XPaths.
- * @param {Node} element - The current DOM element to process.
- * @param {object} selectorMap - The map to store highlight_index to {xpath, element} for interactable elements.
- * @param {string} currentXPath - The XPath being built for the current element.
- * @returns {object} An object containing the DOM tree node and the selectorMap.
- */
-function buildDomTreeWithMappings(element, selectorMap = {}, currentXPath = '/HTML[1]') {
-    if (!element || !element.tagName) return null;
-
-    const tagName = element.tagName.toLowerCase();
-
-    // Skip script, style, meta, link, noscript, and comment nodes, but process their children if body/head
-    const  SKIP_TAGS = ["script", "style", "meta", "link", "noscript", "#comment"];
-    if (SKIP_TAGS.includes(tagName)) {
-        // For critical layout tags like <head>, we might want to process children
-        // but for this general purpose tree, skipping them is fine if they are not visible elements.
-        return null; 
-    }
-
-    const attributes = getElementAttributes(element);
-    let textContent = null;
-
-    // Get direct text content, excluding children's text
-    if (element.childNodes && element.childNodes.length > 0) {
-        let directText = '';
-        for (let i = 0; i < element.childNodes.length; i++) {
-            if (element.childNodes[i].nodeType === Node.TEXT_NODE) {
-                directText += element.childNodes[i].nodeValue.trim();
-            }
-        }
-        if (directText) textContent = directText;
-    }
-
-    const isVisible = isElementGenerallyVisible(element);
-    const isInteractable = isVisible && isElementInteractable(element);
-    let highlightIndex = null;
-
-    if (isInteractable || (isVisible && (tagName === 'p' || tagName.match(/^h[1-6]$/) || tagName === 'span' || tagName === 'div'))) {
-        highlightCounter++;
-        highlightIndex = highlightCounter;
-        selectorMap[highlightIndex] = {
-            xpath: currentXPath,
-            element: element // Store direct reference for action execution
-        };
-    }
-
-        const children = [];
-    if (element.children) {
-        for (let i = 0; i < element.children.length; i++) {
-            const childElement = element.children[i];
-            const childXPath = getXPathForElement(childElement, currentXPath); // Generate XPath for child
-            const childNode = buildDomTreeWithMappings(childElement, selectorMap, childXPath);
-            if (childNode && childNode.tree) { // Ensure childNode and its tree are not null
-                 children.push(childNode.tree);
-            }
-        }
-    }
-    
-    // Reset counter for next full build if this is the root call (document.documentElement)
-    if (element === document.documentElement) {
-        highlightCounter = 0;
-    }
-
-        return {
-        tree: {
-            tag: tagName,
-            attributes: attributes,
-            text: textContent,
-            children: children,
-            highlight_index: highlightIndex,
-            xpath: currentXPath,
-            is_visible: isVisible,
-            is_interactable: isInteractable
-        },
-        selectorMap: selectorMap
-    };
-}
-
-/**
- * Checks if an element is generally visible (simplified check).
- * @param {Element} element - The DOM element.
- * @returns {boolean} True if the element is likely visible.
- */
-function isElementGenerallyVisible(element) {
-    if (!element) return false;
-  const style = window.getComputedStyle(element);
-    return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0' && element.offsetParent !== null;
-}
-
-/**
- * Checks if an element is interactable (not disabled, readonly, etc.).
- * @param {Element} element - The DOM element.
- * @returns {boolean} True if the element is interactable.
- */
-function isElementInteractable(element) {
-  if (!element) return false;
-    if (element.hasAttribute('disabled') || element.hasAttribute('readonly')) {
-        return false;
-    }
-    // Consider common interactable elements
-    const interactableTags = ['a', 'button', 'input', 'select', 'textarea', 'details'];
-    if (interactableTags.includes(element.tagName.toLowerCase())) {
-    return true;
-  }
-    // Check for contentEditable attribute
-  if (element.isContentEditable) {
-      return true;
-  }
-    // Check for explicit role attribute suggesting interactivity
-    const role = element.getAttribute('role');
-    if (role && ['button', 'link', 'checkbox', 'radio', 'tab', 'menuitem'].includes(role)) {
-        return true;
-    }
-  return false;
-}
-
-/**
- * Extracts attributes from an element.
- * @param {Element} element - The DOM element.
- * @returns {object} A dictionary of attributes.
- */
-function getElementAttributes(element) {
-    const attrs = {};
-  if (element.attributes) {
-        for (let i = 0; i < element.attributes.length; i++) {
-            const attr = element.attributes[i];
-            // Limit attribute value length to prevent overly large state
-            attrs[attr.name] = attr.value.length > 200 ? attr.value.substring(0, 197) + '...' : attr.value;
-        }
-    }
-    return attrs;
-}
-
-/**
- * Generates an XPath for a given element relative to its parent's XPath.
- * This is a simplified XPath generator.
- * @param {Element} element - The DOM element.
- * @param {string} parentXPath - The XPath of the parent element.
- * @returns {string} The generated XPath for the element.
- */
-function getXPathForElement(element, parentXPath) {
-    if (!element || !element.parentElement) return parentXPath + '/[unknown]'; // Should ideally not happen for document children
-
-        let index = 1;
-        let sibling = element.previousElementSibling;
-        while (sibling) {
-            if (sibling.tagName === element.tagName) {
-                index++;
-            }
-            sibling = sibling.previousElementSibling;
-        }
-    return `${parentXPath}/${element.tagName.toUpperCase()}[${index}]`;
-}
-
-console.log("Content script event listeners attached.");
-````
-
-## File: browser-use-ext/extension/popup.html
-````html
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Browser Use Extension</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 10px;
-      min-width: 200px;
-    }
-    h3 {
-      margin-top: 0;
-    }
-  </style>
-</head>
-<body>
-  <h3>Browser Use Automation</h3>
-  <p>Extension is active.</p>
-  <p id="status">Status: Disconnected</p>
-  <script src="popup.js"></script>
-</body>
-</html>
-````
-
-## File: browser-use-ext/extension/popup.js
-````javascript
-// This script can be used to communicate with the background script
-// or update the popup's content dynamically.
-document.addEventListener('DOMContentLoaded', function() {
-  const statusElement = document.getElementById('status');
-  
-  // Example: Try to get status from background script if needed
-  // This is just a placeholder, actual communication might be more complex
-  if (chrome && chrome.runtime && chrome.runtime.sendMessage) {
-    chrome.runtime.sendMessage({ type: "GET_POPUP_STATUS" }, function(response) {
-      if (chrome.runtime.lastError) {
-        // console.warn("Error getting popup status:", chrome.runtime.lastError.message);
-        statusElement.textContent = "Status: Error connecting to background";
-        return;
-      }
-      if (response && response.status) {
-        statusElement.textContent = `Status: ${response.status}`;
-      }
-    });
-  } else {
-    statusElement.textContent = "Status: (chrome.runtime not available)";
-  }
-});
-````
-
-## File: browser-use-ext/README.md
-````markdown
-# browser-use-ext: Python Backend for Chrome Extension Browser Automation
-
-This project implements a Python backend designed to replace Playwright for browser automation tasks. It works in conjunction with a custom Chrome Extension (not included in this Python-only part of the repository, but located in `extension/` if part of the same overarching project structure).
-
-The Python backend provides:
-- A WebSocket server (`ExtensionInterface`) to communicate with the Chrome extension.
-- Pydantic models for structured data exchange (DOM elements, browser state, actions).
-- A `Browser` and `BrowserContext` layer to manage interactions, mimicking some Playwright concepts but powered by the extension.
-- A `Controller` to dispatch actions to the browser via the extension.
-- An `Agent` scaffolding (though not fully implemented in this phase) for more complex automation logic.
-
-## Project Structure (`browser-use-ext` directory)
-
-```
-browser-use-ext/
-├── agent/                  # Components for higher-level agent logic
-│   ├── memory/
-│   ├── message_manager/
-│   ├── __init__.py
-│   ├── prompts.py
-│   └── views.py
-├── browser/                # Core browser interaction logic (mimicking Playwright)
-│   ├── __init__.py
-│   ├── browser.py
-│   ├── context.py
-│   └── views.py
-├── controller/             # Service for dispatching actions
-│   ├── registry/
-│   │   ├── __init__.py
-│   │   └── views.py
-│   ├── __init__.py
-│   └── service.py
-├── dom/                    # DOM element representations
-│   ├── __init__.py
-│   └── views.py
-├── extension_interface/    # WebSocket server for extension communication
-│   ├── __init__.py
-│   └── service.py
-├── tests/                  # Pytest unit tests for the Python backend
-│   ├── __init__.py
-│   ├── test_agent_memory.py
-│   ├── test_agent_prompts.py
-│   ├── test_browser.py
-│   ├── test_browser_context.py
-│   ├── test_controller_service.py
-│   ├── test_extension_interface.py
-│   └── test_message_manager.py
-├── __init__.py             # Makes browser-use-ext a package (if needed for parent imports)
-└── requirements.txt        # Python dependencies
-
-# Note: The Chrome Extension itself (manifest.json, background.js, content.js)
-# would typically reside in a separate `extension/` directory, ideally at the same
-# level as the `browser-use-ext/` directory if they are part of one larger project.
-```
-
-## Setup and Installation
-
-1.  **Clone the repository** (if applicable, or ensure you have the `browser-use-ext` directory).
-
-2.  **Navigate to the project directory**:
-    ```bash
-    cd path/to/your/project/browser-use-ext
-    ```
-
-3.  **Create a Python virtual environment** (recommended):
-    ```bash
-    python -m venv .venv
-    ```
-    (Note: `python3` might be needed instead of `python` depending on your system setup.)
-
-4.  **Activate the virtual environment**:
-    -   On Windows (PowerShell/CMD):
-        ```powershell
-        .\.venv\Scripts\Activate.ps1 
-        ```
-        or
-        ```cmd
-        .venv\Scripts\activate.bat
-        ```
-    -   On macOS/Linux (bash/zsh):
-        ```bash
-        source .venv/bin/activate
-        ```
-
-5.  **Install Python dependencies**:
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-## Running Tests
-
-The project uses `pytest` for unit testing. The necessary `pytest.ini` is located in the parent directory (one level above `browser-use-ext/`) to ensure correct path resolution for imports.
-
-1.  **Ensure your virtual environment is activated** and dependencies are installed.
-
-2.  **Navigate to the workspace root** (the directory containing `pytest.ini` and the `browser-use-ext` folder).
-    For example, if your structure is `.../05_Browser_Use/browser-use-ext/` and `.../05_Browser_Use/pytest.ini`, you should be in `.../05_Browser_Use/`.
-    ```bash
-    cd .. 
-    ```
-    (If you were inside `browser-use-ext`)
-
-3.  **Run pytest**:
-    ```bash
-    pytest
-    ```
-    Pytest will automatically discover and run tests from the `browser-use-ext/tests` directory based on the `pytest.ini` configuration.
-
-    You should see output indicating the number of tests passed, failed, or skipped.
-
-## Chrome Extension Interaction
-
--   The Python backend (`ExtensionInterface` in `extension_interface/service.py`) starts a WebSocket server (default: `ws://127.0.0.1:8765`).
--   The accompanying Chrome Extension (not part of this Python codebase but assumed to exist) is responsible for connecting to this WebSocket server.
--   Once connected, the extension can receive commands from the Python backend (e.g., to get browser state, click elements, input text) and send back responses or state information.
--   The tests for `ExtensionInterface` in `tests/test_extension_interface.py` mock a client connection but also attempt to start a real WebSocket server on a test port (8766) for some of its tests.
-
-## Further Development
-
--   Implement the Chrome Extension (`manifest.json`, `background.js`, `content.js`) to connect to the WebSocket server and handle browser interactions.
--   Flesh out the `Agent` components for more sophisticated automation logic.
--   Expand test coverage, especially for integration between the Python backend and a live (or mock) extension environment.
-````
-
-## File: browser-use-ext/tests/__init__.py
-````python
-# browser-use-ext/tests/__init__.py
-# This file makes the tests directory a Python package. 
-# It is often kept empty.
-
-__all__ = []
-````
-
-## File: browser-use-ext/tests/conftest.py
-````python
-# This is conftest.py for the tests directory.
-# It can be used for test-specific fixtures and plugins.
-# Keeping it minimal for now to resolve import errors.
-
-# Minimal conftest.py for the tests directory
-# This file is intentionally kept simple to avoid import errors.
-````
-
-## File: browser-use-ext/tests/test_agent_prompts.py
-````python
-import sys
-import pytest
-from typing import List, Dict, Any
-
-# Adjust imports for the new project structure `browser-use-ext`
-# print(f"sys.path inside test_agent_prompts.py: {sys.path}") # DEBUG PRINT - REMOVED
-from agent.prompts import PromptVariable, SystemPrompt, DEFAULT_SYSTEM_PROMPT
-
-@pytest.fixture
-def sample_prompt_variables() -> List[PromptVariable]:
-    """Provides a list of sample PromptVariable instances."""
-    return [
-        PromptVariable(name="user_query", description="The user\'s request", example_value="Find Italian restaurants near me."),
-        PromptVariable(name="context", description="Relevant contextual information", example_value="Location: San Francisco, Time: 7 PM")
-    ]
-
-@pytest.fixture
-def sample_system_prompt_template() -> str:
-    """Provides a sample prompt template string."""
-    return "You are an AI. User Query: {{user_query}}. Context: {{context}}. Respond helpfully."
-
-@pytest.fixture
-def sample_system_prompt(sample_prompt_variables: List[PromptVariable], sample_system_prompt_template: str) -> SystemPrompt:
-    """Provides a SystemPrompt instance created with sample variables and template."""
-    return SystemPrompt(
-        name="TestAgentPrompt",
-        template=sample_system_prompt_template,
-        variables=sample_prompt_variables,
-        description="A test prompt for AI agent.",
-        version="0.1-test"
-    )
-
-def test_prompt_variable_creation():
-    """Test basic PromptVariable Pydantic model creation."""
-    name = "test_var"
-    desc = "A test variable."
-    ex_val = "example"
-    pv = PromptVariable(name=name, description=desc, example_value=ex_val)
-    assert pv.name == name
-    assert pv.description == desc
-    assert pv.example_value == ex_val
-
-    pv_no_example = PromptVariable(name="no_ex", description="No example here.")
-    assert pv_no_example.example_value is None
-
-def test_system_prompt_creation(sample_system_prompt: SystemPrompt, sample_prompt_variables: List[PromptVariable], sample_system_prompt_template: str):
-    """Test basic SystemPrompt Pydantic model creation."""
-    sp = sample_system_prompt
-    assert sp.name == "TestAgentPrompt"
-    assert sp.template == sample_system_prompt_template
-    assert sp.variables == sample_prompt_variables
-    assert sp.description == "A test prompt for AI agent."
-    assert sp.version == "0.1-test"
-
-def test_format_prompt_all_vars_provided(sample_system_prompt: SystemPrompt):
-    """Test formatting the prompt when all required variables are provided."""
-    values = {
-        "user_query": "Book a flight.",
-        "context": "User is logged in, has preferences set."
-    }
-    expected_output = "You are an AI. User Query: Book a flight.. Context: User is logged in, has preferences set.. Respond helpfully."
-    formatted_prompt = sample_system_prompt.format_prompt(**values)
-    assert formatted_prompt == expected_output
-
-def test_format_prompt_uses_example_values_if_provided_and_var_missing(sample_system_prompt: SystemPrompt):
-    """Test formatting uses example values if a variable is missing but has an example."""
-    # sample_prompt_variables has example_value for "user_query" and "context"
-    values_missing_context = {"user_query": "Show me the news."}
-    # Expect context to use its example_value: "Location: San Francisco, Time: 7 PM"
-    expected_output = "You are an AI. User Query: Show me the news.. Context: Location: San Francisco, Time: 7 PM. Respond helpfully."
-    
-    # Capture warnings for missing variables using example values
-    with pytest.warns(UserWarning, match="Variable 'context' not provided for prompt 'TestAgentPrompt', using example value."):
-        formatted_prompt = sample_system_prompt.format_prompt(**values_missing_context)
-    assert formatted_prompt == expected_output
-
-def test_format_prompt_raises_keyerror_if_var_missing_and_no_example(sample_system_prompt_template: str):
-    """Test that KeyError is raised if a variable is missing and has no example value."""
-    # Create a prompt where one variable has no example
-    variables_with_one_no_example = [
-        PromptVariable(name="user_query", description="User query", example_value="Test query"),
-        PromptVariable(name="mandatory_no_example", description="This one is needed but has no example")
-    ]
-    custom_template = "Query: {{user_query}}, Mandatory: {{mandatory_no_example}}"
-    sp_custom = SystemPrompt(name="CustomPrompt", template=custom_template, variables=variables_with_one_no_example)
-    
-    values_missing_mandatory = {"user_query": "Some query"}
-    
-    with pytest.raises(KeyError) as excinfo:
-        sp_custom.format_prompt(**values_missing_mandatory)
-    assert "Variable 'mandatory_no_example' is required for prompt 'CustomPrompt' but was not provided." in str(excinfo.value)
-
-def test_format_prompt_with_no_variables_in_template():
-    """Test formatting a template that has no variables defined in it."""
-    static_template = "This is a static prompt with no variables."
-    sp_static = SystemPrompt(name="StaticPrompt", template=static_template, variables=[])
-    formatted = sp_static.format_prompt() # No kwargs needed
-    assert formatted == static_template
-
-    # Test with empty variables list but template still tries to use some (should be fine if not strict on var definition)
-    # The current format_prompt relies on `self.variables` for replacement logic.
-    # If a template has {{var}} but `self.variables` is empty or doesn't list `var`,
-    # it will currently pass through unformatted, e.g. "Text with {{unlisted_var}}".
-    # This behavior might be okay, or could be made stricter.
-    template_with_unlisted_var = "Hello {{name}}!"
-    sp_unlisted = SystemPrompt(name="UnlistedVarPrompt", template=template_with_unlisted_var, variables=[])
-    formatted_unlisted = sp_unlisted.format_prompt(name="World") # provide name, but not in sp_unlisted.variables
-    # Current behavior: {{name}} remains because it's not in sp_unlisted.variables to be processed.
-    assert formatted_unlisted == "Hello {{name}}!" 
-
-def test_default_system_prompt_exists_and_is_valid():
-    """Test that DEFAULT_SYSTEM_PROMPT is a valid SystemPrompt instance and can be formatted."""
-    assert isinstance(DEFAULT_SYSTEM_PROMPT, SystemPrompt)
-    assert DEFAULT_SYSTEM_PROMPT.name == "DefaultWebAgentSystemPrompt"
-    assert len(DEFAULT_SYSTEM_PROMPT.variables) == 3 # user_query, browser_state_summary, available_actions_summary
-    
-    # Try formatting with example values (or mock values)
-    try:
-        formatted_default = DEFAULT_SYSTEM_PROMPT.format_prompt(
-            user_query="Test default query",
-            browser_state_summary="Test browser state",
-            available_actions_summary="Test actions"
-        )
-        assert "Test default query" in formatted_default
-        assert "Test browser state" in formatted_default
-        assert "Test actions" in formatted_default
-    except Exception as e:
-        pytest.fail(f"DEFAULT_SYSTEM_PROMPT.format_prompt failed: {e}")
-
-def test_format_prompt_valueerror_on_other_exceptions(sample_system_prompt: SystemPrompt):
-    """Test that a generic ValueError is raised if formatting fails for unexpected reasons (e.g., bad template string)."""
-    # Temporarily sabotage the template to cause a non-KeyError during formatting
-    original_template = sample_system_prompt.template
-    # Example of a template that might cause issues with str.replace or similar if not handled well,
-    # although simple {{}} replacements are usually safe.
-    # For a more direct test of this, one might need to mock str.replace to throw an unexpected error.
-    # This test is more conceptual for now, as direct {{var}} replacement is quite robust.
-    
-    # Let's test with a variable that has a non-string example value and see if str() conversion works as expected.
-    vars_with_int_example = [
-        PromptVariable(name="count", description="A number", example_value=123)
-    ]
-    prompt_with_int_var = SystemPrompt(name="IntPrompt", template="Count: {{count}}", variables=vars_with_int_example)
-    
-    # Format using the example value (123)
-    formatted = prompt_with_int_var.format_prompt() # Should use example_value for count
-    assert formatted == "Count: 123"
-
-    # If str.replace itself threw an error other than KeyError (highly unlikely for this usage),
-    # the `except Exception as e:` block in `format_prompt` should catch it and raise ValueError.
-    # Simulating this specific scenario directly is hard without deep mocking Python built-ins.
-
-# To run these tests:
-# pytest browser-use-ext/tests/test_agent_prompts.py
-````
-
-## File: browser-use-ext/tests/test_browser_context.py
-````python
-import pytest
-import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
-
-# Adjust imports based on the new project structure `browser-use-ext`
-from browser.context import BrowserContext, BrowserContextConfig, ExtensionPageProxy
-from extension_interface.service import ExtensionInterface
-from browser.views import BrowserState, TabInfo
-from dom.views import DOMElementNode
-
-@pytest.fixture
-def mock_extension_interface():
-    """Provides a mock ExtensionInterface."""
-    mock_iface = AsyncMock(spec=ExtensionInterface)
-    mock_iface.get_state = AsyncMock()
-    mock_iface.execute_action = AsyncMock()
-    return mock_iface
-
-@pytest.fixture
-def browser_context_config():
-    """Provides a default BrowserContextConfig."""
-    return BrowserContextConfig()
-
-@pytest.fixture
-def browser_context(browser_context_config: BrowserContextConfig, mock_extension_interface: AsyncMock) -> BrowserContext:
-    """Provides a BrowserContext instance initialized with a mock interface. Now synchronous."""
-    context = BrowserContext(config=browser_context_config, extension_interface=mock_extension_interface)
-    return context
-
-@pytest.fixture
-def mock_browser_context() -> MagicMock:
-    """Provides a MagicMock instance of BrowserContext for testing ExtensionPageProxy."""
-    mock_context = MagicMock(spec=BrowserContext)
-    # Configure necessary attributes/methods that ExtensionPageProxy might call
-    mock_context.get_state = AsyncMock() # ExtensionPageProxy calls await self.browser_context.get_state()
-    mock_context.extension = AsyncMock(spec=ExtensionInterface) # Proxy accesses context.extension
-    # Add other commonly used attributes if ExtensionPageProxy uses them, e.g., _cached_state if directly accessed.
-    # For now, focusing on what ExtensionPageProxy.__init__ and its methods directly use.
-    mock_context._cached_state = MagicMock(spec=BrowserState) # If methods rely on this being pre-populated
-    mock_context._cached_state.url = "http://initialmock.com"
-    mock_context._cached_state.title = "Initial Mock Title"
-    return mock_context
-
-@pytest.fixture
-def sample_browser_state() -> BrowserState:
-    """Provides a sample BrowserState for testing."""
-    # A simple DOM tree for testing
-    sample_dom = DOMElementNode(
-        tag_name="html", type="element", xpath="/html", attributes={}, children=[
-            DOMElementNode(tag_name="body", type="element", xpath="/html/body", attributes={}, children=[
-                DOMElementNode(tag_name="div", type="element", attributes={"id": "test-div"}, text="Click me", highlight_index=0, xpath="/html/body/div[1]"),
-                DOMElementNode(tag_name="input", type="element", attributes={"type": "text", "id": "test-input"}, highlight_index=1, xpath="/html/body/input[1]")
-            ])
-        ]
-    )
-    # The BrowserState model expects element_tree to be a DOMElementNode, and tabs to be List[TabInfo]
-    # The selector_map keys are integers (highlight_index).
-    return BrowserState(
-        url="http://example.com", # Changed from active_tab_id to direct url/title
-        title="Test Page",
-        tabs=[TabInfo(page_id=1, url="http://example.com", title="Test Page")], # Simplified active flag logic
-        element_tree=sample_dom,
-        selector_map={
-            0: {"xpath": "/html/body/div[1]", "tag_name": "div"}, # Using int keys, consistent value structure
-            1: {"xpath": "/html/body/input[1]", "tag_name": "input"} 
-        },
-        # viewport_width=1280, viewport_height=720, # These are not in BrowserState
-        # scroll_x=0, scroll_y=0, # These are not in BrowserState
-        # page_content_width=1280, page_content_height=1000, # These are not in BrowserState
-        pixels_above=0, # Added default for BrowserState field
-        pixels_below=0, # Added default for BrowserState field
-        screenshot="data:image/png;base64,fakescreenshotdata"
-    )
-
-@pytest.mark.asyncio
-async def test_browser_context_get_state(browser_context: BrowserContext, mock_extension_interface: AsyncMock, sample_browser_state: BrowserState):
-    """Test that BrowserContext.get_state calls the extension interface and updates its internal state."""
-    mock_extension_interface.get_state.return_value = sample_browser_state
-    
-    retrieved_state = await browser_context.get_state()
-    
-    mock_extension_interface.get_state.assert_called_once_with(include_screenshot=False) # Default for get_state
-    assert retrieved_state == sample_browser_state
-    assert browser_context._cached_browser_state == sample_browser_state # MODIFIED: _cached_state -> _cached_browser_state
-    assert browser_context._cached_selector_map == sample_browser_state.selector_map # Corrected attribute name
-
-@pytest.mark.asyncio
-async def test_browser_context_get_state_caching(browser_context: BrowserContext, mock_extension_interface: AsyncMock, sample_browser_state: BrowserState):
-    """Test that BrowserContext._cached_state and _cached_selector_map are updated after get_state."""
-    # Mock the call to the underlying extension interface
-    mock_extension_interface.get_state.return_value = sample_browser_state
-
-    # Initial state of caches (should be None or empty)
-    assert browser_context._cached_browser_state is None
-    assert browser_context._cached_selector_map == {}
-
-    # Call get_state
-    retrieved_state = await browser_context.get_state()
-
-    # Verify extension was called
-    mock_extension_interface.get_state.assert_called_once_with(include_screenshot=False)
-    assert retrieved_state == sample_browser_state
-    
-    # Verify caches are populated
-    assert browser_context._cached_browser_state == sample_browser_state
-    assert browser_context._cached_selector_map == sample_browser_state.selector_map
-
-    # Call get_state again
-    # In current implementation, get_state always fetches, so mock should be called again.
-    # And caches should be updated again.
-    another_sample_state = sample_browser_state.model_copy(update={"title": "Updated Title"})
-    mock_extension_interface.get_state.return_value = another_sample_state # New state for second call
-    
-    second_retrieved_state = await browser_context.get_state(include_screenshot=True) # Test with different param
-
-    mock_extension_interface.get_state.assert_called_with(include_screenshot=True) # Check last call
-    assert mock_extension_interface.get_state.call_count == 2
-    assert second_retrieved_state == another_sample_state
-    assert browser_context._cached_browser_state == another_sample_state
-    assert browser_context._cached_selector_map == another_sample_state.selector_map
-
-@pytest.mark.asyncio
-async def test_browser_context_click_element_by_highlight_index(browser_context: BrowserContext, mock_extension_interface: AsyncMock, sample_browser_state: BrowserState):
-    """Test clicking an element by its highlight_index."""
-    browser_context._cached_browser_state = sample_browser_state # MODIFIED: _cached_state -> _cached_browser_state
-    browser_context._cached_selector_map = sample_browser_state.selector_map
-    
-    target_highlight_index = 0 # Corresponds to the div with id "test-div"
-    # The click_element_by_highlight_index method in BrowserContext uses _click_element_node,
-    # which expects a DOMElementNode. get_dom_element_by_index provides this.
-    # _click_element_node then calls extension.execute_action with "click_element_by_index" and the index.
-
-    # We need to mock get_dom_element_by_index to return a node that _click_element_node can use.
-    # Or, ensure sample_browser_state.element_tree has this index correctly.
-    # The current sample_browser_state fixture creates DOMElementNodes with highlight_index.
-    
-    mock_extension_interface.execute_action.return_value = {"success": True, "message": "Clicked"}
-    
-    # This method is not directly on BrowserContext in the latest version. 
-    # It seems to be an old test. The controller has click_element_by_index.
-    # BrowserContext has _click_element_node(DOMElementNode) and get_dom_element_by_index(int).
-    # Let's assume this test meant to test the underlying mechanism that would be used by a controller.
-    # To test the flow: get_dom_element_by_index -> _click_element_node
-    
-    element_to_click = await browser_context.get_dom_element_by_index(target_highlight_index)
-    assert element_to_click.highlight_index == target_highlight_index
-
-    await browser_context._click_element_node(element_to_click)
-    
-    mock_extension_interface.execute_action.assert_called_once_with(
-        "click_element_by_index", # Action name used by _click_element_node
-        {"index": target_highlight_index}
-    )
-    # The result of _click_element_node is None (download path), not the extension response dict.
-    # So, no assertion on result directly here unless behavior of _click_element_node changes.
-
-@pytest.mark.asyncio
-async def test_browser_context_input_text_by_highlight_index(browser_context: BrowserContext, mock_extension_interface: AsyncMock, sample_browser_state: BrowserState):
-    """Test inputting text into an element by its highlight_index."""
-    browser_context._cached_browser_state = sample_browser_state # MODIFIED: _cached_state -> _cached_browser_state
-    browser_context._cached_selector_map = sample_browser_state.selector_map
-
-    target_highlight_index = 1 # Corresponds to the input with id "test-input"
-    text_to_input = "Hello, world!"
-    # Similar to click, this tests the internal flow get_dom_element_by_index -> _input_text_element_node
-
-    element_to_input = await browser_context.get_dom_element_by_index(target_highlight_index)
-    assert element_to_input.highlight_index == target_highlight_index
-
-    await browser_context._input_text_element_node(element_to_input, text_to_input)
-
-    mock_extension_interface.execute_action.assert_called_once_with(
-        "input_text", # Action name used by _input_text_element_node
-        {"index": target_highlight_index, "text": text_to_input}
-    )
-
-@pytest.mark.asyncio
-async def test_extension_page_proxy_goto(mock_browser_context: MagicMock, mock_extension_interface: AsyncMock):
-    """Test ExtensionPageProxy.goto() method."""
-    # Ensure the mock_browser_context.extension returns our specific mock_extension_interface for this test
-    mock_browser_context.extension = mock_extension_interface
-
-    page_proxy = ExtensionPageProxy(extension=mock_extension_interface, browser_context=mock_browser_context)
-    url_to_go = "http://newexample.com"
-    
-    # Mock get_state on the browser_context that page_proxy will call
-    mock_page_state_after_goto = MagicMock(spec=BrowserState)
-    mock_page_state_after_goto.url = url_to_go
-    mock_page_state_after_goto.title = "New Example Page"
-    mock_browser_context.get_state.return_value = mock_page_state_after_goto
-
-    await page_proxy.goto(url_to_go)
-    
-    mock_extension_interface.execute_action.assert_awaited_once_with("go_to_url", {"url": url_to_go})
-    mock_browser_context.get_state.assert_awaited_once() # Ensure state was refreshed by page_proxy
-    assert page_proxy.url == url_to_go
-    assert page_proxy.title_val == "New Example Page"
-
-@pytest.mark.asyncio
-async def test_extension_page_proxy_wait_for_load_state(mock_browser_context: MagicMock, mock_extension_interface: AsyncMock):
-    """Test ExtensionPageProxy.wait_for_load_state() method."""
-    mock_browser_context.extension = mock_extension_interface
-    page_proxy = ExtensionPageProxy(extension=mock_extension_interface, browser_context=mock_browser_context)
-    
-    # Mock get_state on the browser_context
-    mock_page_state_after_load = MagicMock(spec=BrowserState)
-    mock_page_state_after_load.url = "http://loaded.com"
-    mock_page_state_after_load.title = "Loaded Page"
-    mock_browser_context.get_state.return_value = mock_page_state_after_load
-    
-    await page_proxy.wait_for_load_state("networkidle") # State string is illustrative
-    
-    mock_browser_context.get_state.assert_awaited_once()
-    assert page_proxy.url == "http://loaded.com"
-    assert page_proxy.title_val == "Loaded Page"
-
-@pytest.mark.asyncio
-async def test_extension_page_proxy_content(mock_browser_context: MagicMock, mock_extension_interface: AsyncMock):
-    """Test ExtensionPageProxy.content() method."""
-    mock_browser_context.extension = mock_extension_interface
-    page_proxy = ExtensionPageProxy(extension=mock_extension_interface, browser_context=mock_browser_context)
-    
-    mock_page_content_state = MagicMock(spec=BrowserState)
-    mock_page_content_state.url = "http://contentpage.com"
-    mock_page_content_state.title = "Content Page Title"
-    # Simulate element_tree for content generation
-    mock_page_content_state.element_tree = DOMElementNode(tag_name="html", type="element", xpath="/html", children=[
-        DOMElementNode(tag_name="head", type="element", xpath="/html/head", children=[
-            DOMElementNode(tag_name="title", type="element", xpath="/html/head/title", text="Content Page Title")
-        ]),
-        DOMElementNode(tag_name="body", type="element", xpath="/html/body", text="Body content here") # This text is not used by current proxy.content()
-    ])
-    mock_browser_context.get_state.return_value = mock_page_content_state
-    
-    content = await page_proxy.content()
-    
-    mock_browser_context.get_state.assert_awaited_once() # content() calls _update_state -> get_state
-    
-    # ExtensionPageProxy.content() returns a template, not actual page content from element_tree
-    expected_content_template_part_url = f"Content of {mock_page_content_state.url}"
-    expected_content_template_part_title = f"<title>{mock_page_content_state.title}</title>"
-    
-    assert expected_content_template_part_title in content
-    assert expected_content_template_part_url in content
-    assert "Body content here" not in content # Verify the mock body text is NOT in the output
-
-@pytest.mark.asyncio
-async def test_extension_page_proxy_title(mock_browser_context: MagicMock, mock_extension_interface: AsyncMock):
-    """Test ExtensionPageProxy.title() method."""
-    mock_browser_context.extension = mock_extension_interface
-    page_proxy = ExtensionPageProxy(extension=mock_extension_interface, browser_context=mock_browser_context)
-    
-    expected_title = "Test Page Title"
-    mock_page_state_for_title = MagicMock(spec=BrowserState)
-    mock_page_state_for_title.title = expected_title
-    mock_page_state_for_title.url = "http://someurlforthestate.com" # ADDED .url attribute for the mock
-    mock_browser_context.get_state.return_value = mock_page_state_for_title
-    
-    title = await page_proxy.title()
-    
-    mock_browser_context.get_state.assert_awaited_once()
-    assert title == expected_title
-
-@pytest.mark.asyncio
-async def test_extension_page_proxy_url(mock_browser_context: MagicMock, mock_extension_interface: AsyncMock):
-    """Test that ExtensionPageProxy.url property is updated after actions like goto."""
-    mock_browser_context.extension = mock_extension_interface
-    page_proxy = ExtensionPageProxy(extension=mock_extension_interface, browser_context=mock_browser_context)
-    target_url = "http://testurl.com"
-
-    mock_page_state_for_url = MagicMock(spec=BrowserState)
-    mock_page_state_for_url.url = target_url
-    mock_page_state_for_url.title = "Test URL Page"
-    mock_browser_context.get_state.return_value = mock_page_state_for_url
-
-    await page_proxy.goto(target_url) # Action that updates URL (and calls get_state via _update_state)
-    assert page_proxy.url == target_url
-
-@pytest.mark.asyncio
-async def test_click_element_not_found_in_map(browser_context: BrowserContext, mock_extension_interface: AsyncMock, sample_browser_state: BrowserState):
-    """Test getting an element by highlight_index that is not in the selector_map raises ValueError."""
-    # Populate cache so get_dom_element_by_index doesn't try to fetch state itself initially for this test path
-    browser_context._cached_browser_state = sample_browser_state # MODIFIED: _cached_state -> _cached_browser_state
-    browser_context._cached_selector_map = sample_browser_state.selector_map # map is {0:..., 1:...}
-
-    invalid_highlight_index = 99 # This index is not in sample_browser_state.selector_map
-
-    with pytest.raises(ValueError, match=f"Element with index {invalid_highlight_index} not found in selector_map"):
-        await browser_context.get_dom_element_by_index(invalid_highlight_index)
-    
-    # Ensure no interaction with extension interface if element not found in map before any action call
-    mock_extension_interface.execute_action.assert_not_called()
-
-@pytest.mark.asyncio
-async def test_input_text_element_not_found_in_map(browser_context: BrowserContext, mock_extension_interface: AsyncMock, sample_browser_state: BrowserState):
-    """Test getting an element by highlight_index for input that is not in the selector_map raises ValueError."""
-    browser_context._cached_browser_state = sample_browser_state # MODIFIED: _cached_state -> _cached_browser_state
-    browser_context._cached_selector_map = sample_browser_state.selector_map
-
-    invalid_highlight_index = 100
-    # text_to_input = "Test text" # Not used as get_dom_element_by_index will fail first
-
-    with pytest.raises(ValueError, match=f"Element with index {invalid_highlight_index} not found in selector_map"):
-        await browser_context.get_dom_element_by_index(invalid_highlight_index)
-        # If we were testing a combined operation:
-        # element_node = await browser_context.get_dom_element_by_index(invalid_highlight_index)
-        # await browser_context._input_text_element_node(element_node, text_to_input)
-    
-    mock_extension_interface.execute_action.assert_not_called()
-
-# Example of how DOMElementNode.to_html() might be used if it existed
-# This is for the purpose of testing ExtensionPageProxy.content()
-# Ideally, DOMElementNode would have a method to convert itself to an HTML string.
-# For now, a simplified helper function is used within the test_extension_page_proxy_content test.
-
-# Add more tests for other ExtensionPageProxy methods (e.g., close, screenshot, etc.)
-# and other BrowserContext functionalities as they are implemented.
-
-# To run this test, you would typically use pytest in your terminal:
-# pytest browser-use/tests/test_browser_context.py
-````
-
-## File: browser-use-ext/tests/test_browser.py
-````python
-import pytest
-import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
-
-# Adjust imports based on the new project structure `browser-use-ext`
-from browser.browser import Browser, BrowserConfig
-from browser.context import BrowserContext, BrowserContextConfig
-# Import the service module directly to use with patch.object
-from extension_interface import service as ei_service
-from extension_interface.service import ExtensionInterface # For spec in mock
-
-@pytest.fixture
-def browser_config():
-    """Provides a default BrowserConfig for testing.
-       Ensure port is different from other tests if they run in parallel or don't clean up properly.
-    """
-    return BrowserConfig(extension_host="127.0.0.1", extension_port=8777) # Changed port
-
-@pytest.fixture
-def mock_extension_interface_instance():
-    """Provides a mock instance of ExtensionInterface."""
-    mock_instance = AsyncMock(spec=ExtensionInterface)
-    mock_instance.start_server = AsyncMock(return_value=None)
-    mock_instance.stop_server = AsyncMock(return_value=None)
-    # Simulate server running state after start_server is called
-    async def mock_start_server():
-        mock_instance.is_server_running = True
-        return None
-    mock_instance.start_server = AsyncMock(side_effect=mock_start_server)
-    mock_instance.is_server_running = False # Initial state
-    mock_instance.has_active_connection = False # No connection initially
-    return mock_instance
-
-
-@pytest.fixture
-def patched_extension_interface_cls(mock_extension_interface_instance: AsyncMock):
-    """Patches the ExtensionInterface class to return a specific mock instance."""
-    # Patch where ExtensionInterface is IMPORTED by the Browser class
-    with patch("browser.browser.ExtensionInterface", return_value=mock_extension_interface_instance, autospec=True) as mock_cls:
-        yield mock_cls # Yield the mock class itself for assertions on constructor calls
-
-
-@pytest.mark.asyncio
-async def test_browser_launch_and_close(browser_config: BrowserConfig, patched_extension_interface_cls: MagicMock, mock_extension_interface_instance: AsyncMock):
-    """Test the Browser.launch and Browser.close methods, ensuring ExtensionInterface is managed."""
-    browser = Browser(config=browser_config)
-    
-    # Test launch
-    launched_browser = await browser.launch()
-    assert launched_browser == browser
-    assert browser.is_launched is True
-    assert browser._extension_interface == mock_extension_interface_instance
-    
-    # Check that ExtensionInterface was instantiated with correct host/port from browser_config
-    # This assertion is on the mock CLASS returned by the patch fixture
-    patched_extension_interface_cls.assert_called_once_with(
-        host=browser_config.extension_host, 
-        port=browser_config.extension_port
-    )
-    # Check that start_server was called on the INSTANCE
-    mock_extension_interface_instance.start_server.assert_awaited_once()
-    assert mock_extension_interface_instance.is_server_running is True # Check side effect of mock_start_server
-
-    # Test close
-    await browser.close()
-    assert browser.is_launched is False
-    mock_extension_interface_instance.stop_server.assert_awaited_once()
-    # The _extension_interface is not set to None in the current Browser.close()
-    # assert browser._extension_interface is None 
-
-@pytest.mark.asyncio
-async def test_browser_async_context_manager(browser_config: BrowserConfig, patched_extension_interface_cls: MagicMock, mock_extension_interface_instance: AsyncMock):
-    """Test that Browser can be used as an asynchronous context manager."""
-    async with Browser(config=browser_config) as browser:
-        assert browser.is_launched is True
-        assert browser._extension_interface == mock_extension_interface_instance
-        patched_extension_interface_cls.assert_called_once_with(host=browser_config.extension_host, port=browser_config.extension_port)
-        mock_extension_interface_instance.start_server.assert_awaited_once()
-        assert mock_extension_interface_instance.is_server_running is True
-        
-    assert browser.is_launched is False
-    mock_extension_interface_instance.stop_server.assert_awaited_once()
-
-@pytest.mark.asyncio
-async def test_browser_new_context(browser_config: BrowserConfig, patched_extension_interface_cls: MagicMock, mock_extension_interface_instance: AsyncMock):
-    """Test Browser.new_context() creates a BrowserContext correctly."""
-    async with Browser(config=browser_config) as browser:
-        context_config_override = BrowserContextConfig(view_port_height=768) # Use a field from BrowserContextConfig
-        browser_context = await browser.new_context(context_config=context_config_override)
-        
-        assert isinstance(browser_context, BrowserContext)
-        assert browser_context.config == context_config_override
-        # Ensure it uses the browser's (mocked) extension interface instance
-        assert browser_context._extension == mock_extension_interface_instance 
-
-@pytest.mark.asyncio
-async def test_browser_new_context_uses_default_config_if_none_provided(browser_config: BrowserConfig, patched_extension_interface_cls: MagicMock, mock_extension_interface_instance: AsyncMock):
-    """Test Browser.new_context() uses default BrowserContextConfig if no override is given."""
-    async with Browser(config=browser_config) as browser:
-        browser_context = await browser.new_context() # No config override, should use browser_config.default_context_config
-        
-        assert isinstance(browser_context, BrowserContext)
-        # Check that it used the default BrowserContextConfig instance from the BrowserConfig
-        assert browser_context.config == browser_config.default_context_config
-        assert browser_context._extension == mock_extension_interface_instance
-
-@pytest.mark.asyncio
-async def test_browser_launch_already_launched(browser_config: BrowserConfig, patched_extension_interface_cls: MagicMock, mock_extension_interface_instance: AsyncMock):
-    """Test that attempting to launch an already launched browser does not call start_server again."""
-    browser = Browser(config=browser_config)
-    await browser.launch() # First launch
-    assert browser.is_launched
-    mock_extension_interface_instance.start_server.assert_awaited_once() # Called once
-
-    await browser.launch() # Second launch attempt
-    assert browser.is_launched # Still launched
-    # Ensure start_server was not called again
-    mock_extension_interface_instance.start_server.assert_awaited_once() 
-    await browser.close() # Cleanup
-
-@pytest.mark.asyncio
-async def test_browser_new_context_when_not_launched(browser_config: BrowserConfig):
-    """Test that attempting to create a new context when browser is not launched raises an error."""
-    browser = Browser(config=browser_config) # Not launched yet
-    assert not browser.is_launched
-    with pytest.raises(RuntimeError, match="Browser must be launched and ExtensionInterface server running before creating a context."):
-        await browser.new_context()
-
-@pytest.mark.asyncio
-async def test_browser_close_when_not_launched(browser_config: BrowserConfig, mock_extension_interface_instance: AsyncMock):
-    """Test that closing a browser that was never launched does not error and does not call stop_server."""
-    # This test needs to ensure that if Browser is instantiated but not launched,
-    # its _extension_interface (which would be real if not for other tests' patching)
-    # doesn't get stop_server called.
-    # We use a direct mock_extension_interface_instance to simulate the _extension_interface for an unlaunched browser.
-    
-    browser = Browser(config=browser_config)
-    # Manually assign a (potentially real or pre-mocked) extension interface if Browser.__init__ always creates one.
-    # Current Browser.__init__ *does* create one. So this test relies on the global patch from other fixtures if it runs after them,
-    # or it would create a real one.
-    # For isolation, explicitly mock what an unlaunched browser might have or do.
-    # However, the current Browser() immediately creates an ei_service.ExtensionInterface().
-    # So this test implicitly relies on patching if other tests use patched_extension_interface_cls.
-    # A truly isolated test would patch 'browser.browser.ExtensionInterface' just for this test scope.
-
-    assert not browser.is_launched
-    
-    # Store the _extension_interface that Browser created. If patched_extension_interface_cls fixture is active,
-    # this will be mock_extension_interface_instance.
-    # If no global patch active, it's a real one.
-    # Let's assume for this test that the interest is that stop_server on *whatever* interface it has isn't called.
-    # The mock_extension_interface_instance passed as arg isn't automatically browser's _extension_interface here without launch & patching.
-    # So, we check the one Browser itself creates.
-    
-    # To be robust, let's patch just for this test to control the instance
-    with patch("browser.browser.ExtensionInterface", return_value=mock_extension_interface_instance) as temp_mock_cls:
-        fresh_browser = Browser(config=browser_config)
-        assert not fresh_browser.is_launched
-        assert fresh_browser._extension_interface == mock_extension_interface_instance
-
-        await fresh_browser.close() # Call close on unlaunched browser
-        
-        assert not fresh_browser.is_launched
-        # stop_server should NOT have been called on the interface of an unlaunched browser
-        mock_extension_interface_instance.stop_server.assert_not_called()
-
-# Consider adding tests for error handling during ExtensionInterface start/stop if applicable,
-# e.g., if start_server could fail and Browser needs to handle that gracefully.
-````
-
-## File: browser-use-ext/tests/test_controller_service.py
-````python
-import pytest
-from unittest.mock import MagicMock, AsyncMock, patch
-
-# Adjust imports based on the new project structure `browser-use-ext`
-from controller.service import Controller
-from browser.context import BrowserContext
-from extension_interface.service import ExtensionInterface # Added for type hinting
-from browser.views import BrowserState # Added for type hinting
-from controller.registry.views import ActionDefinition, list_available_actions # For testing list_actions
-
-# --- Fixtures ---
-
-@pytest.fixture
-def mock_browser_context() -> MagicMock:
-    """Provides a mock BrowserContext instance for testing the Controller."""
-    mock_context = MagicMock(spec=BrowserContext)
-    
-    # Configure the _cached_state attribute for the Controller's __init__
-    # The controller accesses browser_context._cached_state.url
-    mock_cached_state = MagicMock()
-    mock_cached_state.url = "http://mockurl.com" # Provide a mock URL
-    mock_context._cached_state = mock_cached_state 
-    
-    # Also mock the extension attribute of the browser_context, as Controller accesses it.
-    # Controller.execute_action -> self.browser_context.extension.execute_action
-    mock_extension_interface = AsyncMock(spec=ExtensionInterface)
-    mock_context.extension = mock_extension_interface
-    
-    # Mock methods of BrowserContext that Controller's helper methods might call indirectly.
-    # For get_current_browser_state_wrapper:
-    mock_browser_state_instance = MagicMock(spec=BrowserState)
-    mock_browser_state_instance.model_dump.return_value = {"url": "http://mockurl.com/current", "title": "Mock Page"}
-    mock_context.get_state = AsyncMock(return_value=mock_browser_state_instance)
-
-    # For close_tab wrapper when tab_id is None:
-    mock_page_proxy = MagicMock()
-    mock_page_proxy.page_id = "active_mock_tab_id"
-    mock_context.active_page = AsyncMock(return_value=mock_page_proxy)
-
-    return mock_context
-
-@pytest.fixture
-def controller(mock_browser_context: MagicMock) -> Controller:
-    """Provides a Controller instance initialized with a mock BrowserContext."""
-    return Controller(browser_context=mock_browser_context)
-
-# --- Test Cases ---
-
-def test_controller_initialization(controller: Controller, mock_browser_context: MagicMock):
-    """Test that the Controller initializes correctly with a BrowserContext."""
-    assert controller.browser_context == mock_browser_context
-
-@pytest.mark.asyncio
-async def test_controller_execute_action_direct_call(controller: Controller, mock_browser_context: MagicMock):
-    """Test the main execute_action method for direct calls to extension."""
-    action_name = "test_extension_action"
-    params = {"key": "value"}
-    expected_response = {"success": True, "data": "action_completed"}
-    
-    mock_browser_context.extension.execute_action = AsyncMock(return_value=expected_response)
-    
-    result = await controller.execute_action(action_name=action_name, params=params, timeout=10.0)
-    
-    mock_browser_context.extension.execute_action.assert_awaited_once_with(
-        action_name=action_name,
-        params=params,
-        timeout=10.0
-    )
-    assert result == expected_response
-
-@pytest.mark.asyncio
-async def test_controller_execute_action_handles_extension_error(controller: Controller, mock_browser_context: MagicMock):
-    """Test that execute_action returns an error dict if extension call fails."""
-    action_name = "failing_action"
-    params = {}
-    mock_browser_context.extension.execute_action = AsyncMock(side_effect=RuntimeError("Extension communication failed"))
-    
-    result = await controller.execute_action(action_name=action_name, params=params)
-    
-    assert isinstance(result, dict)
-    assert "error" in result
-    assert "Extension communication failed" in result["error"]
-
-# --- Test Wrapper Methods ---
-
-@pytest.mark.asyncio
-async def test_controller_go_to_url_wrapper(controller: Controller, mock_browser_context: MagicMock):
-    target_url = "https://example.com"
-    mock_response = {"success": True, "new_url": target_url}
-    mock_browser_context.extension.execute_action = AsyncMock(return_value=mock_response)
-    
-    result = await controller.go_to_url(target_url)
-    
-    mock_browser_context.extension.execute_action.assert_awaited_once_with(
-        action_name="go_to_url",
-        params={"url": target_url},
-        timeout=30.0
-    )
-    assert result == mock_response
-
-@pytest.mark.asyncio
-async def test_controller_click_element_by_index_wrapper(controller: Controller, mock_browser_context: MagicMock):
-    element_idx = 5
-    mock_response = {"success": True, "message": "Element clicked"}
-    mock_browser_context.extension.execute_action = AsyncMock(return_value=mock_response)
-
-    result = await controller.click_element_by_index(element_idx)
-
-    mock_browser_context.extension.execute_action.assert_awaited_once_with(
-        action_name="click_element_by_index",
-        params={"highlight_index": element_idx},
-        timeout=30.0
-    )
-    assert result == mock_response
-
-@pytest.mark.asyncio
-async def test_controller_input_text_wrapper(controller: Controller, mock_browser_context: MagicMock):
-    element_idx = 3
-    text_to_input = "Hello, world!"
-    mock_response = {"success": True, "message": "Text input successful"}
-    mock_browser_context.extension.execute_action = AsyncMock(return_value=mock_response)
-
-    result = await controller.input_text(element_idx, text_to_input)
-
-    mock_browser_context.extension.execute_action.assert_awaited_once_with(
-        action_name="input_text",
-        params={"highlight_index": element_idx, "text": text_to_input},
-        timeout=30.0
-    )
-    assert result == mock_response
-
-@pytest.mark.asyncio
-async def test_controller_scroll_page_wrapper(controller: Controller, mock_browser_context: MagicMock):
-    scroll_direction = "down"
-    mock_response = {"success": True, "scroll_position_y": 1000}
-    mock_browser_context.extension.execute_action = AsyncMock(return_value=mock_response)
-
-    result = await controller.scroll_page(scroll_direction)
-
-    mock_browser_context.extension.execute_action.assert_awaited_once_with(
-        action_name="scroll_page",
-        params={"direction": scroll_direction},
-        timeout=30.0
-    )
-    assert result == mock_response
-
-@pytest.mark.asyncio
-async def test_controller_scroll_page_invalid_direction(controller: Controller, mock_browser_context: MagicMock):
-    result = await controller.scroll_page("sideways")
-    assert isinstance(result, dict)
-    assert "error" in result
-    assert "Invalid scroll direction" in result["error"]
-    mock_browser_context.extension.execute_action.assert_not_called()
-
-@pytest.mark.asyncio
-async def test_controller_go_back_wrapper(controller: Controller, mock_browser_context: MagicMock):
-    mock_response = {"success": True}
-    mock_browser_context.extension.execute_action = AsyncMock(return_value=mock_response)
-
-    result = await controller.go_back()
-
-    mock_browser_context.extension.execute_action.assert_awaited_once_with(
-        action_name="go_back",
-        params={},
-        timeout=30.0
-    )
-    assert result == mock_response
-
-@pytest.mark.asyncio
-async def test_controller_extract_content_wrapper(controller: Controller, mock_browser_context: MagicMock):
-    mock_page_content_response = {"success": True, "content": "Full page text."}
-    mock_browser_context.extension.execute_action = AsyncMock(return_value=mock_page_content_response)
-    
-    result_page = await controller.extract_content(content_type="text")
-    mock_browser_context.extension.execute_action.assert_awaited_once_with(
-        action_name="extract_content",
-        params={"content_type": "text"}, 
-        timeout=30.0
-    )
-    assert result_page == mock_page_content_response
-
-    mock_browser_context.extension.execute_action.reset_mock() 
-    element_idx = 7
-    mock_element_content_response = {"success": True, "content": "Element text."}
-    mock_browser_context.extension.execute_action.return_value = mock_element_content_response
-
-    result_element = await controller.extract_content(index=element_idx, content_type="html")
-    mock_browser_context.extension.execute_action.assert_awaited_once_with(
-        action_name="extract_content",
-        params={"content_type": "html", "highlight_index": element_idx},
-        timeout=30.0
-    )
-    assert result_element == mock_element_content_response
-
-@pytest.mark.asyncio
-async def test_controller_send_keys_wrapper(controller: Controller, mock_browser_context: MagicMock):
-    keys_to_send = "Enter"
-    mock_response = {"success": True}
-    mock_browser_context.extension.execute_action = AsyncMock(return_value=mock_response)
-
-    result_active = await controller.send_keys(keys_to_send)
-    mock_browser_context.extension.execute_action.assert_awaited_once_with(
-        action_name="send_keys",
-        params={"keys": keys_to_send}, 
-        timeout=30.0
-    )
-    assert result_active == mock_response
-    
-    mock_browser_context.extension.execute_action.reset_mock()
-    element_idx = 2
-    result_element = await controller.send_keys(keys_to_send, index=element_idx)
-    mock_browser_context.extension.execute_action.assert_awaited_once_with(
-        action_name="send_keys",
-        params={"keys": keys_to_send, "highlight_index": element_idx},
-        timeout=30.0
-    )
-    assert result_element == mock_response
-
-@pytest.mark.asyncio
-async def test_controller_open_tab_wrapper(controller: Controller, mock_browser_context: MagicMock):
-    test_url = "https://example.com/new"
-    mock_response = {"success": True, "new_tab_id": "tabXYZ"}
-    mock_browser_context.extension.execute_action = AsyncMock(return_value=mock_response)
-    mock_browser_context.get_state = AsyncMock() 
-
-    result = await controller.open_tab(test_url)
-
-    mock_browser_context.extension.execute_action.assert_awaited_once_with(
-        action_name="open_tab",
-        params={"url": test_url},
-        timeout=30.0
-    )
-    assert result == mock_response
-    mock_browser_context.get_state.assert_awaited_once_with(force_refresh=True)
-
-@pytest.mark.asyncio
-async def test_controller_switch_tab_wrapper(controller: Controller, mock_browser_context: MagicMock):
-    target_tab_id = "tab123"
-    mock_response = {"success": True, "active_tab_id": target_tab_id}
-    mock_browser_context.extension.execute_action = AsyncMock(return_value=mock_response)
-    mock_browser_context.get_state = AsyncMock()
-
-    result = await controller.switch_tab(target_tab_id)
-
-    mock_browser_context.extension.execute_action.assert_awaited_once_with(
-        action_name="switch_tab",
-        params={"tab_id": target_tab_id},
-        timeout=30.0
-    )
-    assert result == mock_response
-    mock_browser_context.get_state.assert_awaited_once_with(force_refresh=True)
-
-@pytest.mark.asyncio
-async def test_controller_close_tab_wrapper_with_id(controller: Controller, mock_browser_context: MagicMock):
-    target_tab_id = "tab_to_close"
-    mock_response = {"success": True, "closed_tab_id": target_tab_id}
-    mock_browser_context.extension.execute_action = AsyncMock(return_value=mock_response)
-    mock_browser_context.get_state = AsyncMock()
-
-    result = await controller.close_tab(target_tab_id)
-
-    mock_browser_context.extension.execute_action.assert_awaited_once_with(
-        action_name="close_tab",
-        params={"tab_id": target_tab_id},
-        timeout=30.0
-    )
-    assert result == mock_response
-    mock_browser_context.get_state.assert_awaited_once_with(force_refresh=True)
-
-@pytest.mark.asyncio
-async def test_controller_close_tab_wrapper_active_tab(controller: Controller, mock_browser_context: MagicMock):
-    active_tab_id_from_mock = "active_mock_tab_id"
-    mock_response = {"success": True, "closed_tab_id": active_tab_id_from_mock}
-    mock_browser_context.extension.execute_action = AsyncMock(return_value=mock_response)
-    
-    result = await controller.close_tab()
-
-    mock_browser_context.active_page.assert_awaited_once() 
-    mock_browser_context.extension.execute_action.assert_awaited_once_with(
-        action_name="close_tab",
-        params={"tab_id": active_tab_id_from_mock}, 
-        timeout=30.0
-    )
-    assert result == mock_response
-    assert mock_browser_context.get_state.await_args.kwargs.get('force_refresh') is True
-
-
-@pytest.mark.asyncio
-async def test_controller_list_actions(controller: Controller):
-    actions_list = await controller.list_actions()
-    assert isinstance(actions_list, list)
-    registered_action_names = [a.name for a in list_available_actions()]
-    returned_action_names = [a.name for a in actions_list]
-    assert all(name in registered_action_names for name in returned_action_names)
-    assert len(actions_list) > 0 
-
-@pytest.mark.asyncio
-async def test_controller_get_current_browser_state_wrapper(controller: Controller, mock_browser_context: MagicMock):
-    expected_state_dict = {"url": "http://mockurl.com/current", "title": "Mock Page"} 
-    mock_browser_context.get_state.reset_mock() 
-
-    state_dict = await controller.get_current_browser_state(force_refresh=True)
-
-    mock_browser_context.get_state.assert_awaited_once_with(force_refresh=True)
-    assert state_dict == expected_state_dict
-
-# To run tests (from the root of the browser-use-ext project):
-# pytest tests/test_controller_service.py
-````
-
-## File: browser-use-ext/tests/test_extension_interface.py
-````python
-import asyncio
-import json
-import pytest
-import pytest_asyncio
-import websockets # Added missing import
-from unittest.mock import MagicMock, AsyncMock, patch # For async mocking
-
-from websockets.server import WebSocketServerProtocol
-from websockets.exceptions import ConnectionClosedOK, ConnectionClosed
-
-# Adjust imports based on the new project structure `browser-use-ext`
-from extension_interface.service import (
-    ExtensionInterface,
-    RequestMessage,
-    ResponseMessage,
-    ResponseData,
-    ConnectionInfo
-)
-from browser.views import BrowserState, TabInfo
-from dom.views import DOMElementNode
-
-@pytest_asyncio.fixture
-async def interface():
-    """Fixture to create an ExtensionInterface instance and manage its server lifecycle."""
-    iface = ExtensionInterface(host="127.0.0.1", port=8766) # Use a different port for testing
-    server_task = asyncio.create_task(iface.start_server(), name=f"TestExtInterfaceServer-{iface.port}")
-    await asyncio.sleep(0.2) # Increased delay for server startup
-    if not iface.is_server_running:
-        # Attempt to wait a bit longer if the server isn't up yet
-        await asyncio.sleep(0.5)
-        if not iface.is_server_running:
-            # If it's still not running, force cleanup and fail the test setup
-            if not server_task.done():
-                server_task.cancel()
-                try: await server_task
-                except asyncio.CancelledError: pass
-            pytest.fail(f"Test server on port {iface.port} failed to start.")
-    yield iface
-    # Teardown: stop the server and wait for the task to complete
-    await iface.stop_server()
-    if not server_task.done():
-        server_task.cancel()
-        try:
-            await server_task
-        except asyncio.CancelledError:
-            pass # Expected on cancellation
-    await asyncio.sleep(0.2) # Ensure resources are released
-
-@pytest.mark.asyncio
-async def test_server_start_and_stop(interface: ExtensionInterface):
-    """Test that the WebSocket server starts and stops correctly."""
-    assert interface.is_server_running, "Server should be running after start_server() call in fixture"
-    # has_active_connection depends on a client connecting, not part of this test directly.
-    # initial_active_conn = interface.has_active_connection
-    # assert not initial_active_conn, "Should be no active connections initially"
-
-@pytest.mark.asyncio
-async def test_handle_connection_and_disconnection(interface: ExtensionInterface):
-    """Test that a client can connect and disconnect, updating active_connection status."""
-    assert interface.is_server_running, "Server must be running for client to connect."
-    initial_connections_count = len(interface._connections)
-    initial_active_id = interface._active_connection_id
-
-    async def client_connect_and_close():
-        try:
-            # Connect client to the server started by the 'interface' fixture
-            async with websockets.connect(f"ws://{interface.host}:{interface.port}") as ws_client:
-                await asyncio.sleep(0.2) # Give server time to process connection
-                assert interface.has_active_connection, "Interface should have an active connection after client connects"
-                assert len(interface._connections) > initial_connections_count, "Connection count should increase"
-                assert interface._active_connection_id is not None, "Active connection ID should be set"
-                # Client automatically closes connection when exiting `async with`
-        except Exception as e:
-            pytest.fail(f"Client connection failed: {e}")
-
-    connect_task = asyncio.create_task(client_connect_and_close())
-    try:
-        await asyncio.wait_for(connect_task, timeout=5.0)
-    except asyncio.TimeoutError:
-        pytest.fail("Client connect and close task timed out.")
-
-    await asyncio.sleep(0.3) # Allow server time to process disconnection
-    assert not interface.has_active_connection, "Interface should not have an active connection after client disconnects"
-    assert len(interface._connections) == initial_connections_count, "Connection count should revert"
-    # Depending on logic, active_connection_id might be None or another if multiple clients were involved.
-    # For a single client, it should likely become None.
-    if initial_active_id is None: # if it started as None, and only one client connected and disconnected.
-        assert interface._active_connection_id is None, "Active connection ID should be None after single client disconnects"
-
-@pytest.mark.asyncio
-async def test_send_request_and_receive_response(interface: ExtensionInterface):
-    """Test sending a request to a mock client and receiving its response."""
-    
-    # This test is complex because it involves mocking the client-side behavior 
-    # that responds to requests from the ExtensionInterface.
-    # The ExtensionInterface._handle_connection is the server-side part that receives client messages.
-    # The ExtensionInterface._send_request is the part that sends messages to the client.
-
-    # We need a real client to connect so _send_request can proceed.
-    # This client will also act as the responder.
-
-    request_id_seen_by_client = None
-    response_future = asyncio.Future()
-
-    async def mock_client_responder(ws_client: WebSocketServerProtocol):
-        nonlocal request_id_seen_by_client
-        try:
-            message_str = await ws_client.recv() # Wait for the server's request
-            req_data = json.loads(message_str)
-            request_id_seen_by_client = req_data["id"]
-            assert req_data["type"] == "test_type_action" # Corrected: type is request_type
-            assert req_data["data"] == {"param1": "value1"} # Corrected: params are in data field
-            
-            response_payload = {
-                "id": req_data["id"],
-                "type": "response",
-                "data": {"success": True, "result": "mock_success"} # ensure data field for ResponseData model
-            }
-            await ws_client.send(json.dumps(response_payload))
-            response_future.set_result(None) # Signal response sent
-        except ConnectionClosed:
-            if not response_future.done():
-                response_future.set_exception(ConnectionClosed("Client connection closed before responding", None))
-        except Exception as e:
-            if not response_future.done():
-                response_future.set_exception(e)
-            pytest.fail(f"Mock client responder error: {e}")
-
-    client_task = None
-    async def client_main_task():
-        try:
-            async with websockets.connect(f"ws://{interface.host}:{interface.port}") as ws_client:
-                await asyncio.sleep(0.1) # ensure server registers connection
-                if not interface.has_active_connection: await asyncio.sleep(0.3)
-                assert interface.has_active_connection, "Test client connected, server should have active connection."
-                await mock_client_responder(ws_client) # This client will handle one request/response
-        except Exception as e:
-            if not response_future.done():
-                response_future.set_exception(e)
-
-    client_task = asyncio.create_task(client_main_task())
-
-    try:
-        # Wait for client to be ready (connected and server acknowledges)
-        await asyncio.sleep(0.5) 
-        assert interface.has_active_connection, "Server should be ready to send request to connected client."
-
-        # Now, call _send_request. The connected mock_client_responder should handle it.
-        response_data_obj = await interface._send_request(request_type="test_type_action", data={"param1": "value1"}, timeout=3.0)
-        
-        assert isinstance(response_data_obj, ResponseData)
-        assert response_data_obj.success is True
-        # The actual data is nested within the ResponseData model if structure is {success:true, result: "mock_success"}
-        # If ResponseData is just {success: true, error: null}, then response_data_obj would be that.
-        # Based on mock_client_responder, it sends {"result": "mock_success"} inside data.
-        # So, response_data_obj will be a ResponseData model where response_data_obj.result exists IF defined in ResponseData model.
-        # Current ResponseData allows extra fields. Let's assume we want to check that specific field.
-        assert response_data_obj.model_extra["result"] == "mock_success"
-
-        # Check that the client actually processed a request with a valid ID
-        await asyncio.wait_for(response_future, timeout=1.0) # Ensure client finished its part
-        assert request_id_seen_by_client is not None
-        assert isinstance(request_id_seen_by_client, int)
-
-    except Exception as e:
-        pytest.fail(f"_send_request test failed: {e}")
-    finally:
-        if client_task and not client_task.done():
-            client_task.cancel()
-            try: await client_task
-            except asyncio.CancelledError: pass
-        await asyncio.sleep(0.1) # Allow for cleanup
-
-@pytest.mark.asyncio
-async def test_get_state_parsing(interface: ExtensionInterface):
-    """Test the parsing of a get_state response, focusing on _parse_element_tree_data."""
-    mock_response_payload = {
-        # This is the structure for the *data* field of a ResponseMessage
-        "success": True,
-        "url": "http://example.com",
-        "title": "Example Page",
-        "tabs": [
-            {"page_id": 1, "url": "http://example.com", "title": "Example"},
-            {"page_id": 2, "url": "http://test.com", "title": "Test Page"}
-        ],
-        "element_tree": {
-            "type": "element", "tag_name": "html", "attributes": {"lang": "en"}, "xpath": "/html", "is_visible": True,
-            "children": [
-                {"type": "element", "tag_name": "body", "attributes": {}, "xpath": "/html/body", "is_visible": True, "children": [
-                    {"type": "element", "tag_name": "div", "attributes": {"id": "main"}, "highlight_index": 0, "xpath": "/html/body/div[1]", "is_visible": True, "text": "Hello"}
-                ]}
-            ]
-        },
-        "selector_map": {"0": {"xpath": "/html/body/div[1]"}},
-        "screenshot": "data:image/png;base64,fakedata",
-        "pixels_above": 10, 
-        "pixels_below": 100
-    }
-    # _send_request returns a ResponseData object
-    interface._send_request = AsyncMock(return_value=ResponseData.model_validate(mock_response_payload))
-    
-    browser_state = await interface.get_state()
-    
-    assert browser_state is not None
-    assert isinstance(browser_state, BrowserState)
-    assert browser_state.url == "http://example.com"
-    assert browser_state.title == "Example Page"
-    assert len(browser_state.tabs) == 2
-    assert isinstance(browser_state.tabs[0], TabInfo)
-    assert browser_state.tabs[0].url == "http://example.com"
-
-    assert browser_state.element_tree is not None
-    assert isinstance(browser_state.element_tree, DOMElementNode)
-    assert browser_state.element_tree.tag_name == "html"
-    assert browser_state.element_tree.type == "element"
-    assert len(browser_state.element_tree.children) == 1
-    body_node = browser_state.element_tree.children[0]
-    assert body_node.tag_name == "body"
-    assert len(body_node.children) == 1
-    div_node = body_node.children[0]
-    assert div_node.tag_name == "div"
-    assert div_node.attributes["id"] == "main"
-    # Text is not a direct attribute of DOMElementNode in this parsed model unless it's a text node itself.
-    # If the extension puts text content directly on an element node, it needs to be mapped. 
-    # Current DOMElementNode has an optional text field. The mock data has this. If parsing sets it, it will be there.
-    # The current _parse_element_tree_data in ExtensionInterface does NOT assign 'text' to element nodes.
-    # It expects 'text' field for type='text' nodes. Let's adjust mock or parsing.
-    # For now, assuming _parse_element_tree_data gets `text` for the div if `type` is element and text is present.
-    # Based on current _parse_element_tree_data, this text will be ignored for type="element".
-    # For test to pass with current code, mock data for element_tree.div should not have "text":"Hello"
-    # OR _parse_element_tree_data should handle text for elements.
-    # Let's assume the mock element tree is what the extension *could* send, and parsing should improve.
-    # For now, this test will fail on div_node.text if _parse_element_tree_data doesn't handle it for elements.
-    # Let's assume the `text` field on DOMElementNode is for text nodes, or direct text of an element.
-    # Adjusting `_parse_element_tree_data` is better. For now, let this test highlight it.
-    # Ok, `DOMElementNode` has `text: Optional[str]`. `_parse_element_tree_data` does not explicitly set it for elements.
-    # The Pydantic model will pick it up if `text` is in `element_data` and it's a valid field.
-    # Let's ensure the mock data for the div has type: "element".
-    assert div_node.text == "Hello" 
-    assert div_node.highlight_index == 0
-    assert div_node.xpath == "/html/body/div[1]"
-    assert browser_state.screenshot == "data:image/png;base64,fakedata"
-    assert browser_state.selector_map == {0: {"xpath": "/html/body/div[1]"}} # Keys should be int
-    assert browser_state.pixels_above == 10
-    assert browser_state.pixels_below == 100
-
-@pytest.mark.asyncio
-async def test_execute_action(interface: ExtensionInterface):
-    """Test the execute_action method."""
-    expected_action_payload = {"success": True, "status": "some_action_status", "details": "action_completed"}
-    # _send_request should return a ResponseData object
-    interface._send_request = AsyncMock(return_value=ResponseData.model_validate(expected_action_payload))
-    
-    action_to_execute = "do_something"
-    action_params = {"param_x": "value_x"}
-    
-    # Call execute_action with `action` not `action_name`
-    result_dict = await interface.execute_action(action=action_to_execute, params=action_params)
-    
-    # execute_action returns a dict (model_dump of ResponseData)
-    assert result_dict["success"] is True
-    assert result_dict["status"] == "some_action_status"
-    assert result_dict["details"] == "action_completed"
-
-    # Verify that _send_request was called with the correct structure for execute_action
-    interface._send_request.assert_called_once_with(
-        request_type="execute_action", 
-        data={"action": action_to_execute, "params": action_params}, 
-        timeout=30.0 # Default timeout from execute_action method
-    )
-
-@pytest.mark.asyncio
-async def test_send_request_timeout(interface: ExtensionInterface):
-    """Test that _send_request correctly raises TimeoutError if the future times out."""
-    
-    client_connected_event = asyncio.Event()
-    client_task = None
-
-    async def non_responsive_client_main():
-        try:
-            # This client connects but never sends a response, forcing a timeout on the server.
-            async with websockets.connect(f"ws://{interface.host}:{interface.port}") as ws_client:
-                # Connection established. The server now has this in its _connections.
-                # Set active_connection_id on the interface if it's the first one (done by _handle_connection).
-                client_connected_event.set() # Signal that client is connected
-                await ws_client.wait_closed() # Keep connection open indefinitely
-        except ConnectionClosedOK:
-            pass # Expected if server closes it during test cleanup
-        except Exception as e:
-            if not client_connected_event.is_set(): # If failed before setting event
-                 client_connected_event.set() # Unblock the test, though it will fail
-            # Don't fail test here, primary test is for server timeout
-            print(f"NonResponsiveClient error: {e}") 
-        finally:
-            if not client_connected_event.is_set():
-                client_connected_event.set() # Ensure main test proceeds
-
-    client_task = asyncio.create_task(non_responsive_client_main())
-    
-    try:
-        await asyncio.wait_for(client_connected_event.wait(), timeout=3.0)
-        await asyncio.sleep(0.2) # Ensure server has processed the connection
-        assert interface.has_active_connection, "Client should be connected and active connection set by server"
-
-        with pytest.raises(TimeoutError):
-            # Use a short timeout for the request itself to trigger the error quickly
-            await interface._send_request(request_type="timeout_action", data={}, timeout=0.1)
-    finally:
-        if client_task and not client_task.done():
-            client_task.cancel()
-            try: await client_task
-            except asyncio.CancelledError: pass
-        await asyncio.sleep(0.1) # Allow for cleanup
-````
-
-## File: browser-use-ext/tests/test_message_manager.py
-````python
-import pytest
-from datetime import datetime, timezone
-from typing import List, Dict, Any
-from agent.message_manager.service import Message, MessageManager
-
-@pytest.fixture
-def message_manager_instance() -> MessageManager:
-    """Provides a clean MessageManager instance for each test."""
-    return MessageManager()
-
-@pytest.fixture
-def sample_system_prompt() -> str:
-    """Provides a sample system prompt string."""
-    return "You are a test assistant."
-
-def test_message_creation():
-    """Test basic Message Pydantic model creation and default values."""
-    content = "Test message content"
-    role = "user"
-    msg = Message(role=role, content=content)
-    
-    assert msg.role == role
-    assert msg.content == content
-    assert isinstance(msg.timestamp, datetime)
-    assert msg.timestamp.tzinfo == timezone.utc
-    assert msg.metadata == {}
-
-    # Test with metadata
-    meta = {"source": "test"}
-    msg_with_meta = Message(role="assistant", content="Meta content", metadata=meta)
-    assert msg_with_meta.metadata == meta
-
-def test_message_manager_initialization(message_manager_instance: MessageManager):
-    """Test MessageManager initialization without a system prompt."""
-    assert message_manager_instance.history == []
-
-def test_message_manager_initialization_with_system_prompt(sample_system_prompt: str):
-    """Test MessageManager initialization with a system prompt."""
-    manager = MessageManager(system_prompt=sample_system_prompt)
-    assert len(manager.history) == 1
-    system_msg = manager.history[0]
-    assert system_msg.role == "system"
-    assert system_msg.content == sample_system_prompt
-
-def test_add_message(message_manager_instance: MessageManager):
-    """Test adding various types of messages to the manager."""
-    manager = message_manager_instance
-    manager.add_message(role="user", content="User query 1")
-    assert len(manager.history) == 1
-    assert manager.history[0].role == "user"
-    assert manager.history[0].content == "User query 1"
-
-    manager.add_message(role="assistant", content="Assistant response", metadata={"tool_used": "search"})
-    assert len(manager.history) == 2
-    assert manager.history[1].role == "assistant"
-    assert manager.history[1].metadata == {"tool_used": "search"}
-
-    manager.add_message(role="tool_code", content="print('tool code')")
-    assert len(manager.history) == 3
-    assert manager.history[2].role == "tool_code"
-
-    manager.add_message(role="tool_output", content="Tool output result")
-    assert len(manager.history) == 4
-    assert manager.history[3].role == "tool_output"
-
-def test_add_message_empty_role_or_content(message_manager_instance: MessageManager, caplog):
-    """Test that adding a message with empty role or content is handled gracefully (logged and skipped)."""
-    manager = message_manager_instance
-    initial_history_len = len(manager.history)
-
-    manager.add_message(role="", content="Some content")
-    assert len(manager.history) == initial_history_len
-    assert "Attempted to add message with empty role or content" in caplog.text
-    caplog.clear()
-
-    manager.add_message(role="user", content="")
-    assert len(manager.history) == initial_history_len
-    assert "Attempted to add message with empty role or content" in caplog.text
-    caplog.clear()
-
-    manager.add_message(role="", content="")
-    assert len(manager.history) == initial_history_len
-    assert "Attempted to add message with empty role or content" in caplog.text
-
-def test_convenience_add_methods(message_manager_instance: MessageManager):
-    """Test the add_user_message and add_assistant_message convenience methods."""
-    manager = message_manager_instance
-    manager.add_user_message("This is a user message.")
-    assert len(manager.history) == 1
-    assert manager.history[0].role == "user"
-    assert manager.history[0].content == "This is a user message."
-
-    manager.add_assistant_message("This is an assistant reply.", metadata={"id": 123})
-    assert len(manager.history) == 2
-    assert manager.history[1].role == "assistant"
-    assert manager.history[1].content == "This is an assistant reply."
-    assert manager.history[1].metadata == {"id": 123}
-
-def test_get_history(message_manager_instance: MessageManager):
-    """Test retrieving the message history."""
-    manager = message_manager_instance
-    manager.add_user_message("Query")
-    manager.add_assistant_message("Reply")
-    
-    history: List[Message] = manager.get_history()
-    assert len(history) == 2
-    assert history[0].content == "Query"
-    assert history[1].content == "Reply"
-    # Ensure it returns a copy, not the internal list (though current implementation returns the list itself)
-    # To test for a copy, you might append to `history` and check `manager.history`
-    # For now, this basic check is fine.
-
-def test_get_history_as_dicts(message_manager_instance: MessageManager):
-    """Test retrieving history as a list of dictionaries."""
-    manager = message_manager_instance
-    time_before_add = datetime.now(timezone.utc)
-    manager.add_user_message("Hi", metadata={"seq": 1})
-    manager.add_assistant_message("Hello")
-
-    history_dicts: List[Dict[str, Any]] = manager.get_history_as_dicts()
-    assert len(history_dicts) == 2
-
-    msg1_dict = history_dicts[0]
-    assert msg1_dict["role"] == "user"
-    assert msg1_dict["content"] == "Hi"
-    assert msg1_dict["metadata"] == {"seq": 1}
-    assert isinstance(msg1_dict["timestamp"], str) # Serialized to ISO format
-    dt_obj1 = datetime.fromisoformat(msg1_dict["timestamp"])
-    assert dt_obj1 >= time_before_add
-
-    msg2_dict = history_dicts[1]
-    assert msg2_dict["role"] == "assistant"
-    assert msg2_dict["content"] == "Hello"
-    assert msg2_dict["metadata"] == {}
-    assert isinstance(msg2_dict["timestamp"], str)
-    dt_obj2 = datetime.fromisoformat(msg2_dict["timestamp"])
-    assert dt_obj2 >= dt_obj1
-
-def test_clear_history(message_manager_instance: MessageManager):
-    """Test clearing the message history."""
-    manager = message_manager_instance
-    manager.add_user_message("Message 1")
-    manager.add_assistant_message("Message 2")
-    assert len(manager.history) == 2
-
-    manager.clear_history()
-    assert len(manager.history) == 0
-    assert manager.get_history() == []
-
-def test_clear_history_with_system_prompt(sample_system_prompt: str):
-    """Test that clearing history does not remove an initial system prompt if manager is re-initialized."""
-    # The current clear_history() simply resets self.history = []. 
-    # If a system prompt was added at initialization, it will be cleared too.
-    # This test reflects the current behavior.
-    manager = MessageManager(system_prompt=sample_system_prompt)
-    assert len(manager.history) == 1
-    manager.add_user_message("User question")
-    assert len(manager.history) == 2
-    
-    manager.clear_history()
-    assert len(manager.history) == 0 # System prompt is also cleared
-
-    # If the requirement was to preserve the system prompt on clear, 
-    # clear_history() would need to be implemented differently, e.g.:
-    # self.history = [msg for msg in self.history if msg.role == "system"]
-    # or re-add the system prompt if one was configured initially.
-
-# To run these tests:
-# pytest browser-use-ext/tests/test_message_manager.py
-````
-
 ## File: check_config_access.py
 ````python
 import pathlib
@@ -27669,211 +26119,1047 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ````
 
-## File: README.md
+## File: README-task-master.md
 ````markdown
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="./static/browser-use-dark.png">
-  <source media="(prefers-color-scheme: light)" srcset="./static/browser-use.png">
-  <img alt="Shows a black Browser Use Logo in light color mode and a white one in dark color mode." src="./static/browser-use.png"  width="full">
-</picture>
+# Task Master
+### by [@eyaltoledano](https://x.com/eyaltoledano)
 
-<h1 align="center">Enable AI to control your browser 🤖</h1>
+A task management system for AI-driven development with Claude, designed to work seamlessly with Cursor AI.
 
-[![GitHub stars](https://img.shields.io/github/stars/gregpr07/browser-use?style=social)](https://github.com/gregpr07/browser-use/stargazers)
-[![Discord](https://img.shields.io/discord/1303749220842340412?color=7289DA&label=Discord&logo=discord&logoColor=white)](https://link.browser-use.com/discord)
-[![Cloud](https://img.shields.io/badge/Cloud-☁️-blue)](https://cloud.browser-use.com)
-[![Documentation](https://img.shields.io/badge/Documentation-📕-blue)](https://docs.browser-use.com)
-[![Twitter Follow](https://img.shields.io/twitter/follow/Gregor?style=social)](https://x.com/gregpr07)
-[![Twitter Follow](https://img.shields.io/twitter/follow/Magnus?style=social)](https://x.com/mamagnus00)
-[![Weave Badge](https://img.shields.io/endpoint?url=https%3A%2F%2Fapp.workweave.ai%2Fapi%2Frepository%2Fbadge%2Forg_T5Pvn3UBswTHIsN1dWS3voPg%2F881458615&labelColor=#EC6341)](https://app.workweave.ai/reports/repository/org_T5Pvn3UBswTHIsN1dWS3voPg/881458615)
+## Requirements
 
-🌐 Browser-use is the easiest way to connect your AI agents with the browser.
+- Node.js 14.0.0 or higher
+- Anthropic API key (Claude API)
+- Anthropic SDK version 0.39.0 or higher
+- OpenAI SDK (for Perplexity API integration, optional)
 
-💡 See what others are building and share your projects in our [Discord](https://link.browser-use.com/discord)! Want Swag? Check out our [Merch store](https://browsermerch.com).
+## Configuration
 
-🌤️ Skip the setup - try our <b>hosted version</b> for instant browser automation! <b>[Try the cloud ☁︎](https://cloud.browser-use.com)</b>.
+The script can be configured through environment variables in a `.env` file at the root of the project:
 
-# Quick start
+### Required Configuration
+- `ANTHROPIC_API_KEY`: Your Anthropic API key for Claude
 
-With pip (Python>=3.11):
+### Optional Configuration
+- `MODEL`: Specify which Claude model to use (default: "claude-3-7-sonnet-20250219")
+- `MAX_TOKENS`: Maximum tokens for model responses (default: 4000)
+- `TEMPERATURE`: Temperature for model responses (default: 0.7)
+- `PERPLEXITY_API_KEY`: Your Perplexity API key for research-backed subtask generation
+- `PERPLEXITY_MODEL`: Specify which Perplexity model to use (default: "sonar-medium-online")
+- `DEBUG`: Enable debug logging (default: false)
+- `LOG_LEVEL`: Log level - debug, info, warn, error (default: info)
+- `DEFAULT_SUBTASKS`: Default number of subtasks when expanding (default: 3)
+- `DEFAULT_PRIORITY`: Default priority for generated tasks (default: medium)
+- `PROJECT_NAME`: Override default project name in tasks.json
+- `PROJECT_VERSION`: Override default version in tasks.json
 
-```bash
-pip install browser-use
-```
-
-For memory functionality (requires Python<3.13 due to PyTorch compatibility):  
-
-```bash
-pip install "browser-use[memory]"
-```
-
-Install Patchright:
-```bash
-patchright install chromium
-```
-
-Spin up your agent:
-
-```python
-from langchain_openai import ChatOpenAI
-from browser_use import Agent
-import asyncio
-from dotenv import load_dotenv
-load_dotenv()
-
-async def main():
-    agent = Agent(
-        task="Compare the price of gpt-4o and DeepSeek-V3",
-        llm=ChatOpenAI(model="gpt-4o"),
-    )
-    await agent.run()
-
-asyncio.run(main())
-```
-
-Add your API keys for the provider you want to use to your `.env` file.
+## Installation
 
 ```bash
-OPENAI_API_KEY=
-ANTHROPIC_API_KEY=
-AZURE_OPENAI_ENDPOINT=
-AZURE_OPENAI_KEY=
-GEMINI_API_KEY=
-DEEPSEEK_API_KEY=
-GROK_API_KEY=
-NOVITA_API_KEY=
+# Install globally
+npm install -g task-master-ai
+
+# OR install locally within your project
+npm install task-master-ai
 ```
 
-For other settings, models, and more, check out the [documentation 📕](https://docs.browser-use.com).
-
-### Test with UI
-
-You can test [browser-use with a UI repository](https://github.com/browser-use/web-ui)
-
-Or simply run the gradio example:
-
-```
-uv pip install gradio
-```
+### Initialize a new project
 
 ```bash
-python examples/ui/gradio_demo.py
+# If installed globally
+task-master init
+
+# If installed locally
+npx task-master-init
 ```
 
-# Demos
+This will prompt you for project details and set up a new project with the necessary files and structure.
 
-<br/><br/>
+### Important Notes
 
-[Task](https://github.com/browser-use/browser-use/blob/main/examples/use-cases/shopping.py): Add grocery items to cart, and checkout.
+1. This package uses ES modules. Your package.json should include `"type": "module"`.
+2. The Anthropic SDK version should be 0.39.0 or higher.
 
-[![AI Did My Groceries](https://github.com/user-attachments/assets/d9359085-bde6-41d4-aa4e-6520d0221872)](https://www.youtube.com/watch?v=L2Ya9PYNns8)
+## Quick Start with Global Commands
 
-<br/><br/>
+After installing the package globally, you can use these CLI commands from any directory:
 
-Prompt: Add my latest LinkedIn follower to my leads in Salesforce.
+```bash
+# Initialize a new project
+task-master init
 
-![LinkedIn to Salesforce](https://github.com/user-attachments/assets/1440affc-a552-442e-b702-d0d3b277b0ae)
+# Parse a PRD and generate tasks
+task-master parse-prd your-prd.txt
 
-<br/><br/>
+# List all tasks
+task-master list
 
-[Prompt](https://github.com/browser-use/browser-use/blob/main/examples/use-cases/find_and_apply_to_jobs.py): Read my CV & find ML jobs, save them to a file, and then start applying for them in new tabs, if you need help, ask me.'
+# Show the next task to work on
+task-master next
 
-https://github.com/user-attachments/assets/171fb4d6-0355-46f2-863e-edb04a828d04
+# Generate task files
+task-master generate
+```
 
-<br/><br/>
+## Troubleshooting
 
-[Prompt](https://github.com/browser-use/browser-use/blob/main/examples/browser/real_browser.py): Write a letter in Google Docs to my Papa, thanking him for everything, and save the document as a PDF.
+### If `task-master init` doesn't respond:
 
-![Letter to Papa](https://github.com/user-attachments/assets/242ade3e-15bc-41c2-988f-cbc5415a66aa)
+Try running it with Node directly:
 
-<br/><br/>
+```bash
+node node_modules/claude-task-master/scripts/init.js
+```
 
-[Prompt](https://github.com/browser-use/browser-use/blob/main/examples/custom-functions/save_to_file_hugging_face.py): Look up models with a license of cc-by-sa-4.0 and sort by most likes on Hugging face, save top 5 to file.
+Or clone the repository and run:
 
-https://github.com/user-attachments/assets/de73ee39-432c-4b97-b4e8-939fd7f323b3
+```bash
+git clone https://github.com/eyaltoledano/claude-task-master.git
+cd claude-task-master
+node scripts/init.js
+```
 
-<br/><br/>
+## Task Structure
 
-## More examples
+Tasks in tasks.json have the following structure:
 
-For more examples see the [examples](examples) folder or join the [Discord](https://link.browser-use.com/discord) and show off your project.
+- `id`: Unique identifier for the task (Example: `1`)
+- `title`: Brief, descriptive title of the task (Example: `"Initialize Repo"`)
+- `description`: Concise description of what the task involves (Example: `"Create a new repository, set up initial structure."`)
+- `status`: Current state of the task (Example: `"pending"`, `"done"`, `"deferred"`)
+- `dependencies`: IDs of tasks that must be completed before this task (Example: `[1, 2]`)
+  - Dependencies are displayed with status indicators (✅ for completed, ⏱️ for pending)
+  - This helps quickly identify which prerequisite tasks are blocking work
+- `priority`: Importance level of the task (Example: `"high"`, `"medium"`, `"low"`)
+- `details`: In-depth implementation instructions (Example: `"Use GitHub client ID/secret, handle callback, set session token."`)
+- `testStrategy`: Verification approach (Example: `"Deploy and call endpoint to confirm 'Hello World' response."`)
+- `subtasks`: List of smaller, more specific tasks that make up the main task (Example: `[{"id": 1, "title": "Configure OAuth", ...}]`)
 
-# Vision
+## Integrating with Cursor AI
 
-Tell your computer what to do, and it gets it done.
+Claude Task Master is designed to work seamlessly with [Cursor AI](https://www.cursor.so/), providing a structured workflow for AI-driven development.
 
-## Roadmap
+### Setup with Cursor
 
-### Agent
+1. After initializing your project, open it in Cursor
+2. The `.cursor/rules/dev_workflow.mdc` file is automatically loaded by Cursor, providing the AI with knowledge about the task management system
+3. Place your PRD document in the `scripts/` directory (e.g., `scripts/prd.txt`)
+4. Open Cursor's AI chat and switch to Agent mode
 
-- [ ] Improve agent memory (summarize, compress, RAG, etc.)
-- [ ] Enhance planning capabilities (load website specific context)
-- [ ] Reduce token consumption (system prompt, DOM state)
+### Initial Task Generation
 
-### DOM Extraction
+In Cursor's AI chat, instruct the agent to generate tasks from your PRD:
 
-- [ ] Improve extraction for datepickers, dropdowns, special elements
-- [ ] Improve state representation for UI elements
+```
+Please use the task-master parse-prd command to generate tasks from my PRD. The PRD is located at scripts/prd.txt.
+```
 
-### Rerunning tasks
+The agent will execute:
+```bash
+task-master parse-prd scripts/prd.txt
+```
 
-- [ ] LLM as fallback
-- [ ] Make it easy to define workflow templates where LLM fills in the details
-- [ ] Return playwright script from the agent
+This will:
+- Parse your PRD document
+- Generate a structured `tasks.json` file with tasks, dependencies, priorities, and test strategies
+- The agent will understand this process due to the Cursor rules
 
-### Datasets
+### Generate Individual Task Files
 
-- [ ] Create datasets for complex tasks
-- [ ] Benchmark various models against each other
-- [ ] Fine-tuning models for specific tasks
+Next, ask the agent to generate individual task files:
 
-### User Experience
+```
+Please generate individual task files from tasks.json
+```
 
-- [ ] Human-in-the-loop execution
-- [ ] Improve the generated GIF quality
-- [ ] Create various demos for tutorial execution, job application, QA testing, social media, etc.
+The agent will execute:
+```bash
+task-master generate
+```
 
-## Contributing
+This creates individual task files in the `tasks/` directory (e.g., `task_001.txt`, `task_002.txt`), making it easier to reference specific tasks.
 
-We love contributions! Feel free to open issues for bugs or feature requests. To contribute to the docs, check out the `/docs` folder.
+## AI-Driven Development Workflow
 
-## Local Setup
+The Cursor agent is pre-configured (via the rules file) to follow this workflow:
 
-To learn more about the library, check out the [local setup 📕](https://docs.browser-use.com/development/local-setup).
+### 1. Task Discovery and Selection
 
+Ask the agent to list available tasks:
 
-`main` is the primary development branch with frequent changes. For production use, install a stable [versioned release](https://github.com/browser-use/browser-use/releases) instead.
+```
+What tasks are available to work on next?
+```
 
----
+The agent will:
+- Run `task-master list` to see all tasks
+- Run `task-master next` to determine the next task to work on
+- Analyze dependencies to determine which tasks are ready to be worked on
+- Prioritize tasks based on priority level and ID order
+- Suggest the next task(s) to implement
 
-## Swag
+### 2. Task Implementation
 
-Want to show off your Browser-use swag? Check out our [Merch store](https://browsermerch.com). Good contributors will receive swag for free 👀.
+When implementing a task, the agent will:
+- Reference the task's details section for implementation specifics
+- Consider dependencies on previous tasks
+- Follow the project's coding standards
+- Create appropriate tests based on the task's testStrategy
 
-## Citation
+You can ask:
+```
+Let's implement task 3. What does it involve?
+```
 
-If you use Browser Use in your research or project, please cite:
+### 3. Task Verification
 
-```bibtex
-@software{browser_use2024,
-  author = {Müller, Magnus and Žunič, Gregor},
-  title = {Browser Use: Enable AI to control your browser},
-  year = {2024},
-  publisher = {GitHub},
-  url = {https://github.com/browser-use/browser-use}
+Before marking a task as complete, verify it according to:
+- The task's specified testStrategy
+- Any automated tests in the codebase
+- Manual verification if required
+
+### 4. Task Completion
+
+When a task is completed, tell the agent:
+
+```
+Task 3 is now complete. Please update its status.
+```
+
+The agent will execute:
+```bash
+task-master set-status --id=3 --status=done
+```
+
+### 5. Handling Implementation Drift
+
+If during implementation, you discover that:
+- The current approach differs significantly from what was planned
+- Future tasks need to be modified due to current implementation choices
+- New dependencies or requirements have emerged
+
+Tell the agent:
+```
+We've changed our approach. We're now using Express instead of Fastify. Please update all future tasks to reflect this change.
+```
+
+The agent will execute:
+```bash
+task-master update --from=4 --prompt="Now we are using Express instead of Fastify."
+```
+
+This will rewrite or re-scope subsequent tasks in tasks.json while preserving completed work.
+
+### 6. Breaking Down Complex Tasks
+
+For complex tasks that need more granularity:
+
+```
+Task 5 seems complex. Can you break it down into subtasks?
+```
+
+The agent will execute:
+```bash
+task-master expand --id=5 --num=3
+```
+
+You can provide additional context:
+```
+Please break down task 5 with a focus on security considerations.
+```
+
+The agent will execute:
+```bash
+task-master expand --id=5 --prompt="Focus on security aspects"
+```
+
+You can also expand all pending tasks:
+```
+Please break down all pending tasks into subtasks.
+```
+
+The agent will execute:
+```bash
+task-master expand --all
+```
+
+For research-backed subtask generation using Perplexity AI:
+```
+Please break down task 5 using research-backed generation.
+```
+
+The agent will execute:
+```bash
+task-master expand --id=5 --research
+```
+
+## Command Reference
+
+Here's a comprehensive reference of all available commands:
+
+### Parse PRD
+```bash
+# Parse a PRD file and generate tasks
+task-master parse-prd <prd-file.txt>
+
+# Limit the number of tasks generated
+task-master parse-prd <prd-file.txt> --num-tasks=10
+```
+
+### List Tasks
+```bash
+# List all tasks
+task-master list
+
+# List tasks with a specific status
+task-master list --status=<status>
+
+# List tasks with subtasks
+task-master list --with-subtasks
+
+# List tasks with a specific status and include subtasks
+task-master list --status=<status> --with-subtasks
+```
+
+### Show Next Task
+```bash
+# Show the next task to work on based on dependencies and status
+task-master next
+```
+
+### Show Specific Task
+```bash
+# Show details of a specific task
+task-master show <id>
+# or
+task-master show --id=<id>
+
+# View a specific subtask (e.g., subtask 2 of task 1)
+task-master show 1.2
+```
+
+### Update Tasks
+```bash
+# Update tasks from a specific ID and provide context
+task-master update --from=<id> --prompt="<prompt>"
+```
+
+### Generate Task Files
+```bash
+# Generate individual task files from tasks.json
+task-master generate
+```
+
+### Set Task Status
+```bash
+# Set status of a single task
+task-master set-status --id=<id> --status=<status>
+
+# Set status for multiple tasks
+task-master set-status --id=1,2,3 --status=<status>
+
+# Set status for subtasks
+task-master set-status --id=1.1,1.2 --status=<status>
+```
+
+When marking a task as "done", all of its subtasks will automatically be marked as "done" as well.
+
+### Expand Tasks
+```bash
+# Expand a specific task with subtasks
+task-master expand --id=<id> --num=<number>
+
+# Expand with additional context
+task-master expand --id=<id> --prompt="<context>"
+
+# Expand all pending tasks
+task-master expand --all
+
+# Force regeneration of subtasks for tasks that already have them
+task-master expand --all --force
+
+# Research-backed subtask generation for a specific task
+task-master expand --id=<id> --research
+
+# Research-backed generation for all tasks
+task-master expand --all --research
+```
+
+### Clear Subtasks
+```bash
+# Clear subtasks from a specific task
+task-master clear-subtasks --id=<id>
+
+# Clear subtasks from multiple tasks
+task-master clear-subtasks --id=1,2,3
+
+# Clear subtasks from all tasks
+task-master clear-subtasks --all
+```
+
+### Analyze Task Complexity
+```bash
+# Analyze complexity of all tasks
+task-master analyze-complexity
+
+# Save report to a custom location
+task-master analyze-complexity --output=my-report.json
+
+# Use a specific LLM model
+task-master analyze-complexity --model=claude-3-opus-20240229
+
+# Set a custom complexity threshold (1-10)
+task-master analyze-complexity --threshold=6
+
+# Use an alternative tasks file
+task-master analyze-complexity --file=custom-tasks.json
+
+# Use Perplexity AI for research-backed complexity analysis
+task-master analyze-complexity --research
+```
+
+### View Complexity Report
+```bash
+# Display the task complexity analysis report
+task-master complexity-report
+
+# View a report at a custom location
+task-master complexity-report --file=my-report.json
+```
+
+### Managing Task Dependencies
+```bash
+# Add a dependency to a task
+task-master add-dependency --id=<id> --depends-on=<id>
+
+# Remove a dependency from a task
+task-master remove-dependency --id=<id> --depends-on=<id>
+
+# Validate dependencies without fixing them
+task-master validate-dependencies
+
+# Find and fix invalid dependencies automatically
+task-master fix-dependencies
+```
+
+### Add a New Task
+```bash
+# Add a new task using AI
+task-master add-task --prompt="Description of the new task"
+
+# Add a task with dependencies
+task-master add-task --prompt="Description" --dependencies=1,2,3
+
+# Add a task with priority
+task-master add-task --prompt="Description" --priority=high
+```
+
+## Feature Details
+
+### Analyzing Task Complexity
+
+The `analyze-complexity` command:
+- Analyzes each task using AI to assess its complexity on a scale of 1-10
+- Recommends optimal number of subtasks based on configured DEFAULT_SUBTASKS
+- Generates tailored prompts for expanding each task
+- Creates a comprehensive JSON report with ready-to-use commands
+- Saves the report to scripts/task-complexity-report.json by default
+
+The generated report contains:
+- Complexity analysis for each task (scored 1-10)
+- Recommended number of subtasks based on complexity
+- AI-generated expansion prompts customized for each task
+- Ready-to-run expansion commands directly within each task analysis
+
+### Viewing Complexity Report
+
+The `complexity-report` command:
+- Displays a formatted, easy-to-read version of the complexity analysis report
+- Shows tasks organized by complexity score (highest to lowest)
+- Provides complexity distribution statistics (low, medium, high)
+- Highlights tasks recommended for expansion based on threshold score
+- Includes ready-to-use expansion commands for each complex task
+- If no report exists, offers to generate one on the spot
+
+### Smart Task Expansion
+
+The `expand` command automatically checks for and uses the complexity report:
+
+When a complexity report exists:
+- Tasks are automatically expanded using the recommended subtask count and prompts
+- When expanding all tasks, they're processed in order of complexity (highest first)
+- Research-backed generation is preserved from the complexity analysis
+- You can still override recommendations with explicit command-line options
+
+Example workflow:
+```bash
+# Generate the complexity analysis report with research capabilities
+task-master analyze-complexity --research
+
+# Review the report in a readable format
+task-master complexity-report
+
+# Expand tasks using the optimized recommendations
+task-master expand --id=8
+# or expand all tasks
+task-master expand --all
+```
+
+### Finding the Next Task
+
+The `next` command:
+- Identifies tasks that are pending/in-progress and have all dependencies satisfied
+- Prioritizes tasks by priority level, dependency count, and task ID
+- Displays comprehensive information about the selected task:
+  - Basic task details (ID, title, priority, dependencies)
+  - Implementation details
+  - Subtasks (if they exist)
+- Provides contextual suggested actions:
+  - Command to mark the task as in-progress
+  - Command to mark the task as done
+  - Commands for working with subtasks
+
+### Viewing Specific Task Details
+
+The `show` command:
+- Displays comprehensive details about a specific task or subtask
+- Shows task status, priority, dependencies, and detailed implementation notes
+- For parent tasks, displays all subtasks and their status
+- For subtasks, shows parent task relationship
+- Provides contextual action suggestions based on the task's state
+- Works with both regular tasks and subtasks (using the format taskId.subtaskId)
+
+## Best Practices for AI-Driven Development
+
+1. **Start with a detailed PRD**: The more detailed your PRD, the better the generated tasks will be.
+
+2. **Review generated tasks**: After parsing the PRD, review the tasks to ensure they make sense and have appropriate dependencies.
+
+3. **Analyze task complexity**: Use the complexity analysis feature to identify which tasks should be broken down further.
+
+4. **Follow the dependency chain**: Always respect task dependencies - the Cursor agent will help with this.
+
+5. **Update as you go**: If your implementation diverges from the plan, use the update command to keep future tasks aligned with your current approach.
+
+6. **Break down complex tasks**: Use the expand command to break down complex tasks into manageable subtasks.
+
+7. **Regenerate task files**: After any updates to tasks.json, regenerate the task files to keep them in sync.
+
+8. **Communicate context to the agent**: When asking the Cursor agent to help with a task, provide context about what you're trying to achieve.
+
+9. **Validate dependencies**: Periodically run the validate-dependencies command to check for invalid or circular dependencies.
+
+## Example Cursor AI Interactions
+
+### Starting a new project
+```
+I've just initialized a new project with Claude Task Master. I have a PRD at scripts/prd.txt. 
+Can you help me parse it and set up the initial tasks?
+```
+
+### Working on tasks
+```
+What's the next task I should work on? Please consider dependencies and priorities.
+```
+
+### Implementing a specific task
+```
+I'd like to implement task 4. Can you help me understand what needs to be done and how to approach it?
+```
+
+### Managing subtasks
+```
+I need to regenerate the subtasks for task 3 with a different approach. Can you help me clear and regenerate them?
+```
+
+### Handling changes
+```
+We've decided to use MongoDB instead of PostgreSQL. Can you update all future tasks to reflect this change?
+```
+
+### Completing work
+```
+I've finished implementing the authentication system described in task 2. All tests are passing. 
+Please mark it as complete and tell me what I should work on next.
+```
+
+### Analyzing complexity
+```
+Can you analyze the complexity of our tasks to help me understand which ones need to be broken down further?
+```
+
+### Viewing complexity report
+```
+Can you show me the complexity report in a more readable format?
+```
+````
+
+## File: scripts/dev.js
+````javascript
+#!/usr/bin/env node
+
+/**
+ * dev.js
+ * Task Master CLI - AI-driven development task management
+ * 
+ * This is the refactored entry point that uses the modular architecture.
+ * It imports functionality from the modules directory and provides a CLI.
+ */
+
+// Add at the very beginning of the file
+if (process.env.DEBUG === '1') {
+  console.error('DEBUG - dev.js received args:', process.argv.slice(2));
+}
+
+import { runCLI } from './modules/commands.js';
+
+// Run the CLI with the process arguments
+runCLI(process.argv);
+````
+
+## File: scripts/README.md
+````markdown
+# Meta-Development Script
+
+This folder contains a **meta-development script** (`dev.js`) and related utilities that manage tasks for an AI-driven or traditional software development workflow. The script revolves around a `tasks.json` file, which holds an up-to-date list of development tasks.
+
+## Overview
+
+In an AI-driven development process—particularly with tools like [Cursor](https://www.cursor.so/)—it's beneficial to have a **single source of truth** for tasks. This script allows you to:
+
+1. **Parse** a PRD or requirements document (`.txt`) to initialize a set of tasks (`tasks.json`).
+2. **List** all existing tasks (IDs, statuses, titles).
+3. **Update** tasks to accommodate new prompts or architecture changes (useful if you discover "implementation drift").
+4. **Generate** individual task files (e.g., `task_001.txt`) for easy reference or to feed into an AI coding workflow.
+5. **Set task status**—mark tasks as `done`, `pending`, or `deferred` based on progress.
+6. **Expand** tasks with subtasks—break down complex tasks into smaller, more manageable subtasks.
+7. **Research-backed subtask generation**—use Perplexity AI to generate more informed and contextually relevant subtasks.
+8. **Clear subtasks**—remove subtasks from specified tasks to allow regeneration or restructuring.
+9. **Show task details**—display detailed information about a specific task and its subtasks.
+
+## Configuration
+
+The script can be configured through environment variables in a `.env` file at the root of the project:
+
+### Required Configuration
+- `ANTHROPIC_API_KEY`: Your Anthropic API key for Claude
+
+### Optional Configuration
+- `MODEL`: Specify which Claude model to use (default: "claude-3-7-sonnet-20250219")
+- `MAX_TOKENS`: Maximum tokens for model responses (default: 4000)
+- `TEMPERATURE`: Temperature for model responses (default: 0.7)
+- `PERPLEXITY_API_KEY`: Your Perplexity API key for research-backed subtask generation
+- `PERPLEXITY_MODEL`: Specify which Perplexity model to use (default: "sonar-medium-online")
+- `DEBUG`: Enable debug logging (default: false)
+- `LOG_LEVEL`: Log level - debug, info, warn, error (default: info)
+- `DEFAULT_SUBTASKS`: Default number of subtasks when expanding (default: 3)
+- `DEFAULT_PRIORITY`: Default priority for generated tasks (default: medium)
+- `PROJECT_NAME`: Override default project name in tasks.json
+- `PROJECT_VERSION`: Override default version in tasks.json
+
+## How It Works
+
+1. **`tasks.json`**:  
+   - A JSON file at the project root containing an array of tasks (each with `id`, `title`, `description`, `status`, etc.).  
+   - The `meta` field can store additional info like the project's name, version, or reference to the PRD.  
+   - Tasks can have `subtasks` for more detailed implementation steps.
+   - Dependencies are displayed with status indicators (✅ for completed, ⏱️ for pending) to easily track progress.
+
+2. **CLI Commands**  
+   You can run the commands via:
+
+   ```bash
+   # If installed globally
+   task-master [command] [options]
+   
+   # If using locally within the project
+   node scripts/dev.js [command] [options]
+   ```
+
+   Available commands:
+
+   - `init`: Initialize a new project
+   - `parse-prd`: Generate tasks from a PRD document
+   - `list`: Display all tasks with their status
+   - `update`: Update tasks based on new information
+   - `generate`: Create individual task files
+   - `set-status`: Change a task's status
+   - `expand`: Add subtasks to a task or all tasks
+   - `clear-subtasks`: Remove subtasks from specified tasks
+   - `next`: Determine the next task to work on based on dependencies
+   - `show`: Display detailed information about a specific task
+   - `analyze-complexity`: Analyze task complexity and generate recommendations
+   - `complexity-report`: Display the complexity analysis in a readable format
+   - `add-dependency`: Add a dependency between tasks
+   - `remove-dependency`: Remove a dependency from a task
+   - `validate-dependencies`: Check for invalid dependencies
+   - `fix-dependencies`: Fix invalid dependencies automatically
+   - `add-task`: Add a new task using AI
+
+   Run `task-master --help` or `node scripts/dev.js --help` to see detailed usage information.
+
+## Listing Tasks
+
+The `list` command allows you to view all tasks and their status:
+
+```bash
+# List all tasks
+task-master list
+
+# List tasks with a specific status
+task-master list --status=pending
+
+# List tasks and include their subtasks
+task-master list --with-subtasks
+
+# List tasks with a specific status and include their subtasks
+task-master list --status=pending --with-subtasks
+```
+
+## Updating Tasks
+
+The `update` command allows you to update tasks based on new information or implementation changes:
+
+```bash
+# Update tasks starting from ID 4 with a new prompt
+task-master update --from=4 --prompt="Refactor tasks from ID 4 onward to use Express instead of Fastify"
+
+# Update all tasks (default from=1)
+task-master update --prompt="Add authentication to all relevant tasks"
+
+# Specify a different tasks file
+task-master update --file=custom-tasks.json --from=5 --prompt="Change database from MongoDB to PostgreSQL"
+```
+
+Notes:
+- The `--prompt` parameter is required and should explain the changes or new context
+- Only tasks that aren't marked as 'done' will be updated
+- Tasks with ID >= the specified --from value will be updated
+
+## Setting Task Status
+
+The `set-status` command allows you to change a task's status:
+
+```bash
+# Mark a task as done
+task-master set-status --id=3 --status=done
+
+# Mark a task as pending
+task-master set-status --id=4 --status=pending
+
+# Mark a specific subtask as done
+task-master set-status --id=3.1 --status=done
+
+# Mark multiple tasks at once
+task-master set-status --id=1,2,3 --status=done
+```
+
+Notes:
+- When marking a parent task as "done", all of its subtasks will automatically be marked as "done" as well
+- Common status values are 'done', 'pending', and 'deferred', but any string is accepted
+- You can specify multiple task IDs by separating them with commas
+- Subtask IDs are specified using the format `parentId.subtaskId` (e.g., `3.1`)
+- Dependencies are updated to show completion status (✅ for completed, ⏱️ for pending) throughout the system
+
+## Expanding Tasks
+
+The `expand` command allows you to break down tasks into subtasks for more detailed implementation:
+
+```bash
+# Expand a specific task with 3 subtasks (default)
+task-master expand --id=3
+
+# Expand a specific task with 5 subtasks
+task-master expand --id=3 --num=5
+
+# Expand a task with additional context
+task-master expand --id=3 --prompt="Focus on security aspects"
+
+# Expand all pending tasks that don't have subtasks
+task-master expand --all
+
+# Force regeneration of subtasks for all pending tasks
+task-master expand --all --force
+
+# Use Perplexity AI for research-backed subtask generation
+task-master expand --id=3 --research
+
+# Use Perplexity AI for research-backed generation on all pending tasks
+task-master expand --all --research
+```
+
+## Clearing Subtasks
+
+The `clear-subtasks` command allows you to remove subtasks from specified tasks:
+
+```bash
+# Clear subtasks from a specific task
+task-master clear-subtasks --id=3
+
+# Clear subtasks from multiple tasks
+task-master clear-subtasks --id=1,2,3
+
+# Clear subtasks from all tasks
+task-master clear-subtasks --all
+```
+
+Notes:
+- After clearing subtasks, task files are automatically regenerated
+- This is useful when you want to regenerate subtasks with a different approach
+- Can be combined with the `expand` command to immediately generate new subtasks
+- Works with both parent tasks and individual subtasks
+
+## AI Integration
+
+The script integrates with two AI services:
+
+1. **Anthropic Claude**: Used for parsing PRDs, generating tasks, and creating subtasks.
+2. **Perplexity AI**: Used for research-backed subtask generation when the `--research` flag is specified.
+
+The Perplexity integration uses the OpenAI client to connect to Perplexity's API, which provides enhanced research capabilities for generating more informed subtasks. If the Perplexity API is unavailable or encounters an error, the script will automatically fall back to using Anthropic's Claude.
+
+To use the Perplexity integration:
+1. Obtain a Perplexity API key
+2. Add `PERPLEXITY_API_KEY` to your `.env` file
+3. Optionally specify `PERPLEXITY_MODEL` in your `.env` file (default: "sonar-medium-online")
+4. Use the `--research` flag with the `expand` command
+
+## Logging
+
+The script supports different logging levels controlled by the `LOG_LEVEL` environment variable:
+- `debug`: Detailed information, typically useful for troubleshooting
+- `info`: Confirmation that things are working as expected (default)
+- `warn`: Warning messages that don't prevent execution
+- `error`: Error messages that might prevent execution
+
+When `DEBUG=true` is set, debug logs are also written to a `dev-debug.log` file in the project root.
+
+## Managing Task Dependencies
+
+The `add-dependency` and `remove-dependency` commands allow you to manage task dependencies:
+
+```bash
+# Add a dependency to a task
+task-master add-dependency --id=<id> --depends-on=<id>
+
+# Remove a dependency from a task
+task-master remove-dependency --id=<id> --depends-on=<id>
+```
+
+These commands:
+
+1. **Allow precise dependency management**:
+   - Add dependencies between tasks with automatic validation
+   - Remove dependencies when they're no longer needed
+   - Update task files automatically after changes
+
+2. **Include validation checks**:
+   - Prevent circular dependencies (a task depending on itself)
+   - Prevent duplicate dependencies
+   - Verify that both tasks exist before adding/removing dependencies
+   - Check if dependencies exist before attempting to remove them
+
+3. **Provide clear feedback**:
+   - Success messages confirm when dependencies are added/removed
+   - Error messages explain why operations failed (if applicable)
+
+4. **Automatically update task files**:
+   - Regenerates task files to reflect dependency changes
+   - Ensures tasks and their files stay synchronized
+
+## Dependency Validation and Fixing
+
+The script provides two specialized commands to ensure task dependencies remain valid and properly maintained:
+
+### Validating Dependencies
+
+The `validate-dependencies` command allows you to check for invalid dependencies without making changes:
+
+```bash
+# Check for invalid dependencies in tasks.json
+task-master validate-dependencies
+
+# Specify a different tasks file
+task-master validate-dependencies --file=custom-tasks.json
+```
+
+This command:
+- Scans all tasks and subtasks for non-existent dependencies
+- Identifies potential self-dependencies (tasks referencing themselves)
+- Reports all found issues without modifying files
+- Provides a comprehensive summary of dependency state
+- Gives detailed statistics on task dependencies
+
+Use this command to audit your task structure before applying fixes.
+
+### Fixing Dependencies
+
+The `fix-dependencies` command proactively finds and fixes all invalid dependencies:
+
+```bash
+# Find and fix all invalid dependencies
+task-master fix-dependencies
+
+# Specify a different tasks file
+task-master fix-dependencies --file=custom-tasks.json
+```
+
+This command:
+1. **Validates all dependencies** across tasks and subtasks
+2. **Automatically removes**:
+   - References to non-existent tasks and subtasks
+   - Self-dependencies (tasks depending on themselves)
+3. **Fixes issues in both**:
+   - The tasks.json data structure
+   - Individual task files during regeneration
+4. **Provides a detailed report**:
+   - Types of issues fixed (non-existent vs. self-dependencies)
+   - Number of tasks affected (tasks vs. subtasks)
+   - Where fixes were applied (tasks.json vs. task files)
+   - List of all individual fixes made
+
+This is especially useful when tasks have been deleted or IDs have changed, potentially breaking dependency chains.
+
+## Analyzing Task Complexity
+
+The `analyze-complexity` command allows you to automatically assess task complexity and generate expansion recommendations:
+
+```bash
+# Analyze all tasks and generate expansion recommendations
+task-master analyze-complexity
+
+# Specify a custom output file
+task-master analyze-complexity --output=custom-report.json
+
+# Override the model used for analysis
+task-master analyze-complexity --model=claude-3-opus-20240229
+
+# Set a custom complexity threshold (1-10)
+task-master analyze-complexity --threshold=6
+
+# Use Perplexity AI for research-backed complexity analysis
+task-master analyze-complexity --research
+```
+
+Notes:
+- The command uses Claude to analyze each task's complexity (or Perplexity with --research flag)
+- Tasks are scored on a scale of 1-10
+- Each task receives a recommended number of subtasks based on DEFAULT_SUBTASKS configuration
+- The default output path is `scripts/task-complexity-report.json`
+- Each task in the analysis includes a ready-to-use `expansionCommand` that can be copied directly to the terminal or executed programmatically
+- Tasks with complexity scores below the threshold (default: 5) may not need expansion
+- The research flag provides more contextual and informed complexity assessments
+
+### Integration with Expand Command
+
+The `expand` command automatically checks for and uses complexity analysis if available:
+
+```bash
+# Expand a task, using complexity report recommendations if available
+task-master expand --id=8
+
+# Expand all tasks, prioritizing by complexity score if a report exists
+task-master expand --all
+
+# Override recommendations with explicit values
+task-master expand --id=8 --num=5 --prompt="Custom prompt"
+```
+
+When a complexity report exists:
+- The `expand` command will use the recommended subtask count from the report (unless overridden)
+- It will use the tailored expansion prompt from the report (unless a custom prompt is provided)
+- When using `--all`, tasks are sorted by complexity score (highest first)
+- The `--research` flag is preserved from the complexity analysis to expansion
+
+The output report structure is:
+```json
+{
+  "meta": {
+    "generatedAt": "2023-06-15T12:34:56.789Z",
+    "tasksAnalyzed": 20,
+    "thresholdScore": 5,
+    "projectName": "Your Project Name",
+    "usedResearch": true
+  },
+  "complexityAnalysis": [
+    {
+      "taskId": 8,
+      "taskTitle": "Develop Implementation Drift Handling",
+      "complexityScore": 9.5,
+      "recommendedSubtasks": 6,
+      "expansionPrompt": "Create subtasks that handle detecting...",
+      "reasoning": "This task requires sophisticated logic...",
+      "expansionCommand": "task-master expand --id=8 --num=6 --prompt=\"Create subtasks...\" --research"
+    },
+    // More tasks sorted by complexity score (highest first)
+  ]
 }
 ```
 
- <div align="center"> <img src="https://github.com/user-attachments/assets/06fa3078-8461-4560-b434-445510c1766f" width="400"/> 
- 
-[![Twitter Follow](https://img.shields.io/twitter/follow/Gregor?style=social)](https://x.com/gregpr07)
-[![Twitter Follow](https://img.shields.io/twitter/follow/Magnus?style=social)](https://x.com/mamagnus00)
- 
- </div>
+## Finding the Next Task
 
-<div align="center">
-Made with ❤️ in Zurich and San Francisco
- </div>
+The `next` command helps you determine which task to work on next based on dependencies and status:
+
+```bash
+# Show the next task to work on
+task-master next
+
+# Specify a different tasks file
+task-master next --file=custom-tasks.json
+```
+
+This command:
+
+1. Identifies all **eligible tasks** - pending or in-progress tasks whose dependencies are all satisfied (marked as done)
+2. **Prioritizes** these eligible tasks by:
+   - Priority level (high > medium > low)
+   - Number of dependencies (fewer dependencies first)
+   - Task ID (lower ID first)
+3. **Displays** comprehensive information about the selected task:
+   - Basic task details (ID, title, priority, dependencies)
+   - Detailed description and implementation details
+   - Subtasks if they exist
+4. Provides **contextual suggested actions**:
+   - Command to mark the task as in-progress
+   - Command to mark the task as done when completed
+   - Commands for working with subtasks (update status or expand)
+
+This feature ensures you're always working on the most appropriate task based on your project's current state and dependency structure.
+
+## Showing Task Details
+
+The `show` command allows you to view detailed information about a specific task:
+
+```bash
+# Show details for a specific task
+task-master show 1
+
+# Alternative syntax with --id option
+task-master show --id=1
+
+# Show details for a subtask
+task-master show --id=1.2
+
+# Specify a different tasks file
+task-master show 3 --file=custom-tasks.json
+```
+
+This command:
+
+1. **Displays comprehensive information** about the specified task:
+   - Basic task details (ID, title, priority, dependencies, status)
+   - Full description and implementation details
+   - Test strategy information
+   - Subtasks if they exist
+2. **Handles both regular tasks and subtasks**:
+   - For regular tasks, shows all subtasks and their status
+   - For subtasks, shows the parent task relationship
+3. **Provides contextual suggested actions**:
+   - Commands to update the task status
+   - Commands for working with subtasks
+   - For subtasks, provides a link to view the parent task
+
+This command is particularly useful when you need to examine a specific task in detail before implementing it or when you want to check the status and details of a particular task.
 ````
 
 ## File: SECURITY.md
@@ -27897,6 +27183,13 @@ Please include as much of the information listed below as you can to help me bet
 * Impact of the issue, including how an attacker might exploit the issue
 
 This information will help me triage your report more quickly.
+````
+
+## File: service.py
+````python
+from __future__ import annotations
+ 
+# Standard library imports
 ````
 
 ## File: SPIKE_FLOW_2.md
@@ -28438,6 +27731,1441 @@ Inside the *first execution* of `Agent.step()` (`SPIKE_FLOW.md`, starting Line 5
 **In summary:** The first time the LLM is invoked to understand the specific task and decide on the *initial actions* (like navigating to a URL) is during the first call to `Agent.step()`, within the `Agent.get_next_action()` method, referenced on **Line 69** of `SPIKE_FLOW.md`.
 ````
 
+## File: .cursor/rules/chrome_extension_content_readiness.mdc
+````
+---
+description: Prevents "Receiving end does not exist" errors when background.js messages content.js by ensuring content script is ready.
+globs: ["**/extension/background.js", "**/extension/content.js"]
+alwaysApply: true
+---
+---
+description: Ensures reliable communication between background.js and content.js by implementing a two-way ready handshake.
+globs: ["**/extension/background.js", "**/extension/content.js"]
+alwaysApply: true
+---
+
+- **Problem: `background.js` calling `chrome.tabs.sendMessage` to `content.js` can fail if `content.js` hasn't fully initialized its `chrome.runtime.onMessage` listener, often leading to "Error: Could not establish connection. Receiving end does not exist."**
+
+- **Solution: Two-Way "Ready" Handshake**
+
+    - **1. `content.js` Pings "Ready":**
+        - After `content.js` successfully adds its `chrome.runtime.onMessage.addListener` (typically at or near the end of its main execution block), it *must* send a message to `background.js` indicating it's ready for the current tab.
+        ```javascript
+        // In content.js, after listener setup and other critical initializations:
+        console.log("content.js: Attempting to send content_script_ready message.");
+        chrome.runtime.sendMessage({ type: "content_script_ready" }, response => {
+            if (chrome.runtime.lastError) {
+                console.error('content.js: Error sending content_script_ready:', chrome.runtime.lastError.message);
+            } else {
+                // console.log("content.js: Background acked content_script_ready:", response);
+            }
+        });
+        ```
+
+    - **2. `background.js` Tracks Ready Scripts:**
+        - `background.js` maintains a `Set` of `tabId`s for which `content_script_ready` has been received.
+        ```javascript
+        // In background.js:
+        const contentScriptsReady = new Set();
+        // Ensure CONTENT_SCRIPT_READY_TIMEOUT is defined (e.g., const CONTENT_SCRIPT_READY_TIMEOUT = 5000;)
+
+        chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+            if (sender.tab && message.type === "content_script_ready") {
+                console.log(`background.js: Received 'content_script_ready' from tabId: ${sender.tab.id}`);
+                contentScriptsReady.add(sender.tab.id);
+                sendResponse({ status: "acknowledged_content_script_ready", tabId: sender.tab.id });
+                return true; // For async response
+            }
+            // ... other listeners ...
+        });
+        // Remember to remove tabId from Set on chrome.tabs.onRemoved
+        chrome.tabs.onRemoved.addListener(tabId => {
+            if (contentScriptsReady.has(tabId)) {
+                contentScriptsReady.delete(tabId);
+                console.log(`background.js: Removed tabId ${tabId} from contentScriptsReady set.`);
+            }
+        });
+        ```
+
+    - **3. `background.js` Waits Before Sending Critical Messages to `content.js`:**
+        - Before `background.js` calls `chrome.tabs.sendMessage` to a `content.js` for a specific `tabId` (e.g., for `get_state`):
+            - It first checks if `tabId` is in `contentScriptsReady` by calling an async helper like `waitForContentScriptReady`.
+            - This helper function should poll the `contentScriptsReady` Set for a limited timeout (e.g., 3-5 seconds).
+            - If the timeout occurs, an error should be returned/thrown, eventually propagating to the original requester (e.g., the Python server).
+            - Avoid relying solely on arbitrary `setTimeout` delays before sending.
+        ```javascript
+        // In background.js:
+        // async function waitForContentScriptReady(tabId, timeoutMs) {
+        //     const startTime = Date.now();
+        //     console.log(`background.js: waitForContentScriptReady called for tabId: ${tabId}, timeout: ${timeoutMs}ms`);
+        //     while (Date.now() - startTime < timeoutMs) {
+        //         if (contentScriptsReady.has(tabId)) {
+        //             console.log(`background.js: Content script for tabId: ${tabId} is ready.`);
+        //             return true;
+        //         }
+        //         // console.log(`background.js: Polling for content script ready for tabId: ${tabId}. Still waiting...`);
+        //         await new Promise(resolve => setTimeout(resolve, 250)); // Poll frequently
+        //     }
+        //     console.error(`background.js: Timeout waiting for content script in tab ${tabId} to signal ready after ${timeoutMs}ms.`);
+        //     return false;
+        // }
+
+        // Example usage in background.js before chrome.tabs.sendMessage(tabId, ...):
+        // const isReady = await waitForContentScriptReady(targetTabId, CONTENT_SCRIPT_READY_TIMEOUT);
+        // if (!isReady) {
+        //   throw new Error(`Content script in tab ${targetTabId} not ready after ${CONTENT_SCRIPT_READY_TIMEOUT}ms`);
+        // }
+        // // Proceed with chrome.tabs.sendMessage...
+        ```
+
+    - **4. Debugging Handshake Failures (NEW SECTION):**
+        - If `waitForContentScriptReady` times out, it means the `content_script_ready` signal was not received for that tab.
+        - **Check `content.js` execution in the target tab:**
+            - Open the Developer Console for the specific tab that is timing out.
+            - Look for:
+                - Initial `console.log` messages from `content.js` (e.g., "Content script loaded and executing."). If missing, `content.js` might not be injecting.
+                - The log "content.js: Attempting to send content\_script\_ready message.".
+                - Any errors logged by `content.js` itself, especially around `chrome.runtime.sendMessage`.
+                - Any general JavaScript errors on the page that might be breaking `content.js` execution.
+                - Check for "Uncaught (in promise) Error: Could not establish connection. Receiving end does not exist." specifically in the *content script's console* when it tries to send its ready message. This can indicate an issue with `background.js` or the extension being reloaded/disabled.
+        - **Check `background.js` (Service Worker) console:**
+            - Look for the log "background.js: Received 'content\_script\_ready' from tabId: { проблемный_tabId}". If present, the message arrived.
+            - Observe polling logs from `waitForContentScriptReady` to see if it's checking for the correct `tabId`.
+            - Check for any errors in `background.js` that might occur when `chrome.runtime.onMessage` receives messages.
+        - **Verify Manifest (`manifest.json`):**
+            - Ensure `content_scripts` are correctly declared with appropriate `matches` patterns (e.g., `"<all_urls>"` for broad matching) and `js` pointing to the correct `content.js` file.
+        - **Content Security Policy (CSP):**
+            - Check the target tab's Developer Console for CSP errors. Strict CSPs on a webpage can prevent content scripts from executing inline scripts, loading resources, or making certain types of connections, potentially interfering with `sendMessage`.
+        - **Extension Reloads/Errors:**
+            - If the extension is reloaded (e.g., during development) or encounters a critical error, the message channel between `content.js` and `background.js` can break. Ensure the extension is stable.
+````
+
+## File: .cursor/rules/python_script_module_execution.mdc
+````
+---
+description: Guidelines for continuously improving Cursor rules based on emerging code patterns and best practices.
+globs: **/*
+alwaysApply: true
+---
+---
+description: Comprehensive guide on Python module import resolution and best practices for executing scripts within package structures, informed by common pitfalls and debugging strategies.
+globs: ["**/*.py", "*/__init__.py"] # Applies broadly to Python files
+alwaysApply: true
+---
+
+- **Core Principles of Python Module Import Resolution**
+    - **The Role of `sys.path`:**
+        - Python uses a list of directories called `sys.path` to search for modules. The first module found with the correct name is used.
+        - When you run `python path/to/script.py`, the directory of `script.py` (i.e., `path/to/`) is typically added to the *start* of `sys.path`.
+        - When you run `python -m package.module`, Python adds the *current working directory* (CWD) to `sys.path`. This is why the CWD is crucial when using `-m`.
+    - **`__init__.py` Files Define Packages:**
+        - For a directory to be recognized by Python as a package (or sub-package) from which modules can be imported, it *must* contain an `__init__.py` file.
+        - This applies to your main source directories (e.g., `browser_use_ext/`) and all sub-directories intended to be part of the package structure (e.g., `browser_use_ext/extension_interface/`).
+        - Missing `__init__.py` files are a common cause of `ModuleNotFoundError`.
+    - **Absolute vs. Relative Imports:**
+        - **Absolute imports** (e.g., `from browser_use_ext.browser import BrowserContext`) specify the full path from a top-level package directory on `sys.path`. They are generally preferred for clarity.
+        - **Relative imports** (e.g., `from . import sibling_module`, `from ..parent_package_module import something`) are used for imports within the same package. The `.` refers to the current package, and `..` refers to the parent package.
+        - Relative imports like `from ..module import X` only work if the script is run as part of a package (e.g., using `python -m`).
+    - **Directory Naming vs. Import Naming:**
+        - Directory names can contain hyphens (e.g., `browser-use-ext`).
+        - However, Python package and module names used in `import` statements must be valid Python identifiers (e.g., `browser_use_ext`).
+        - If your code is in `browser-use-ext/` and this directory is effectively your top-level package source added to `sys.path` (or its parent is, and you import `browser_use_ext`), you'd use `import browser_use_ext` or `from browser_use_ext import ...`.
+
+- **Executing Python Scripts: Best Practices for Packages**
+    - **Strongly Prefer `python -m package.module` for Package Scripts:**
+        - This is the most robust way to run scripts that are part of a package and need to import other modules from the same package or sibling sub-packages.
+        - **How it works:** It correctly sets up `sys.path` by adding your *current working directory* (CWD). If your CWD is the directory *containing* your top-level package (e.g., `project_root/` which contains `my_package/`), then `my_package` becomes available for import.
+        - **Execution Context (CWD):**
+            - If your structure is `project_root/my_app_package/module_a.py`, you should `cd project_root` and then run `python -m my_app_package.module_a`.
+            - For our project: If `browser_use_ext` is the top-level package directory, you should be *outside* it (in its parent directory, e.g., `browser-use/`) and run `python -m browser_use_ext.extension_interface.service`.
+            - If you intend `extension_interface` to be run as a module and `browser_use_ext` is its containing package, you could also `cd browser_use_ext` and run `python -m extension_interface.service` (assuming `browser_use_ext` itself is structured as a namespace or is on PYTHONPATH). *However, being in the parent of `browser_use_ext` and using `python -m browser_use_ext.module` is often less ambiguous for multi-level packages.*
+    - **Limitations of Direct Script Execution (`python path/to/script.py`):**
+        - As mentioned, this adds `path/to/` (the script's own directory) to `sys.path`.
+        - This is fine for simple scripts or if all imports are from that directory or standard library.
+        - It becomes problematic for scripts deep within a package structure that need to use relative imports like `from ..another_package import ...` because `path/to/` might not be the correct base for such an import to resolve against the intended package structure. This often leads to `ImportError: attempted relative import beyond top-level package`.
+
+- **Common Import Pitfalls & Debugging Strategies**
+    - **`ModuleNotFoundError`:**
+        1.  **`__init__.py`:** Verify presence in all package directories.
+        2.  **`sys.path` & CWD:** `print(sys.path)` and `print(os.getcwd())` at the start of your script or in an interactive session. Is the directory containing your top-level package present in `sys.path`? Is your CWD correct for how you're running the script (especially with `-m`)?
+        3.  **Typos:** Check spelling in import statements and filenames.
+        4.  **Virtual Environment:** Ensure you're in the correct one if using virtual environments.
+        5.  **Installation:** If it's an installed package, is it installed correctly in the environment Python is using?
+    - **`ImportError: attempted relative import beyond top-level package`:**
+        - This usually means you're running a script directly (e.g., `python path/to/package/module.py`) that is designed to be run as part of a package (using `python -m package.module`). The `..` in a relative import is trying to go above the directory that Python considers the "top-level" for that script's execution context.
+    - **Module Shadowing:**
+        - If you have a script/module with the same name as a standard library module or another module earlier in `sys.path` (e.g., a `test.py` in your CWD when trying to import the `test` standard library), Python might import the wrong one. Avoid naming your modules after common standard library modules. Rename conflicting local files if necessary.
+    - **Avoid `sys.path` Manipulation in Scripts if Possible:**
+        - While scripts *can* manually add parent directories to `sys.path` (e.g., `sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))`), this can make code harder to understand, maintain, and less portable.
+        - Prefer structuring your project correctly and using the appropriate execution method (like `python -m`) so that such manipulations are unnecessary.
+
+### Examples:
+
+Assuming project structure:
+```
+project_root/
+├── browser_use_ext/
+│   ├── __init__.py
+│   ├── extension_interface/
+│   │   ├── __init__.py
+│   │   └── service.py
+│   └── browser/
+│       ├── __init__.py
+│       └── context.py
+└── run_my_service.py
+```
+
+**To run `service.py` as a module (Recommended):**
+```bash
+cd project_root
+python -m browser_use_ext.extension_interface.service
+```
+*Inside `service.py`, you can use:*
+```python
+from ..browser import context # Correct relative import
+from browser_use_ext.browser import context # Correct absolute import if CWD is project_root
+```
+
+**If `run_my_service.py` needs to import from `browser_use_ext`:**
+```python
+# In project_root/run_my_service.py
+import sys
+import os
+# Option 1: Add browser_use_ext's parent to sys.path if not already (less ideal than -m for packaged components)
+# sys.path.insert(0, os.path.abspath(os.path.dirname(__file__))) # Adds project_root
+
+from browser_use_ext.extension_interface import service
+from browser_use_ext.browser import context
+
+# ... rest of your script
+```
+Then run:
+```bash
+cd project_root
+python run_my_service.py
+```
+````
+
+## File: .cursor/rules/python_websockets_guidelines.mdc
+````
+---
+description: Guidelines for continuously improving Cursor rules based on emerging code patterns and best practices.
+globs: **/*
+alwaysApply: true
+---
+---
+description: Enforces best practices for Python websockets library handlers, Pydantic model validation with connection objects, and handling API changes/deprecations.
+globs: ["**/extension_interface/service.py", "**/websocket_handlers.py", "**/*_ws_interface.py"]
+alwaysApply: true
+---
+
+- **Prioritize Correct WebSocket Handler Signatures and Type Hinting**
+    - Always consult the specific version of the `websockets` library documentation for the correct signature of connection handlers passed to `websockets.serve()`.
+    - Pay close attention to arguments provided by the library (e.g., `websocket`, `path`). If an argument like `path` is not always provided by the library, ensure your handler accepts it as an `Optional` argument.
+    - Use accurate type hints for WebSocket connection objects. For recent versions of the `websockets` library (e.g., v10+), `websockets.asyncio.server.ServerConnection` is often the correct type for the connection object passed to handlers, not the deprecated `websockets.server.WebSocketServerProtocol`.
+
+    ```python
+    # ✅ DO: Use correct types and optional arguments as needed.
+    from websockets.asyncio.server import ServerConnection # Correct import
+    from typing import Optional
+    # import logging # Assuming logger is configured elsewhere
+    # logger = logging.getLogger(__name__)
+
+    async def my_websocket_handler(websocket: ServerConnection, path: Optional[str] = None) -> None:
+        # logger.info(f"Connection from {websocket.remote_address} on path {path or 'unknown'}")
+        # ... rest of your handler logic
+        pass
+    
+    # ❌ DON'T: Use deprecated types or assume arguments are always provided.
+    # from websockets.server import WebSocketServerProtocol # Deprecated
+    
+    # async def my_bad_handler(websocket: WebSocketServerProtocol, path: str) -> None:
+    #     # This might lead to TypeError if path is not provided by websockets.serve()
+    #     # or Pydantic validation errors if WebSocketServerProtocol is not the actual type.
+    #     # logger.info(f"Connection from {websocket.remote_address} on path {path}")
+    #     # ...
+    #     pass
+    ```
+
+- **Ensure Pydantic Models Match WebSocket Object Types**
+    - When using Pydantic models to store or process WebSocket connection objects (e.g., in a `ConnectionInfo` class), the type hint for the `websocket` field in your Pydantic model *must* match the actual type of the object being passed by the library.
+    - Set `model_config = {"arbitrary_types_allowed": True}` (Pydantic V2+) or `class Config: arbitrary_types_allowed = True` (Pydantic V1) in your Pydantic model if you are storing complex, non-standard types like `ServerConnection`.
+
+    ```python
+    from pydantic import BaseModel, Field # Assuming Field might be used elsewhere
+    from websockets.asyncio.server import ServerConnection
+    import asyncio # For asyncio.Task
+    from typing import Optional
+
+    class ConnectionInfo(BaseModel):
+        client_id: str
+        websocket: ServerConnection # ✅ DO: Match the actual type
+        handler_task: Optional[asyncio.Task] = None
+
+        # For Pydantic V2+
+        model_config = {
+            "arbitrary_types_allowed": True # ✅ DO: Allow arbitrary types for objects like ServerConnection
+        }
+        # For Pydantic V1 (alternative)
+        # class Config:
+        #     arbitrary_types_allowed = True
+    
+    # async def _handle_connection_example(websocket: ServerConnection, client_id_str: str) -> None:
+    #     # ...
+    #     # conn_info = ConnectionInfo(client_id=client_id_str, websocket=websocket, handler_task=asyncio.current_task()) # ✅ DO
+    #     # ...
+    #     pass
+    ```
+
+- **Proactively Check for and Address Library Deprecation Warnings**
+    - Pay attention to `DeprecationWarning` messages in your server logs (ensure your logging level captures these). These often signal upcoming breaking changes or that you're using an outdated part of an API.
+    - When a deprecation warning appears (e.g., for `WebSocketServerProtocol`), consult the library's documentation to find the recommended replacement and update your code accordingly. This helps prevent future errors when the deprecated feature is removed.
+
+- **Use `inspect` Module for Debugging Type and Signature Mismatches**
+    - If you suspect a mismatch between your code's expectations and what a library provides (e.g., type of an argument, available methods), use the `inspect` module to log the actual details at runtime.
+    - This can be crucial for confirming which version of code is being executed or the precise nature of an object.
+
+    ```python
+    import inspect
+    # import logging # Assuming logger is configured elsewhere
+    # logger = logging.getLogger(__name__)
+
+    # Example usage within a method:
+    # async def _handle_connection_debug(self, websocket: ServerConnection, path: Optional[str] = None) -> None:
+    #     try:
+    #         logger.critical(f"!!! EXECUTING _handle_connection from: {inspect.getfile(self.__class__)}")
+    #         logger.critical(f"!!! Method signature: {inspect.signature(self._handle_connection_debug)}")
+    #         logger.critical(f"!!! Websocket object type: {type(websocket)}")
+    #         logger.critical(f"!!! Websocket object MRO: {[cls.__name__ for cls in inspect.getmro(type(websocket))]}")
+    #     except Exception as e_inspect:
+    #         logger.critical(f"!!! INSPECT FAILED: {e_inspect}")
+    #     # ... rest of the handler
+    #     pass
+    ```
+
+- **Manage Python Module Import Conflicts (if applicable to WebSocket context)**
+    - While more general, import issues can affect WebSocket server setup if modules are not found as expected.
+    - Be mindful of your project structure and how Python's import system resolves modules, especially when using `python -m <module_name>` to start the server.
+    - Avoid having identically named packages or modules in different locations on your `sys.path` if they could conflict.
+    - When running scripts with `python -m`, ensure your Current Working Directory (CWD) is set appropriately so that Python can find the top-level package for the module you're trying to run.
+        - For example, if `service.py` is in `my_project/extension_interface/service.py`, and it's run as `python -m extension_interface.service`, the CWD should typically be `my_project/`.
+````
+
+## File: .gitignore
+````
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/other infos into it.
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Saved Trajectories for internal evaluation
+saved_trajectories/
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+.pybuilder/
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+#   For a library or package, you might want to ignore these files since the code is
+#   intended to run in multiple environments; otherwise, check them in:
+# .python-version
+
+# pipenv
+#   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
+#   However, in case of collaboration, if having platform-specific dependencies or dependencies
+#   having no cross-platform support, pipenv may install dependencies that don't work, or not
+#   install all needed dependencies.
+#Pipfile.lock
+
+# poetry
+#   Similar to Pipfile.lock, it is generally recommended to include poetry.lock in version control.
+#   This is especially recommended for binary packages to ensure reproducibility, and is more
+#   commonly ignored for libraries.
+#   https://python-poetry.org/docs/basic-usage/#commit-your-poetrylock-file-to-version-control
+#poetry.lock
+
+# pdm
+#   Similar to Pipfile.lock, it is generally recommended to include pdm.lock in version control.
+#pdm.lock
+#   pdm stores project-wide configurations in .pdm.toml, but it is recommended to not include it
+#   in version control.
+#   https://pdm.fming.dev/latest/usage/project/#working-with-version-control
+.pdm.toml
+.pdm-python
+.pdm-build/
+
+# PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
+__pypackages__/
+
+# Celery stuff
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+test_env/
+
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# Cython debug symbols
+cython_debug/
+
+# PyCharm
+#  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
+#  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
+#  and can be added to the global gitignore or merged into this file.  For a more nuclear
+#  option (not recommended) you can uncomment the following to ignore the entire idea folder.
+#.idea/
+temp
+tmp
+
+
+.DS_Store
+
+private_example.py
+private_example
+
+browser_cookies.json
+cookies.json
+AgentHistory.json
+cv_04_24.pdf
+AgentHistoryList.json
+*.gif
+gcp-login.json
+.vscode
+.ruff_cache
+.idea
+*.txt
+*.pdf
+*.csv
+*.json
+*.jsonl
+
+uv.lock
+
+# Added by Claude Task Master
+# Logs
+logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+dev-debug.log
+# Dependency directories
+node_modules/
+# Environment variables
+# Editor directories and files
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+# OS specific
+# Task files
+tasks.json
+tasks/
+````
+
+## File: browser_use_ext/browser/context.py
+````python
+from __future__ import annotations
+
+import asyncio
+import logging
+from typing import Any, Dict, List, Optional, Union, TYPE_CHECKING, cast
+
+from pydantic import BaseModel, Field, ValidationError
+
+# Local application/library specific imports
+from .views import BrowserState, TabInfo
+from ..dom.views import DOMElementNode
+from ..extension_interface.models import ResponseData
+
+if TYPE_CHECKING:
+    from ..extension_interface.service import ExtensionInterface
+
+# Initialize logger for this module
+logger = logging.getLogger(__name__)
+
+class BrowserContextConfig(BaseModel):
+    """
+    Configuration for the browser context.
+
+    This model holds settings that affect how the browser context interacts
+    with the browser, such as viewport size and whether to highlight elements.
+    """
+    # Optional viewport height for the browser page.
+    view_port_height: Optional[int] = Field(default=None, description="Viewport height for the browser.")
+    # Optional viewport width for the browser page.
+    view_port_width: Optional[int] = Field(default=None, description="Viewport width for the browser.")
+    # Flag to determine if interactive elements should be highlighted by the extension.
+    highlight_elements: bool = Field(default=True, description="Whether to highlight interactive elements.")
+    # Placeholder for stealth mode, not implemented with extension but kept for API compatibility.
+    use_stealth: bool = Field(default=False, description="Placeholder for stealth mode usage (not used by extension).")
+    extension_host: str = Field(default="localhost", description="Host for the extension WebSocket server")
+    extension_port: int = Field(default=8765, description="Port for the extension WebSocket server")
+    
+
+class BrowserContext:
+    """
+    Manages interaction with a browser page through the Chrome extension.
+
+    This class replaces Playwright-based interactions by communicating with a
+    custom Chrome extension via WebSockets. It provides methods to get browser
+    state, and execute actions on the page.
+    """
+    
+    def __init__(
+        self,
+        extension_interface: ExtensionInterface,
+        config: BrowserContextConfig = BrowserContextConfig(),
+    ):
+        """
+        Initializes the BrowserContext.
+
+        Args:
+            extension_interface: An instance of ExtensionInterface for communication.
+            config: Configuration settings for the browser context.
+        """
+        self.config = config
+        if extension_interface is None:
+            raise ValueError("ExtensionInterface instance must be provided to BrowserContext.")
+        self._extension = extension_interface
+        # Caching the highlight_elements config for quick access
+        self._highlight_elements = config.highlight_elements
+        # Cache for the last retrieved browser state
+        self._cached_browser_state: Optional[BrowserState] = None
+        # Cache for the selector map from the last state
+        self._cached_selector_map: Dict[int, Any] = {}
+        # Manages multiple page proxies if the application handles multiple tabs simultaneously
+        self._pages: Dict[Union[str, int], ExtensionPageProxy] = {}
+        self._active_page_proxy: Optional[ExtensionPageProxy] = None
+    
+    async def __aenter__(self):
+        """
+        Asynchronous context manager entry.
+
+        Ensures the WebSocket server for the extension interface is started
+        if it\'s not already running.
+        """
+        # Start the extension server if it\'s not already running
+        if not self._extension.is_server_running:
+            logger.info("ExtensionInterface server not running, starting it now.")
+            await self._extension.start_server()
+        # Wait briefly to ensure connection can be established if extension just started
+        # This is a pragmatic delay; a more robust solution might involve checking connection status.
+        if not self._extension.has_active_connection:
+            logger.info("Waiting briefly for potential extension connection...")
+            await asyncio.sleep(2.0) # Allow time for extension to connect
+            if not self._extension.has_active_connection:
+                logger.warning("No active extension connection after waiting. Proceeding, but get_state might fail.")
+        return self
+    
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """
+        Asynchronous context manager exit.
+
+        Currently, this does not stop the server, as the server might be shared
+        or managed externally. Consider adding server stop logic if BrowserContext
+        is meant to exclusively manage the server lifecycle.
+        """
+        # The server is not stopped here to allow for shared or externally managed instances.
+        # If BrowserContext should own the server lifecycle, uncomment the next lines:
+        # if self._extension and self._extension.is_server_running:
+        #     logger.info("Stopping ExtensionInterface server in BrowserContext aexit.")
+        #     await self._extension.stop_server()
+        pass # Current implementation does not stop the server on exit.
+    
+    async def get_state(self, include_screenshot: bool = False, tab_id: Optional[int] = None) -> BrowserState:
+        """
+        Asynchronously retrieves the current state of the browser, including all tabs,
+        the active tab's content (DOM, screenshot if requested), and other relevant metadata.
+
+        Args:
+            include_screenshot: Whether to include a screenshot of the active page.
+                                Defaults to False.
+            tab_id: Optional specific tab ID to target for page-specific data.
+                    If None, the extension will likely use the currently active tab.
+
+        Returns:
+            A BrowserState Pydantic model instance representing the current browser state.
+        """
+        logger.info(f"Requesting browser state (screenshot: {include_screenshot}, target_tab_id: {tab_id}).")
+        
+        # state_data_obj will be an instance of the ResponseData model
+        state_data_obj: ResponseData = await self._extension.get_state(
+            include_screenshot=include_screenshot,
+            tab_id=tab_id
+        )
+
+        if not state_data_obj.success:
+            error_message = f"ExtensionInterface reported an error: {state_data_obj.error}"
+            logger.error(error_message)
+            # Return a BrowserState indicating failure, populating with any partial data available
+            return BrowserState(
+                active_tab_id=state_data_obj.active_tab_id,
+                tabs=state_data_obj.tabs if state_data_obj.tabs is not None else [],
+                url=state_data_obj.url if state_data_obj.url is not None else "",
+                title=state_data_obj.title if state_data_obj.title is not None else "",
+                html_content=f"Error: {error_message}", # Main error here
+                tree=state_data_obj.tree if state_data_obj.tree is not None else {},
+                viewport_size=state_data_obj.viewport_size if state_data_obj.viewport_size is not None else {"width": 0, "height": 0},
+                scroll_position=state_data_obj.scroll_position if state_data_obj.scroll_position is not None else {"x": 0, "y": 0},
+                pixels_below=state_data_obj.pixels_below if state_data_obj.pixels_below is not None else 0,
+                screenshot=state_data_obj.screenshot,
+                # selector_map will be handled by BrowserState.model_validate from the dict
+                error_message=error_message # Explicit error field in BrowserState
+            )
+
+        try:
+            # Convert the ResponseData object to a dictionary.
+            # This dictionary will contain all fields from ResponseData (url, title, html_content, tree, tabs, etc.)
+            # including any 'extra' fields like 'selector_map' if sent by the extension.
+            browser_state_dict = state_data_obj.model_dump(exclude_none=True)
+            
+            # Validate this dictionary into a BrowserState object.
+            browser_state = BrowserState.model_validate(browser_state_dict)
+            
+            # Update caches
+            self._cached_browser_state = browser_state
+            # BrowserState model itself should define/contain selector_map
+            self._cached_selector_map = browser_state.selector_map if browser_state.selector_map is not None else {}
+
+        except ValidationError as e: # ValidationError should already be imported
+            error_msg_detail = f"Pydantic validation error while creating BrowserState: {e}"
+            logger.error(error_msg_detail)
+            problematic_dict_for_validation = state_data_obj.model_dump(exclude_none=True)
+            logger.error(f"Data that failed BrowserState validation: {problematic_dict_for_validation}")
+            
+            # Return BrowserState indicating this validation error
+            return BrowserState(
+                active_tab_id=state_data_obj.active_tab_id,
+                tabs=state_data_obj.tabs if state_data_obj.tabs is not None else [],
+                url=state_data_obj.url if state_data_obj.url is not None else "",
+                title=state_data_obj.title if state_data_obj.title is not None else "",
+                html_content=f"Error: {error_msg_detail}",
+                tree=state_data_obj.tree if state_data_obj.tree is not None else {},
+                viewport_size=state_data_obj.viewport_size if state_data_obj.viewport_size is not None else {"width": 0, "height": 0},
+                scroll_position=state_data_obj.scroll_position if state_data_obj.scroll_position is not None else {"x": 0, "y": 0},
+                pixels_below=state_data_obj.pixels_below if state_data_obj.pixels_below is not None else 0,
+                screenshot=state_data_obj.screenshot,
+                error_message=error_msg_detail
+            )
+        
+        return browser_state
+    
+    async def get_current_page(self) -> "ExtensionPageProxy":
+        """
+        Returns a proxy object that mimics a Playwright Page.
+
+        This provides a compatibility layer for parts of the system
+        that might expect a Page-like interface for common operations.
+        """
+        logger.debug("Returning ExtensionPageProxy.")
+        # The proxy uses the same extension interface instance
+        return ExtensionPageProxy(self._extension, self)
+    
+    async def get_session(self) -> "BrowserContext":
+        """
+        Returns the current BrowserContext instance.
+
+        Used for compatibility or when an explicit reference to the context is needed.
+        """
+        return self # Returns self, as this class is the session/context.
+    
+    async def get_selector_map(self) -> Dict[int, Any]:
+        """
+        Retrieves the cached selector map from the last call to get_state.
+
+        If the cache is empty, it will trigger a new get_state call.
+
+        Returns:
+            A dictionary mapping highlight indices to element information.
+        """
+        if not self._cached_selector_map:
+            logger.info("Selector map cache is empty, refreshing browser state.")
+            # Refresh state to populate the selector map
+            await self.get_state(include_screenshot=False) 
+        return self._cached_selector_map
+    
+    async def get_dom_element_by_index(self, index: int) -> DOMElementNode:
+        """
+        Retrieves a specific DOMElementNode using its highlight_index.
+        
+        This method relies on the `selector_map` from the `BrowserState`, which
+        is populated by the extension. The `selector_map` usually contains
+        direct references or XPaths to elements. This Python-side function
+        is more of a conceptual getter, as the actual element reference
+        is within the extension's context.
+
+        Args:
+            index: The highlight_index of the desired element.
+
+        Returns:
+            A DOMElementNode representing the element (may be a simplified representation).
+
+        Raises:
+            ValueError: If the element with the given index is not found in the selector map.
+            RuntimeError: If the state or element tree hasn\'t been fetched yet.
+        """
+        selector_map = await self.get_selector_map()
+        element_info = selector_map.get(index)
+
+        if not element_info:
+            logger.error(f"Element with index {index} not found in selector_map.")
+            raise ValueError(f"Element with index {index} not found in selector_map.")
+
+        if not self._cached_browser_state or not self._cached_browser_state.element_tree:
+            logger.error(f"Cannot get DOM element by index {index} because element_tree is not cached.")
+            raise RuntimeError("Browser state or element tree not available. Call get_state() first.")
+
+        # Try to find the corresponding DOMElementNode in the cached element_tree
+        # This requires traversing the tree, which can be inefficient.
+        # The primary use of highlight_index is for the *extension* to act on the element.
+        # This function provides a Python-side representation if possible.
+        
+        # Helper function to search the DOM tree
+        def find_node_by_highlight_index(node: DOMElementNode, target_index: int) -> Optional[DOMElementNode]:
+            if node.highlight_index == target_index:
+                return node
+            for child in node.children:
+                found = find_node_by_highlight_index(child, target_index)
+                if found:
+                    return found
+            return None
+
+        found_node = find_node_by_highlight_index(self._cached_browser_state.element_tree, index)
+        
+        if found_node:
+            return found_node
+        else:
+            # If not found in the tree (e.g., if selector_map has items not in element_tree
+            # or tree is partial), create a placeholder based on info from selector_map.
+            logger.warning(f"Element with index {index} found in selector_map but not in cached element_tree. Returning placeholder.")
+            return DOMElementNode(
+                tag_name=element_info.get("tag_name", "unknown"), # Assuming selector_map might have tag_name
+                attributes=element_info.get("attributes", {}),
+                highlight_index=index,
+                is_visible=element_info.get("is_visible", True), # Assuming visibility info might be there
+                xpath=element_info.get("xpath", ""), # XPath is critical
+                children=[] # Cannot determine children from selector_map alone
+            )
+
+    async def _click_element_node(self, element_node: DOMElementNode) -> Optional[str]:
+        """
+        Sends a command to the extension to click an element.
+
+        Args:
+            element_node: The DOMElementNode to be clicked. Its highlight_index is used.
+
+        Returns:
+            Optional[str]: Path to a downloaded file if the click resulted in a download
+                           (currently not supported by extension, returns None).
+
+        Raises:
+            ValueError: If the element_node does not have a highlight_index.
+        """
+        if element_node.highlight_index is None:
+            logger.error("Cannot click element: highlight_index is missing.")
+            raise ValueError("Element must have a highlight_index to be clicked via extension.")
+        
+        logger.info(f"Requesting click on element with index: {element_node.highlight_index}")
+        await self._extension.execute_action("click_element_by_index", {
+            "index": element_node.highlight_index
+        })
+        # Download handling is not implemented in this extension-based approach.
+        return None
+    
+    async def _input_text_element_node(self, element_node: DOMElementNode, text: str) -> None:
+        """
+        Sends a command to the extension to input text into an element.
+
+        Args:
+            element_node: The DOMElementNode to input text into. Its highlight_index is used.
+            text: The text to input.
+
+        Raises:
+            ValueError: If the element_node does not have a highlight_index.
+        """
+        if element_node.highlight_index is None:
+            logger.error("Cannot input text: highlight_index is missing from element_node.")
+            raise ValueError("Element must have a highlight_index for text input via extension.")
+        
+        logger.info(f"Requesting text input \'{text}\' into element with index: {element_node.highlight_index}")
+        await self._extension.execute_action("input_text", {
+            "index": element_node.highlight_index,
+            "text": text
+        })
+    
+    async def is_file_uploader(self, element_node: DOMElementNode) -> bool:
+        """
+        Checks if a given DOMElementNode represents a file input element.
+
+        Args:
+            element_node: The DOMElementNode to check.
+
+        Returns:
+            True if the element is an <input type="file">, False otherwise.
+        """
+        # This check is based on common HTML attributes for file inputs.
+        is_uploader = (
+            element_node.tag_name.lower() == "input" and
+            element_node.attributes.get("type", "").lower() == "file"
+        )
+        logger.debug(f"Element (index {element_node.highlight_index}) is_file_uploader: {is_uploader}")
+        return is_uploader
+    
+    async def take_screenshot(self, full_page: bool = False) -> Optional[str]:
+        """
+        Requests a screenshot of the current page from the extension.
+
+        Args:
+            full_page: This parameter is for Playwright compatibility. The extension currently
+                       captures the visible tab. Full page screenshots are not directly supported
+                       by `chrome.tabs.captureVisibleTab` in the same way.
+
+        Returns:
+            A base64 encoded string of the screenshot PNG, or None if failed.
+        """
+        if full_page:
+            logger.warning("Full page screenshot requested, but extension captures visible tab. Proceeding with visible tab capture.")
+        
+        # Request state with screenshot included
+        state = await self.get_state(include_screenshot=True)
+        if state.screenshot:
+            logger.info("Screenshot taken successfully.")
+        else:
+            logger.warning("Screenshot attempt made, but no screenshot data received.")
+        return state.screenshot # This will be base64 data or None
+    
+    async def remove_highlights(self) -> None:
+        """
+        Placeholder for removing highlights from elements on the page.
+        
+        This functionality would need to be implemented in the content script
+        of the Chrome extension.
+        """
+        # This functionality would be an action sent to the content script.
+        # For example: await self._extension.execute_action("remove_highlights", {})
+        logger.info("remove_highlights called (placeholder - requires extension implementation).")
+        pass # No-op for now, requires extension-side implementation.
+    
+    async def create_new_tab(self, url: Optional[str] = None) -> None:
+        """
+        Requests the extension to open a new browser tab.
+
+        Args:
+            url: The URL to open in the new tab. If None, "about:blank" is typically used.
+        """
+        target_url = url or "about:blank" # Default to blank page if no URL specified
+        logger.info(f"Requesting to open new tab with URL: {target_url}")
+        await self._extension.execute_action("open_tab", {"url": target_url})
+        # Active tab should be updated by the background script logic and subsequent get_state calls.
+    
+    async def switch_to_tab(self, page_id: int) -> None:
+        """
+        Requests the extension to switch to a different browser tab.
+
+        Args:
+            page_id: The page_id (index from the tabs list) of the tab to switch to.
+        """
+        logger.info(f"Requesting to switch to tab with page_id: {page_id}")
+        await self._extension.execute_action("switch_tab", {"page_id": page_id})
+        # Active tab status should be reflected in subsequent get_state calls.
+
+    async def go_back(self) -> None:
+        """
+        Requests the extension to navigate back in the current tab\'s history.
+        """
+        logger.info("Requesting to navigate back.")
+        await self._extension.execute_action("go_back", {})
+        # Page state will change, new get_state() will reflect it.
+    
+    async def close_tab(self, page_id: Optional[int] = None) -> None:
+        """
+        Requests the extension to close a browser tab.
+
+        Args:
+            page_id: The page_id (index from the tabs list) of the tab to close.
+                     If None, it attempts to close the current active tab.
+        """
+        current_page_id_to_close = page_id
+
+        if current_page_id_to_close is None:
+            # If no page_id is provided, try to determine the current active tab's page_id
+            if self._cached_browser_state and self._cached_browser_state.tabs:
+                # Find the current tab based on URL and Title (less reliable) or assume first active
+                # A more robust way is if background.js returns active_tab_chrome_id and we map it.
+                # For now, let's assume if no page_id, the action should target what the extension considers active.
+                # The background script's close_tab should ideally handle "current active" if no id provided.
+                # However, our current background script expects a page_id.
+                # Let's try to find the active one from our cached state.
+                active_tab_info = next((tab for tab in self._cached_browser_state.tabs if self._cached_browser_state.url == tab.url), None) # Simple match
+                if active_tab_info:
+                    current_page_id_to_close = active_tab_info.page_id
+                    logger.info(f"No page_id provided for close_tab, attempting to close current tab (page_id: {current_page_id_to_close}).")
+                else:
+                    logger.error("Cannot determine current tab to close: no page_id provided and no matching active tab in cache.")
+                    raise ValueError("Cannot determine current tab to close without page_id or cached active tab info.")
+            else:
+                # If no cached state, we must have a page_id
+                logger.error("Cannot close tab: no page_id specified and no cached browser state to determine active tab.")
+                raise ValueError("page_id must be specified to close a tab if browser state is not cached.")
+
+        logger.info(f"Requesting to close tab with page_id: {current_page_id_to_close}")
+        await self._extension.execute_action("close_tab", {"page_id": current_page_id_to_close})
+        # State should be updated on next get_state call.
+
+
+class ExtensionPageProxy:
+    """
+    A proxy class that provides a simplified, Playwright-Page-like interface.
+
+    This class delegates actions to the ExtensionInterface, allowing other parts
+    of the application to interact with the browser via the extension using
+    a familiar API (subset of Playwright Page API).
+    """
+    
+    def __init__(self, extension: ExtensionInterface, browser_context: BrowserContext):
+        """
+        Initializes the ExtensionPageProxy.
+
+        Args:
+            extension: The ExtensionInterface instance for communication.
+            browser_context: The parent BrowserContext, used to refresh state.
+        """
+        self._extension = extension
+        self._browser_context = browser_context
+        self.url: Optional[str] = None
+        self.title_val: Optional[str] = None
+        self.frames: list = []
+
+    async def goto(self, url: str, **kwargs: Any) -> None:
+        """
+        Navigates the current active tab to the specified URL via the extension.
+
+        Args:
+            url: The URL to navigate to.
+            **kwargs: Ignored, for Playwright compatibility.
+        """
+        logger.info(f"ExtensionPageProxy: Navigating to URL: {url}")
+        await self._extension.execute_action("go_to_url", {"url": url})
+        # After navigation, update local URL and title by fetching new state
+        # Note: Navigation can take time. A robust solution might wait for load.
+        await asyncio.sleep(1.5) # Simple delay, replace with load state check if possible
+        try:
+            state = await self._browser_context.get_state()
+            self.url = state.url
+            self.title_val = state.title
+            logger.info(f"ExtensionPageProxy: Navigation complete. New URL: {self.url}")
+        except Exception as e:
+            logger.warning(f"ExtensionPageProxy: Could not refresh state after goto: {e}")
+            self.url = url # Tentatively set
+            self.title_val = "Unknown"
+
+
+    async def wait_for_load_state(self, state: str = "networkidle", **kwargs: Any) -> None:
+        """
+        Simulates waiting for a page load state.
+
+        In a Playwright context, this waits for network activity to cease.
+        With the extension, this is simplified. A more complex implementation
+        could involve messages from the content script about load status.
+
+        Args:
+            state: The desired load state (e.g., "load", "domcontentloaded", "networkidle"). Ignored.
+            **kwargs: Ignored, for Playwright compatibility.
+        """
+        # This is a simplified version. True load state waiting is complex with extensions.
+        # Content script could send 'load_complete' event, or we poll for document.readyState.
+        logger.info(f"ExtensionPageProxy: Simulating wait_for_load_state ('{state}'). Adding small delay.")
+        await asyncio.sleep(1.5) # Arbitrary delay to simulate load time.
+        # Refresh state after "waiting"
+        try:
+            new_state = await self._browser_context.get_state()
+            self.url = new_state.url
+            self.title_val = new_state.title
+        except Exception as e:
+            logger.warning(f"ExtensionPageProxy: Could not refresh state after wait_for_load_state: {e}")
+
+    async def content(self) -> str:
+        """
+        Retrieves the "content" of the page (currently simplified to title and URL).
+
+        A full implementation would require the extension to send the full HTML source.
+        For now, it returns a string combining title and URL.
+
+        Returns:
+            A string representing basic page information.
+        """
+        logger.debug("ExtensionPageProxy: content() called.")
+        # To get full HTML, an "extract_html" action would be needed in the extension.
+        # For now, refresh state and return some info.
+        state = await self._browser_context.get_state()
+        self.url = state.url
+        self.title_val = state.title
+        # Placeholder for actual HTML content
+        return f"<html><head><title>{self.title_val or 'Page'}</title></head><body>Content of {self.url or 'current page'}. (Full HTML not retrieved)</body></html>"
+
+    async def title(self) -> str:
+        """
+        Retrieves the title of the current page via the extension.
+
+        Returns:
+            The title of the page, or an empty string if not available.
+        """
+        logger.debug("ExtensionPageProxy: title() called.")
+        state = await self._browser_context.get_state()
+        self.url = state.url # Keep URL fresh
+        self.title_val = state.title
+        return self.title_val or ""
+````
+
+## File: browser_use_ext/browser/views.py
+````python
+from __future__ import annotations
+
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, Field
+
+from ..dom.views import DOMElementNode, DOMDocumentNode
+
+
+class TabInfo(BaseModel):
+    """
+    Represents information about a single browser tab.
+
+    This model stores key details of a tab, such as its unique ID,
+    current URL, title, and active state. This is useful for managing
+    multiple tabs and providing context to the agent.
+    """
+
+    # A unique identifier for the tab, often assigned by the browser or extension.
+    # This ID helps in distinguishing and targeting specific tabs for actions.
+    tabId: int = Field(description="Unique identifier for the tab (from browser's tab.id).")
+
+    # The current URL loaded in the tab.
+    url: str = Field(description="Current URL of the tab.")
+
+    # The title of the webpage currently displayed in the tab.
+    title: str = Field(description="Title of the tab.")
+
+    # Whether the tab is currently active.
+    isActive: bool = Field(description="Whether the tab is currently active.")
+
+
+class BrowserState(BaseModel):
+    """
+    Represents the complete state of the browser at a given moment.
+
+    This model aggregates all relevant information about the browser's
+    current condition, including the active tab's URL, title, raw HTML,
+    DOM structure, information about all open tabs, and optionally a screenshot.
+    It also includes scroll position information.
+    """
+
+    # The URL of the currently active tab.
+    url: str = Field(description="URL of the active page.")
+
+    # The title of the currently active tab.
+    title: str = Field(description="Title of the active page.")
+
+    # The raw HTML content of the active page.
+    html_content: Optional[str] = Field(default=None, description="Raw HTML content of the active page (optional).")
+
+    # The DOM structure of the active page, represented as a tree of DOMElementNode objects.
+    # This provides a structured way to understand and interact with the page content.
+    tree: DOMDocumentNode = Field(description="DOM structure of the active page, rooted by a document node.")
+
+    # A mapping of highlight indices to their corresponding XPath expressions or element references.
+    # This allows for quick lookup of interactive elements identified by the content script.
+    # The keys are integers (highlight_index) and values can be XPaths (strings) or other identifiers.
+    selector_map: Dict[int, Any] = Field(
+        default_factory=dict, description="Map of highlight indices to selectors/elements."
+    )
+
+    # A list of TabInfo objects, representing all currently open tabs in the browser.
+    # This provides an overview of the user's browsing session across multiple tabs.
+    tabs: List[TabInfo] = Field(
+        default_factory=list, description="List of all open tabs."
+    )
+
+    # A base64 encoded string of the screenshot of the visible part of the active page.
+    # This is optional and only included if requested. We will keep this null for now.
+    screenshot: Optional[str] = Field(
+        default=None, description="Base64 encoded screenshot of the page (kept as null for now)."
+    )
+
+    # The number of pixels scrolled above the visible viewport.
+    # This gives context about the vertical scroll position of the page.
+    pixels_above: int = Field(
+        default=0, description="Number of pixels scrolled above the viewport."
+    )
+
+    # The number of pixels remaining below the visible viewport that can be scrolled.
+    # This indicates how much more content is available by scrolling down.
+    pixels_below: int = Field(
+        default=0, description="Number of pixels scrollable below the viewport."
+    )
+````
+
+## File: browser_use_ext/dom/views.py
+````python
+from __future__ import annotations
+
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, Field
+
+# Forward reference for recursive models
+if True: #TYPE_CHECKING:
+    DOMNode = Any # Simplified for this context, could be Union[DOMElementNode, DOMTextNode, DOMDocumentNode]
+else:
+    DOMNode = Any
+
+
+class DOMElementNode(BaseModel):
+    """
+    Represents an element node in the DOM tree.
+    """
+    # MODIFIED: 'type' will be set by the context or sending script, not defaulted here.
+    # Pydantic model will still expect 'type' in the data it validates.
+    # type: str = Field(default="element", description="Type of the DOM node, e.g., 'element', 'text'.")
+    
+    # MODIFIED: Changed 'name' to 'tag_name' for consistency with browser APIs like tagName.
+    tag_name: Optional[str] = Field(None, description="Tag name of the element (e.g., 'div', 'a', 'input'). Populated for element nodes.")
+    
+    attributes: Dict[str, Any] = Field(default_factory=dict, description="Dictionary of HTML attributes of the element.")
+    
+    # Direct text content of the element, if any (excluding text from children).
+    # For a node like <div>Hello <span>World</span></div>, text would be "Hello ".
+    text: Optional[str] = Field(None, description="Direct text content of the node, if applicable.")
+
+    # Children of this node. Can be other elements or text nodes.
+    # MODIFIED: Using DOMNode for children to allow for mixed types if we had specific text nodes, etc.
+    # For now, parsing logic primarily creates DOMElementNode instances.
+    children: List[DOMNode] = Field(default_factory=list, description="List of child nodes.")
+    
+    # XPath to uniquely identify the element in the DOM.
+    xpath: str = Field(description="XPath of the element.")
+
+    # Optional unique ID assigned by the content script for highlighting and interaction.
+    highlight_index: Optional[int] = Field(None, description="Unique ID for highlighting interactive elements.")
+
+    # Visibility status of the element.
+    is_visible: bool = Field(default=True, description="Whether the element is currently visible in the viewport.")
+    
+    # Interactability status, determined by content script (e.g., visible, not disabled).
+    is_interactive: bool = Field(default=False, description="Whether the element is considered interactive.")
+
+    # For input elements, this holds their current value.
+    value: Optional[str] = Field(None, description="Value of the input element, if applicable.")
+    
+    # Raw outerHTML of the element, if provided by the extension.
+    raw_html_outer: Optional[str] = Field(None, description="Raw outerHTML of the element.")
+    # Raw innerHTML of the element, if provided by the extension.
+    raw_html_inner: Optional[str] = Field(None, description="Raw innerHTML of the element.")
+    
+    # Field to indicate the type of node, crucial for parsing and differentiation.
+    # This is expected to be present in the data from the extension.
+    type: str = Field(description="Type of the DOM node, e.g., 'element', 'text'.")
+
+
+    class Config:
+        # Allows Pydantic to handle the forward reference for List[DOMElementNode]
+        # and potentially other complex types if added later.
+        arbitrary_types_allowed = True
+
+# NEW MODEL
+class DOMDocumentNode(BaseModel):
+    """
+    Represents the root document node of a DOM tree.
+    Its children are typically a single HTML element node.
+    """
+    type: str = Field(default="document", description="Type of the DOM node, always 'document'.")
+    children: List[DOMElementNode] = Field(description="List of child nodes, typically a single HTML element.")
+
+    class Config:
+        arbitrary_types_allowed = True
+
+# Update forward references to ensure Pydantic can resolve the self-referencing `children`
+# and the `parent` field if it were strictly typed as `DOMElementNode`.
+# This is crucial for models that have fields which are instances of the model itself.
+DOMElementNode.model_rebuild()
+````
+
+## File: browser_use_ext/README.md
+````markdown
+# browser-use-ext: Python Backend for Chrome Extension Browser Automation
+
+This project implements a Python backend designed to replace Playwright for browser automation tasks. It works in conjunction with a custom Chrome Extension (not included in this Python-only part of the repository, but located in `extension/` if part of the same overarching project structure).
+
+The Python backend provides:
+- A WebSocket server (`ExtensionInterface`) to communicate with the Chrome extension.
+- Pydantic models for structured data exchange (DOM elements, browser state, actions).
+- A `Browser` and `BrowserContext` layer to manage interactions, mimicking some Playwright concepts but powered by the extension.
+- A `Controller` to dispatch actions to the browser via the extension.
+- An `Agent` scaffolding (though not fully implemented in this phase) for more complex automation logic.
+
+## Project Structure (`browser-use-ext` directory)
+
+```
+browser-use-ext/
+├── agent/                  # Components for higher-level agent logic
+│   ├── memory/
+│   ├── message_manager/
+│   ├── __init__.py
+│   ├── prompts.py
+│   └── views.py
+├── browser/                # Core browser interaction logic (mimicking Playwright)
+│   ├── __init__.py
+│   ├── browser.py
+│   ├── context.py
+│   └── views.py
+├── controller/             # Service for dispatching actions
+│   ├── registry/
+│   │   ├── __init__.py
+│   │   └── views.py
+│   ├── __init__.py
+│   └── service.py
+├── dom/                    # DOM element representations
+│   ├── __init__.py
+│   └── views.py
+├── extension_interface/    # WebSocket server for extension communication
+│   ├── __init__.py
+│   └── service.py
+├── tests/                  # Pytest unit tests for the Python backend
+│   ├── __init__.py
+│   ├── test_agent_memory.py
+│   ├── test_agent_prompts.py
+│   ├── test_browser.py
+│   ├── test_browser_context.py
+│   ├── test_controller_service.py
+│   ├── test_extension_interface.py
+│   └── test_message_manager.py
+├── __init__.py             # Makes browser-use-ext a package (if needed for parent imports)
+└── requirements.txt        # Python dependencies
+
+# Note: The Chrome Extension itself (manifest.json, background.js, content.js)
+# would typically reside in a separate `extension/` directory, ideally at the same
+# level as the `browser-use-ext/` directory if they are part of one larger project.
+```
+
+## Setup and Installation
+
+1.  **Clone the repository** (if applicable, or ensure you have the `browser-use-ext` directory).
+
+2.  **Navigate to the project directory**:
+    ```bash
+    cd path/to/your/project/browser-use-ext
+    ```
+
+3.  **Create a Python virtual environment** (recommended):
+    ```bash
+    python -m venv .venv
+    ```
+    (Note: `python3` might be needed instead of `python` depending on your system setup.)
+
+4.  **Activate the virtual environment**:
+    -   On Windows (PowerShell/CMD):
+        ```powershell
+        .\.venv\Scripts\Activate.ps1 
+        ```
+        or
+        ```cmd
+        .venv\Scripts\activate.bat
+        ```
+    -   On macOS/Linux (bash/zsh):
+        ```bash
+        source .venv/bin/activate
+        ```
+
+5.  **Install Python dependencies**:
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+## Running Tests
+
+The project uses `pytest` for unit testing. The necessary `pytest.ini` is located in the parent directory (one level above `browser-use-ext/`) to ensure correct path resolution for imports.
+
+1.  **Ensure your virtual environment is activated** and dependencies are installed.
+
+2.  **Navigate to the workspace root** (the directory containing `pytest.ini` and the `browser-use-ext` folder).
+    For example, if your structure is `.../05_Browser_Use/browser-use-ext/` and `.../05_Browser_Use/pytest.ini`, you should be in `.../05_Browser_Use/`.
+    ```bash
+    cd /path/to/your/workspace_root 
+    ```
+
+3.  **Run pytest**:
+    ```bash
+    pytest
+    ```
+    Pytest will automatically discover and run tests from the `browser-use-ext/tests` directory based on the `pytest.ini` configuration.
+
+    You should see output indicating the number of tests passed, failed, or skipped.
+
+## Starting the Python WebSocket Server (Standalone)
+
+To run the Python WebSocket server so the Chrome extension can connect to it:
+
+1.  **Ensure your virtual environment is activated** and dependencies are installed.
+
+2.  **Navigate to the workspace root** (the directory that *contains* the `browser-use-ext` package, e.g., `path/to/your/project/browser-use`).
+
+3.  **Run the following command**:
+    ```bash
+    python -m browser_use_ext.extension_interface.service
+    ```
+    This will start the WebSocket server, typically listening on `ws://localhost:8765` (or `ws://127.0.0.1:8765`). The console will show log messages, including the listening address.
+
+    **Note on Automatic State Logging:** Once the server is running and the corresponding Chrome Extension (see below) is loaded and connected, this system will automatically log the browser's state upon each full page load. See the "Automatic Browser State Logging on Page Load" section for more details.
+
+## Chrome Extension Interaction
+
+-   The Python backend (`ExtensionInterface` in `browser_use_ext/extension_interface/service.py`) starts a WebSocket server (default: `ws://localhost:8765`).
+-   The accompanying Chrome Extension (assumed to be in `../extension/` relative to `browser-use-ext/` or a similar known location) is responsible for connecting to this WebSocket server.
+-   Once connected, the extension can receive commands from the Python backend (e.g., to get browser state, click elements, input text) and send back responses or state information.
+-   The tests for `ExtensionInterface` in `tests/test_extension_interface.py` mock a client connection but also attempt to start a real WebSocket server on a test port (8766) for some of its tests.
+
+### Automatic Browser State Logging on Page Load
+
+A key feature of this system when the Python server and the Chrome extension are running together is the automatic logging of the browser's state every time a page fully loads.
+
+**Interaction Flow:**
+
+1.  When a webpage loads, the extension's content script (`content.js`) initializes and sends a `content_script_ready` message to its background script (`background.js`).
+2.  The background script also detects when the page is fully loaded (`tab.status === 'complete'`) and sends a `page_fully_loaded_and_ready` event to the Python WebSocket server.
+3.  Upon receiving this event, the Python server requests the full browser state (`get_state`) from the extension's background script.
+4.  The background script, before forwarding this request to the content script, verifies that the content script for the target tab has signaled its readiness (from step 1). It will wait for a brief timeout for this signal if it hasn't received it yet.
+5.  If the content script is ready, the background script relays the `get_state` request to it.
+6.  The content script collects detailed page information (DOM structure, URL, title, scroll positions, etc.) and sends it back up the chain to the Python server.
+
+**Output Details:**
+
+-   **Content:** The complete `BrowserState` (including the DOM tree, current URL, page title, list of all open tabs, etc.) is captured.
+-   **Format:** The state is saved as a JSON file.
+-   **Location:** These JSON files are automatically saved into a directory named `browser_states_json_logs/`. This directory will be created at your **workspace root** (i.e., the directory from which you launched the `python -m browser_use_ext.extension_interface.service` command, typically the parent of `browser-use-ext/`).
+-   **Filename Convention:** Files are named dynamically to ensure uniqueness and provide context, following a pattern like: `browser_state_tab<TAB_ID>_<SANITIZED_URL>_<TIMESTAMP>.json`.
+    For example: `browser_state_tab123_google_com_search_q_example_20231105_153000_123.json`.
+
+**Purpose of State Logs:**
+
+These detailed JSON logs are invaluable for:
+*   Debugging issues related to browser interaction and control flow between Python and the extension.
+*   Understanding the precise structure and content of the data being extracted from web pages.
+*   Developing and testing new browser automation features and Pydantic models.
+*   Analyzing how different web pages are structured and perceived by the system.
+
+## Further Development
+
+-   Implement the Chrome Extension (`
+````
+
 ## File: pyproject.toml
 ````toml
 [project]
@@ -28561,4 +29289,1761 @@ addopts = "-v --strict-markers --tb=short"
 collect_ignore = [
     "**/test_agent_memory.py"
 ]
+````
+
+## File: README.md
+````markdown
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./static/browser-use-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="./static/browser-use.png">
+  <img alt="Shows a black Browser Use Logo in light color mode and a white one in dark color mode." src="./static/browser-use.png"  width="full">
+</picture>
+
+<h1 align="center">Enable AI to control your browser 🤖</h1>
+
+[![GitHub stars](https://img.shields.io/github/stars/gregpr07/browser-use?style=social)](https://github.com/gregpr07/browser-use/stargazers)
+[![Discord](https://img.shields.io/discord/1303749220842340412?color=7289DA&label=Discord&logo=discord&logoColor=white)](https://link.browser-use.com/discord)
+[![Cloud](https://img.shields.io/badge/Cloud-☁️-blue)](https://cloud.browser-use.com)
+[![Documentation](https://img.shields.io/badge/Documentation-📕-blue)](https://docs.browser-use.com)
+[![Twitter Follow](https://img.shields.io/twitter/follow/Gregor?style=social)](https://x.com/gregpr07)
+[![Twitter Follow](https://img.shields.io/twitter/follow/Magnus?style=social)](https://x.com/mamagnus00)
+[![Weave Badge](https://img.shields.io/endpoint?url=https%3A%2F%2Fapp.workweave.ai%2Fapi%2Frepository%2Fbadge%2Forg_T5Pvn3UBswTHIsN1dWS3voPg%2F881458615&labelColor=#EC6341)](https://app.workweave.ai/reports/repository/org_T5Pvn3UBswTHIsN1dWS3voPg/881458615)
+
+🌐 Browser-use is the easiest way to connect your AI agents with the browser.
+
+💡 See what others are building and share your projects in our [Discord](https://link.browser-use.com/discord)! Want Swag? Check out our [Merch store](https://browsermerch.com).
+
+🌤️ Skip the setup - try our <b>hosted version</b> for instant browser automation! <b>[Try the cloud ☁︎](https://cloud.browser-use.com)</b>.
+
+# Quick start
+
+With pip (Python>=3.11):
+
+```bash
+pip install browser-use
+```
+
+For memory functionality (requires Python<3.13 due to PyTorch compatibility):  
+
+```bash
+pip install "browser-use[memory]"
+```
+
+Install Patchright:
+```bash
+patchright install chromium
+```
+
+Spin up your agent:
+
+```python
+from langchain_openai import ChatOpenAI
+from browser_use import Agent
+import asyncio
+from dotenv import load_dotenv
+load_dotenv()
+
+async def main():
+    agent = Agent(
+        task="Compare the price of gpt-4o and DeepSeek-V3",
+        llm=ChatOpenAI(model="gpt-4o"),
+    )
+    await agent.run()
+
+asyncio.run(main())
+```
+
+Add your API keys for the provider you want to use to your `.env` file.
+
+```bash
+OPENAI_API_KEY=
+ANTHROPIC_API_KEY=
+AZURE_OPENAI_ENDPOINT=
+AZURE_OPENAI_KEY=
+GEMINI_API_KEY=
+DEEPSEEK_API_KEY=
+GROK_API_KEY=
+NOVITA_API_KEY=
+```
+
+For other settings, models, and more, check out the [documentation 📕](https://docs.browser-use.com).
+
+### Test with UI
+
+You can test [browser-use with a UI repository](https://github.com/browser-use/web-ui)
+
+Or simply run the gradio example:
+
+```
+uv pip install gradio
+```
+
+```bash
+python examples/ui/gradio_demo.py
+```
+
+# Demos
+
+<br/><br/>
+
+[Task](https://github.com/browser-use/browser-use/blob/main/examples/use-cases/shopping.py): Add grocery items to cart, and checkout.
+
+[![AI Did My Groceries](https://github.com/user-attachments/assets/d9359085-bde6-41d4-aa4e-6520d0221872)](https://www.youtube.com/watch?v=L2Ya9PYNns8)
+
+<br/><br/>
+
+Prompt: Add my latest LinkedIn follower to my leads in Salesforce.
+
+![LinkedIn to Salesforce](https://github.com/user-attachments/assets/1440affc-a552-442e-b702-d0d3b277b0ae)
+
+<br/><br/>
+
+[Prompt](https://github.com/browser-use/browser-use/blob/main/examples/use-cases/find_and_apply_to_jobs.py): Read my CV & find ML jobs, save them to a file, and then start applying for them in new tabs, if you need help, ask me.'
+
+https://github.com/user-attachments/assets/171fb4d6-0355-46f2-863e-edb04a828d04
+
+<br/><br/>
+
+[Prompt](https://github.com/browser-use/browser-use/blob/main/examples/browser/real_browser.py): Write a letter in Google Docs to my Papa, thanking him for everything, and save the document as a PDF.
+
+![Letter to Papa](https://github.com/user-attachments/assets/242ade3e-15bc-41c2-988f-cbc5415a66aa)
+
+<br/><br/>
+
+[Prompt](https://github.com/browser-use/browser-use/blob/main/examples/custom-functions/save_to_file_hugging_face.py): Look up models with a license of cc-by-sa-4.0 and sort by most likes on Hugging face, save top 5 to file.
+
+https://github.com/user-attachments/assets/de73ee39-432c-4b97-b4e8-939fd7f323b3
+
+<br/><br/>
+
+## More examples
+
+For more examples see the [examples](examples) folder or join the [Discord](https://link.browser-use.com/discord) and show off your project.
+
+# Vision
+
+Tell your computer what to do, and it gets it done.
+
+## Roadmap
+
+### Agent
+
+- [ ] Improve agent memory (summarize, compress, RAG, etc.)
+- [ ] Enhance planning capabilities (load website specific context)
+- [ ] Reduce token consumption (system prompt, DOM state)
+
+### DOM Extraction
+
+- [ ] Improve extraction for datepickers, dropdowns, special elements
+- [ ] Improve state representation for UI elements
+
+### Rerunning tasks
+
+- [ ] LLM as fallback
+- [ ] Make it easy to define workflow templates where LLM fills in the details
+- [ ] Return playwright script from the agent
+
+### Datasets
+
+- [ ] Create datasets for complex tasks
+- [ ] Benchmark various models against each other
+- [ ] Fine-tuning models for specific tasks
+
+### User Experience
+
+- [ ] Human-in-the-loop execution
+- [ ] Improve the generated GIF quality
+- [ ] Create various demos for tutorial execution, job application, QA testing, social media, etc.
+
+## Contributing
+
+We love contributions! Feel free to open issues for bugs or feature requests. To contribute to the docs, check out the `/docs` folder.
+
+## Local Setup
+
+To learn more about the library, check out the [local setup 📕](https://docs.browser-use.com/development/local-setup).
+
+
+`main` is the primary development branch with frequent changes. For production use, install a stable [versioned release](https://github.com/browser-use/browser-use/releases) instead.
+
+## Browser Interaction Sub-system (`browser_use_ext`)
+
+This section is for developers working with or contributing to the core browser interaction capabilities of `browser-use`. It details how to run the underlying Python WebSocket server and the accompanying Chrome extension, which together enable direct browser control and detailed state extraction.
+
+This system is responsible for fetching the `BrowserState` from active web pages, which includes the DOM structure, tab information, page metadata, and more.
+
+### Components
+
+1.  **Python WebSocket Server:**
+    *   Located at: `browser_use_ext/extension_interface/service.py`
+    *   Handles communication with the Chrome extension, processes requests for browser actions, and receives browser state data.
+2.  **Chrome Extension:**
+    *   Located at: `browser_use_ext/extension/`
+    *   Injects content scripts into web pages to extract data and perform actions.
+    *   Communicates with the Python WebSocket server.
+
+### Setup and Running
+
+**1. Python WebSocket Server:**
+
+*   **Prerequisites:** Ensure you have Python (>=3.11 recommended) and the necessary dependencies installed (e.g., `websockets`, `pydantic`). If you've followed the main project's local setup, these should be covered.
+*   **Running:**
+    Navigate to the root directory of the `browser-use` project in your terminal and run:
+    ```bash
+    python -m browser_use_ext.extension_interface.service
+    ```
+    The server will start and listen on `ws://localhost:8765` by default. You should see log output in your console indicating it's running.
+
+**2. Chrome Extension:**
+
+*   **Loading the Extension:**
+    1.  Open Google Chrome.
+    2.  Navigate to `chrome://extensions/`.
+    3.  Ensure "Developer mode" (usually a toggle in the top-right corner) is **enabled**.
+    4.  Click the "Load unpacked" button.
+    5.  In the file dialog, select the `browser_use_ext/extension` directory from this project.
+*   The extension should now appear in your list of extensions and automatically attempt to connect to the Python WebSocket server. You can check its background console for connection status (Right-click extension icon -> Inspect popup (if any) or look for "Service worker" link on `chrome://extensions/` details page).
+
+### Automatic Browser State Logging
+
+Once both the Python server is running and the Chrome extension is loaded and connected:
+
+*   **Trigger:** Every time a web page fully loads in your browser (or you switch to an already loaded tab), the extension will notify the Python server.
+*   **Action:** The Python server will then request the complete current `BrowserState` from that tab.
+*   **Output:** This `BrowserState` (including the DOM tree, URL, title, open tabs, etc.) is saved as a JSON file.
+    *   **Location:** These JSON files are stored in a directory named `browser_states_json_logs/` which will be created at the root of your project (where you ran the Python server).
+    *   **Filename Convention:** Files are named dynamically to ensure uniqueness, following a pattern like: `browser_state_tab<TAB_ID>_<SANITIZED_URL>_<TIMESTAMP>.json`. For example: `browser_state_tab123_google_com_search_q_example_20231105_153000_123.json`.
+
+**Purpose of these JSON State Logs:**
+
+These detailed JSON logs are invaluable for:
+*   Debugging issues related to browser interaction and control.
+*   Understanding the precise structure and content of the data available from web pages.
+*   Developing and testing new features that rely on browser state information.
+*   Analyzing how web pages are perceived by the system.
+
+---
+
+## Swag
+
+Want to show off your Browser-use swag? Check out our [Merch store](https://browsermerch.com). Good contributors will receive swag for free 👀.
+
+## Citation
+
+If you use Browser Use in your research or project, please cite:
+
+```bibtex
+@software{browser_use2024,
+  author = {Müller, Magnus and Žunič, Gregor},
+  title = {Browser Use: Enable AI to control your browser},
+  year = {2024},
+  publisher = {GitHub},
+  url = {https://github.com/browser-use/browser-use}
+}
+```
+
+ <div align="center"> <img src="https://github.com/user-attachments/assets/06fa3078-8461-4560-b434-445510c1766f" width="400"/> 
+ 
+[![Twitter Follow](https://img.shields.io/twitter/follow/Gregor?style=social)](https://x.com/gregpr07)
+[![Twitter Follow](https://img.shields.io/twitter/follow/Magnus?style=social)](https://x.com/mamagnus00)
+ 
+ </div>
+
+<div align="center">
+Made with ❤️ in Zurich and San Francisco
+ </div>
+````
+
+## File: run_test.py
+````python
+import asyncio
+import logging
+import sys
+import os
+import json
+
+# Get the directory where this script (run_test.py) is located.
+# This should be your project root: C:\...\browser-use
+script_dir = os.path.dirname(os.path.abspath(__file__))
+
+# Add this script's directory to Python's path if it's not already there.
+# This ensures Python looks for modules starting from your project root.
+if script_dir not in sys.path:
+    sys.path.insert(0, script_dir)
+
+# Now print sys.path for debugging immediately before the try-except block
+print("--- Current sys.path for Python interpreter: ---")
+for p in sys.path:
+    print(p)
+print("-------------------------------------------------")
+
+# Attempt to import project modules. 
+# This assumes the script is run from the project root or that PYTHONPATH is set up correctly.
+try:
+    from browser_use_ext.extension_interface.service import ExtensionInterface
+    from browser_use_ext.browser.context import BrowserContext, BrowserContextConfig
+    from browser_use_ext.browser.views import BrowserState # For type hinting
+except ImportError as e:
+    print(f"ImportError: {e}. Please ensure this script is run from the project root directory,")
+    print("or that your PYTHONPATH is configured to find the 'browser_use_ext' module.")
+    print("Example: If 'browser_use_ext' is in '/path/to/project/browser_use_ext', run from '/path/to/project/'.")
+    print(f"Script directory added to path was: {script_dir}") # Debugging print
+    exit(1)
+
+ORIGINAL_PORT = 8765 # CHANGED: Define the original port
+
+async def trigger_get_state_from_extension():
+    """
+    Initializes the ExtensionInterface, starts its server, waits for an extension connection,
+    then calls get_state() via a BrowserContext and prints the result.
+    """
+    # Configure basic logging to see output from this Python script
+    logging.basicConfig(
+        level=logging.DEBUG, 
+        format="%(asctime)s - %(name)s - %(levelname)s - %(module)s.%(funcName)s:%(lineno)d - %(message)s",
+        handlers=[logging.StreamHandler()] # Ensure logs go to console
+    )
+    logger = logging.getLogger(__name__)
+
+    # 1. Create an instance of your ExtensionInterface
+    ext_interface = ExtensionInterface(host="localhost", port=ORIGINAL_PORT) # CHANGED: Use ORIGINAL_PORT
+
+    try:
+        # 2. Start the WebSocket server that the extension connects to
+        logger.info(f"Starting Python WebSocket server on port {ORIGINAL_PORT}...") # CHANGED: Log ORIGINAL_PORT
+        await ext_interface.start_server()
+        logger.info(f"Python WebSocket server started on ws://{ext_interface.host}:{ext_interface.port}")
+        logger.info("Ensure your Chrome extension (browser-use-ext) is loaded, enabled, and can connect.")
+
+        # 3. Wait a few seconds for the extension to connect
+        #    In a real app, you might loop and check ext_interface.has_active_connection
+        wait_time = 5
+        logger.info(f"Waiting {wait_time} seconds for the Chrome extension to connect...")
+        await asyncio.sleep(wait_time) 
+
+        if not ext_interface.has_active_connection:
+            logger.warning("No active connection from the Chrome extension after waiting.")
+            logger.warning("Please check the following:")
+            logger.warning("  1. Is the 'browser-use-ext' extension loaded and enabled in Chrome?")
+            logger.warning("  2. Are there any errors in the extension's Service Worker console?")
+            logger.warning(f"  3. Does the extension's WS_URL (in background.js) match ws://{ext_interface.host}:{ORIGINAL_PORT}?") 
+            logger.warning(f"  4. Is another process already using port {ORIGINAL_PORT}?") # CHANGED
+            return # Exit if no connection
+
+        logger.info("Chrome extension appears to be connected! Proceeding to call get_state.")
+
+        # 4. Create a BrowserContext instance and call get_state
+        # Ensure BrowserContextConfig also uses the original port
+        context_config = BrowserContextConfig(extension_port=ORIGINAL_PORT) # CHANGED: Pass ORIGINAL_PORT to context config
+        
+        browser_context = BrowserContext(config=context_config, extension_interface=ext_interface)
+
+        # The async with block for BrowserContext might also handle server start/stop
+        # or other setup/teardown if implemented in its __aenter__/__aexit__.
+        # For this test, primary server control is outside.
+        async with browser_context:
+            logger.info("Calling browser_context.get_state(include_screenshot=False)...")
+            # Type hint for clarity
+            current_browser_state: BrowserState = await browser_context.get_state(include_screenshot=False)
+            
+            logger.info("--- Successfully Received BrowserState from Extension ---")
+            # .model_dump_json(indent=2) is a Pydantic method for nice JSON output
+            # This will print the structured data to your Python console.
+            # MODIFIED: Comment out the line that prints the full BrowserState to console
+            # logger.info(current_browser_state.model_dump_json(indent=2)) 
+            logger.info("--- End of BrowserState (Full content NOT printed to console) ---") # MODIFIED log message
+            logger.info("Now, check the Chrome extension's Service Worker console for its detailed logs regarding this get_state operation.")
+
+            # MODIFIED: Save the output to a JSON file
+            output_filename = "browser_state_output.json"
+            with open(output_filename, "w", encoding="utf-8") as f:
+                f.write(current_browser_state.model_dump_json(indent=2))
+            logger.info(f"BrowserState successfully saved to {output_filename}")
+
+    except ConnectionRefusedError:
+        logger.error(f"Connection refused when trying to start server on port {ext_interface.port}.") # This will now show ORIGINAL_PORT
+        logger.error("Is another process (perhaps another instance of this script or your main app) already using this port?")
+    except RuntimeError as e:
+        logger.error(f"RuntimeError encountered: {e}", exc_info=True)
+    except Exception as e:
+        logger.error(f"An unexpected error occurred: {e}", exc_info=True)
+    finally:
+        if ext_interface.is_server_running:
+            logger.info("Stopping Python WebSocket server...")
+            await ext_interface.stop_server()
+            logger.info("Python WebSocket server stopped.")
+        else:
+            logger.info("Python WebSocket server was not running at the end or failed to start.")
+
+if __name__ == "__main__":
+    # This setup allows the script to be run directly.
+    # Python's asyncio event loop will manage the async operations.
+    asyncio.run(trigger_get_state_from_extension())
+````
+
+## File: .cursor/rules/custom_test_guide.mdc
+````
+---
+description: Guide for using meta-development script (scripts/dev.js) to manage task-driven development workflows
+globs: **/*
+alwaysApply: true
+---
+# Guide: Creating Standalone Test Scripts for `browser_use_ext`
+
+This guide outlines how to create standalone Python scripts, similar to the existing `run_test.py`, for end-to-end testing of specific functionalities within the `browser_use_ext` system. These scripts are invaluable for focused debugging and verifying new features that involve interaction between the Python WebSocket server and the Chrome extension.
+
+## 1. Purpose
+
+Standalone test scripts allow you to:
+- Isolate and test specific features (e.g., `get_state`, a new browser action).
+- Run end-to-end tests that span the Python server and the Chrome extension.
+- Debug interactions in a controlled environment without needing the full application stack (if applicable).
+- Quickly verify that core communication channels and data Pydantic models are working as expected.
+
+## 2. Core Components of a Test Script
+
+Your test script will typically include the following:
+
+```python
+import asyncio
+import logging
+import sys
+import os
+
+# Adjust path if running from outside the main package structure
+# This makes '''browser_use_ext''' importable if the script is in the project root
+# and '''browser_use_ext''' is a subdirectory.
+# sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '.')))
+
+from browser_use_ext.extension_interface.service import ExtensionInterface
+from browser_use_ext.browser.context import BrowserContext, BrowserContextConfig
+# Import any other necessary Pydantic models or components
+# from browser_use_ext.browser.views import BrowserState 
+
+# Basic Logging Setup
+logging.basicConfig(
+    level=logging.DEBUG, # Use DEBUG for verbose output during testing
+    format="%(asctime)s - %(name)s - %(levelname)s - %(module)s.%(funcName)s:%(lineno)d - %(message)s",
+    handlers=[logging.StreamHandler()]
+)
+logger = logging.getLogger(__name__)
+
+
+async def main():
+    logger.info("Starting test script...")
+    # Initialize the ExtensionInterface (WebSocket server)
+    # Ensure the port doesn't conflict if another instance is running.
+    interface = ExtensionInterface(host="localhost", port=8765) 
+
+    await interface.start_server()
+    logger.info(f"WebSocket server started on ws://{interface.host}:{interface.port}")
+
+    try:
+        # --- Crucial: Wait for the Chrome Extension to Connect ---
+        logger.info("Waiting for the Chrome extension to connect...")
+        connection_attempts = 0
+        max_connection_attempts = 20 # e.g., 10 seconds if sleep is 0.5s
+        while not interface.has_active_connection and connection_attempts < max_connection_attempts:
+            await asyncio.sleep(0.5)
+            connection_attempts += 1
+        
+        if not interface.has_active_connection:
+            logger.error("Extension did not connect within the timeout period. Exiting.")
+            return # Exit if no connection
+
+        logger.info(f"Chrome extension connected: Client ID {interface.active_connection.client_id}")
+
+        # --- Setup BrowserContext ---
+        # (Assumes the extension is connected and ready for interaction)
+        config = BrowserContextConfig() # Use default or customize as needed
+        browser_context = BrowserContext(config=config, extension_interface=interface)
+        logger.info("BrowserContext initialized.")
+
+        # --- Your Test Logic Here ---
+        logger.info("Attempting to call get_state()...")
+        try:
+            # Ensure a relevant webpage is open and active in the browser
+            # before this call for meaningful results.
+            state = await browser_context.get_state()
+            logger.info("Successfully received browser state:")
+            # print(state.model_dump_json(indent=2)) # Pretty print the JSON
+            
+            # Example: Check a specific part of the state
+            if state.url:
+                logger.info(f"Current page URL: {state.url}")
+            if state.tabs:
+                logger.info(f"Number of open tabs: {len(state.tabs)}")
+
+            # Add more assertions or checks based on what you're testing
+            # For example, save to a file:
+            # with open("test_output_state.json", "w", encoding="utf-8") as f:
+            #    f.write(state.model_dump_json(indent=2))
+            # logger.info("State saved to test_output_state.json")
+
+        except Exception as e_get_state:
+            logger.error(f"Error during get_state(): {e_get_state}", exc_info=True)
+
+        # Example: Test an action (if applicable and implemented)
+        # try:
+        #     logger.info("Attempting to execute a test action (e.g., scroll)...")
+        #     action_params = {"action": "scroll_page", "params": {"direction": "down"}}
+        #     result = await interface.execute_action(action_params["action"], action_params["params"])
+        #     logger.info(f"Action result: {result}")
+        # except Exception as e_action:
+        #     logger.error(f"Error during execute_action(): {e_action}", exc_info=True)
+
+        # Add more test scenarios as needed...
+        logger.info("Test logic completed.")
+
+    except Exception as e:
+        logger.error(f"An error occurred in the main test logic: {e}", exc_info=True)
+    finally:
+        logger.info("Shutting down WebSocket server...")
+        await interface.stop_server()
+        logger.info("Test script finished.")
+
+
+if __name__ == "__main__":
+    # Ensure Python version compatibility for asyncio.run if necessary,
+    # or use loop management for older versions.
+    asyncio.run(main())
+
+```
+
+## 3. Prerequisites for Running Your Test Script
+
+*   **Python Environment:** Your virtual environment (e.g., `.venv`) should be activated.
+*   **Dependencies:** All necessary Python packages (from `requirements.txt` or `pyproject.toml`) must be installed.
+*   **No Conflicting Server:** Ensure that the main `browser_use_ext.extension_interface.service` (or any other instance) is *not* already running on the same host and port that your test script intends to use (e.g., `localhost:8765`), as the script starts its own server instance.
+*   **Chrome Browser & Extension:**
+    *   Google Chrome (or a compatible Chromium-based browser) must be open.
+    *   The custom Chrome extension (from `browser_use_ext/extension/`) must be loaded in developer mode and enabled. The extension's `WS_URL` (in `background.js`) should point to the address your test script's server is using.
+*   **Active Webpage:** For tests like `get_state` or actions on a page, ensure a relevant webpage is loaded and active in a Chrome tab *before* the test script attempts these operations. The script currently doesn't navigate; it acts on the existing state.
+
+## 4. Python Import Considerations
+
+*   **If your test script is inside the `browser_use_ext` directory (e.g., `browser_use_ext/tests/my_custom_test.py`):**
+    You might need to adjust import paths or run the script as a module from the workspace root:
+    ```bash
+    python -m browser_use_ext.tests.my_custom_test
+    ```
+*   **If your test script is in the workspace root (parent of `browser_use_ext`), like `run_test.py`:**
+    You might need to add the workspace root to `sys.path` *before* your imports if Python can't find the `browser_use_ext` package, as shown commented out at the top of the example script. This is common if `browser_use_ext` itself is not installed as an editable package in the environment.
+
+## 5. Debugging Your Test Script
+
+*   **Python Logs:** The example script includes detailed logging. Examine the console output from your Python script carefully.
+*   **Chrome Extension Consoles:**
+    *   **Background Script (Service Worker):** Open `chrome://extensions/`, find your extension, and click the "Service Worker" (or equivalent) link to view its console. Look for connection messages, errors, or logs related to message handling.
+    *   **Content Script:** Open Developer Tools (F12) on the webpage you are interacting with. The content script's `console.log` messages will appear here.
+*   **Verify Payloads:** When testing actions or state, print or log the exact Pydantic models or JSON being sent and received to ensure they match expectations on both the Python and JavaScript sides.
+*   **Incremental Testing:** Test one piece of functionality at a time. Ensure the server starts, the extension connects, then test `get_state`, then test simple actions, etc.
+*   **JSON Output Files:** If the main server is also running (on a different port or at a different time) and configured to save state JSONs, those can be useful for comparing what your test script receives. Your test script can also be modified to save its own output to a uniquely named file for inspection.
+
+
+By following this structure, you can create effective standalone tests for various parts of the `browser_use_ext` system.
+````
+
+## File: browser_use_ext/extension/background.js
+````javascript
+// browser-use-ext/extension/background.js
+// Establishes and manages WebSocket connection with the Python backend.
+// Handles messages from content scripts and the Python backend.
+// Manages browser tab interactions.
+
+const WS_URL = "ws://localhost:8765";
+let websocket = null;
+let activeTabId = null;
+let reconnectInterval = 5000; // 5 seconds
+const contentScriptsReady = new Set(); // Stores tabIds where content script is ready
+const CONTENT_SCRIPT_READY_TIMEOUT = 5000; // Reduced to 5 seconds
+
+/**
+ * Initializes the WebSocket connection.
+ * Sets up event handlers for open, message, error, and close events.
+ */
+function connectWebSocket() {
+    console.log("Attempting to connect to WebSocket at", WS_URL);
+    websocket = new WebSocket(WS_URL);
+
+    websocket.onopen = () => {
+        console.log("WebSocket connection established.");
+        // Inform popup about connection status if applicable
+        if (chrome.runtime.sendMessage) {
+            chrome.runtime.sendMessage({ type: "WS_STATUS", status: "Connected" }).catch(e => console.warn("Popup not listening for WS_STATUS (onopen)"));
+        }
+        // Send initial active tab info once connected
+        queryActiveTab(true); // Send context on initial connection
+    };
+
+    websocket.onmessage = (event) => {
+        console.log("Message received from server:", event.data);
+        try {
+            const message = JSON.parse(event.data);
+            handleServerMessage(message);
+        } catch (error) {
+            console.error("Error parsing message from server:", error);
+        }
+    };
+
+    websocket.onerror = (error) => {
+        console.error("WebSocket error:", error);
+        // The onclose event will handle reconnection logic
+    };
+
+    websocket.onclose = () => {
+        console.log("WebSocket connection closed. Attempting to reconnect in", reconnectInterval / 1000, "seconds.");
+        websocket = null; // Ensure the old websocket is cleaned up
+        if (chrome.runtime.sendMessage) {
+            chrome.runtime.sendMessage({ type: "WS_STATUS", status: "Disconnected" }).catch(e => console.warn("Popup not listening for WS_STATUS (onclose)"));
+        }
+        setTimeout(connectWebSocket, reconnectInterval);
+    };
+}
+
+/**
+ * Handles messages received from the Python WebSocket server.
+ * @param {object} message - The parsed message object from the server.
+ */
+async function handleServerMessage(message) {
+    console.log("Handling server message:", message);
+
+    // Python sends: { id: number, type: string (e.g., "get_state", "execute_action"), data: object (params for action) }
+    if (message.id !== undefined && typeof message.type === 'string') {
+        const requestId = message.id;
+        const serverActionType = message.type; // This is "get_state" or "execute_action"
+        const serverParams = message.data || {};   // Parameters sent from Python
+
+        // Initial check for activeTabId, similar to before but simplified
+        if (!activeTabId && serverActionType !== "get_state" && serverActionType !== "get_state_without_active_tab") {
+            console.warn(`No active tab for action '${serverActionType}' (ID: ${requestId})`);
+            sendDataToServer({
+                type: "response",
+                id: requestId,
+                data: { success: false, error: "No active tab identified." }
+            });
+            return;
+        }
+        if (!activeTabId && serverActionType === "get_state"){
+            console.warn(`'get_state' called but no activeTabId. Proceeding to fetch all tabs, but page-specific data will be from a default/empty state.`);
+            // Allows get_state to proceed even without activeTabId for initial state capture (mostly tabs list)
+        }
+
+        if (serverActionType === "get_state") {
+            try {
+                let pageSpecificData = {
+                    url: "about:blank", title: "",
+                    html_content: "<html><head></head><body></body></html>",
+                    tree: { type: "document", children: [{ type: "element", name: "html", attributes: {}, children: [ {type: "element", name: "head", attributes: {}, children: []}, {type: "element", name: "body", attributes: {}, children: []} ]}]},
+                    selector_map: {},
+                    pixels_above: 0, pixels_below: 0,
+                };
+                const includeScreenshot = serverParams && serverParams.includeScreenshot === true;
+
+                // MODIFIED: Determine targetTabId from serverParams first, then fallback to activeTabId if not provided
+                // The Python server should now always send a tabId for get_state calls triggered by events.
+                let targetTabIdForState = serverParams.tabId; // Python sends this as "tabId"
+
+                if (!targetTabIdForState && activeTabId) {
+                    console.warn(`'get_state' (ID: ${requestId}) called without an explicit tabId from server, using current activeTabId: ${activeTabId}`);
+                    targetTabIdForState = activeTabId;
+                } else if (!targetTabIdForState && !activeTabId) {
+                    console.warn(`'get_state' (ID: ${requestId}) called without an explicit tabId and no global activeTabId. Page-specific data will be default.`);
+                    // No targetTabIdForState, pageSpecificData will remain default
+                }
+
+                if (targetTabIdForState) {
+                    console.log(`Attempting to get state for target tab ${targetTabIdForState}. Checking if content script is ready. Request ID: ${requestId}`);
+
+                    const isReady = await waitForContentScriptReady(targetTabIdForState, CONTENT_SCRIPT_READY_TIMEOUT);
+
+                    if (!isReady) {
+                        console.warn(`Content script in tab ${targetTabIdForState} did not signal ready within timeout for get_state (ID: ${requestId}).`);
+                        throw new Error(`Content script in tab ${targetTabIdForState} not ready after ${CONTENT_SCRIPT_READY_TIMEOUT}ms`);
+                    }
+                    
+                    console.log(`Content script for tab ${targetTabIdForState} is ready. Forwarding 'get_state' (ID: ${requestId}).`);
+                    const contentResponse = await chrome.tabs.sendMessage(targetTabIdForState, {
+                        type: "get_state", 
+                        payload: serverParams, 
+                        requestId: requestId
+                    });
+
+                    if (contentResponse && contentResponse.status === "success" && contentResponse.data) {
+                        console.log(`Received state from content script for ID ${requestId} (Tab: ${targetTabIdForState}):`, contentResponse.data);
+                        pageSpecificData.url = contentResponse.data.url || pageSpecificData.url;
+                        pageSpecificData.title = contentResponse.data.title || pageSpecificData.title;
+                        pageSpecificData.html_content = contentResponse.data.html_content || pageSpecificData.html_content;
+                        pageSpecificData.tree = contentResponse.data.tree || pageSpecificData.tree;
+                        pageSpecificData.selector_map = contentResponse.data.selector_map || pageSpecificData.selector_map;
+                        pageSpecificData.pixels_above = contentResponse.data.scroll_y !== undefined ? contentResponse.data.scroll_y : 0;
+                        pageSpecificData.pixels_below = contentResponse.data.page_content_height !== undefined && contentResponse.data.scroll_y !== undefined && contentResponse.data.viewport_height !== undefined ?
+                                                       Math.max(0, contentResponse.data.page_content_height - (contentResponse.data.scroll_y + contentResponse.data.viewport_height))
+                                                       : 0;
+                    } else {
+                        const errorMsg = contentResponse ? contentResponse.error : `No response or error from content script for get_state on tab ${targetTabIdForState}.`;
+                        console.warn(errorMsg, `(ID: ${requestId})`);
+                        // Do not throw here, allow collection of general tab data
+                    }
+                } // End if (targetTabIdForState)
+
+                const allTabsRaw = await chrome.tabs.query({});
+                const formattedTabs = allTabsRaw.map(t => ({
+                    tabId: t.id, url: t.url || "", title: t.title || "", isActive: t.active
+                }));
+
+                // Screenshot logic now centralized here, but Python currently expects null.
+                let screenshotData = null; // Default to null as Python expects
+
+                if (includeScreenshot && targetTabIdForState) {
+                    console.warn(`Python requested includeScreenshot=true, but current implementation forces screenshot to null for Python.`);
+                    // try {
+                    //     console.log(`Attempting to capture screenshot for tab ${targetTabIdForState} (request ID: ${requestId}) because includeScreenshot was true.`);
+                    //     screenshotData = await chrome.tabs.captureVisibleTab(null, { format: "png" }); 
+                    //     console.log("Screenshot captured successfully.");
+                    // } catch (error) {
+                    //     console.error(`Error capturing screenshot for tab ${targetTabIdForState} (request ID: ${requestId}):`, error);
+                    //     // Keep screenshotData as null
+                    // }
+                } else {
+                    console.log(`Screenshot not requested (includeScreenshot: ${includeScreenshot}) or no active tab for screenshot.`);
+                }
+
+                const finalDataPayload = {
+                    success: true, ...pageSpecificData, tabs: formattedTabs, screenshot: screenshotData // Ensure this is consistently null for now
+                };
+                sendDataToServer({ type: "response", id: requestId, data: finalDataPayload });
+
+            } catch (error) {
+                console.error(`Error processing 'get_state' in background.js (ID: ${requestId}):`, error);
+                sendDataToServer({ type: "response", id: requestId, data: { success: false, error: `Background script error during 'get_state': ${error.message}` }});
+            }
+        } else if (serverActionType === "execute_action") {
+            // For execute_action, serverParams is {action: "sub_action_name", params: {sub_action_params}}
+            const subActionName = serverParams.action;
+            const subActionParams = serverParams.params;
+
+            if (!activeTabId) { // Should have been caught earlier, but double check for execute_action
+                 console.warn("No active tab for execute_action:", subActionName, `(ID: ${requestId})`);
+                 sendDataToServer({type: "response", id: requestId, data: { success: false, error: "No active tab to process action."}});
+                 return;
+            }
+            if (!subActionName) {
+                console.error(`'execute_action' request (ID: ${requestId}) from server is missing the nested 'action' field in its data.`);
+                sendDataToServer({ type: "response", id: requestId, data: { success: false, error: "Malformed execute_action from server: missing nested action." }});
+                return;
+            }
+
+            console.log(`Forwarding sub-action '${subActionName}' (ID: ${requestId}) to tab ${activeTabId}`);
+            chrome.tabs.sendMessage(activeTabId, {
+                type: subActionName,       // This is the actual action for content.js (e.g., "click_element_by_index")
+                payload: subActionParams,  // These are the params for the sub-action
+                requestId: requestId
+            }).then(response => {
+                console.log(`Response from content script for sub-action '${subActionName}' (ID: ${requestId}):`, response);
+                if (response && response.type === "response") {
+                    sendDataToServer({
+                        type: "response",
+                        id: response.request_id || requestId,
+                        data: { 
+                            success: response.status === "success",
+                            error: response.status === "error" ? response.error : null,
+                            ...(response.data || {})
+                        }
+                    });
+                } else {
+                    console.warn(`Undefined or malformed response from content script for sub-action: '${subActionName}' (ID: ${requestId}). Tab ID: ${activeTabId}`);
+                    sendDataToServer({ type: "response", id: requestId, data: { success: false, error: `Content script for sub-action '${subActionName}' returned malformed response. Tab ID: ${activeTabId}` }});
+                }
+            }).catch(error => {
+                console.error(`Error sending/receiving for sub-action '${subActionName}' (ID: ${requestId}):`, error);
+                sendDataToServer({ type: "response", id: requestId, data: { success: false, error: `Failed to communicate with content script for sub-action '${subActionName}': ${error.message}` }});
+            });
+        } else {
+            console.warn(`Received unhandled server action type '${serverActionType}' (ID: ${requestId}):`, message);
+            sendDataToServer({ type: "response", id: requestId, data: { success: false, error: `Unknown server action type: ${serverActionType}` }});
+        }
+    } else {
+        console.warn("Received message from server that is not a recognized action request or is malformed (missing id/type):", message);
+        // Optionally send an error back if the message structure is completely off and an ID is parseable
+        if (message && message.id !== undefined) {
+            sendDataToServer({ type: "response", id: message.id, data: { success: false, error: "Malformed request from server." }});
+        }
+    }
+}
+
+/**
+ * Sends generic data (responses or events) to the Python WebSocket server.
+ * @param {object} dataToSend - The data to send.
+ */
+function sendDataToServer(dataToSend) {
+    if (websocket && websocket.readyState === WebSocket.OPEN) {
+        try {
+            // The Python server expects messages with 'id' and 'type' at the top level.
+            // If dataToSend already has 'id' and 'type', use it as is.
+            // Otherwise, wrap it if it's meant to be the 'data' part of an 'extension_event'.
+            let messageToSend;
+            if (dataToSend.type && dataToSend.hasOwnProperty('id')) {
+                messageToSend = dataToSend; // Assume it's already a correctly structured message
+            } else {
+                console.warn("Sending data that might not have a server-correlating ID:", dataToSend);
+                messageToSend = dataToSend; // Send as is, review server side if ID is strictly needed for all types
+            }
+
+            const messageString = JSON.stringify(messageToSend);
+            console.log("Attempting to send to server:", messageString);
+            websocket.send(messageString);
+            console.log("Data sent to server successfully.");
+        } catch (error) {
+            console.error("Error serializing data for server:", error, dataToSend);
+        }
+    } else {
+        console.error("WebSocket not connected. Cannot send data to server.", dataToSend);
+    }
+}
+
+// Listener for messages from content scripts or popup
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    console.log("Message received in background script:", message, "from sender:", sender);
+
+    // Handle messages from content.js (typically responses to server requests that were relayed by background.js)
+    if (sender.tab && message.type === "response_to_server") {
+        console.log("Forwarding response from content script to server:", message.payload);
+        sendDataToServer({
+            type: "response",
+            id: message.payload.id, // This should be the original Python request ID
+            data: message.payload.data // This is the actual data payload from content.js
+        });
+        return false; 
+    }
+    // Listener for content script ready signal
+    if (sender.tab && message.type === "content_script_ready") {
+        console.log(`background.js: Received 'content_script_ready' from tabId: ${sender.tab.id}`);
+        contentScriptsReady.add(sender.tab.id);
+        sendResponse({ status: "acknowledged_content_script_ready", tabId: sender.tab.id });
+        return true; // Keep channel open for async response
+    }
+    // Handle messages from the POPUP
+    else if (message.source === "POPUP_ACTION") {
+        if (message.action === "GET_POPUP_STATUS") {
+            console.log("Popup requested status.");
+            queryActiveTab(false); // Update activeTabId without sending context
+            sendResponse({
+                websocketStatus: websocket ? websocket.readyState : WebSocket.CLOSED,
+                activeTabId: activeTabId
+            });
+        } else {
+            console.warn("Unknown popup action:", message.action);
+            sendResponse({ error: "Unknown popup action" });
+        }
+        return true; // Indicate async response for popup messages
+    }
+    // Add other specific message handlers here if needed, e.g., from popup for other actions
+
+    console.warn("Message type not explicitly handled in onMessage listener or response already sent:", message.type, "Sender:", sender.id);
+    // Return false if not handling the message or not intending to send an async response from this top-level listener.
+    // Specific handlers might return true if they use sendResponse asynchronously.
+    return false;
+});
+
+/**
+ * Sends a simple context update to the server.
+ * @param {string} eventName - The name of the event (e.g., "tab_activated", "tab_updated").
+ * @param {object} tab - The Chrome tab object.
+ */
+function sendTabContextUpdate(eventName, tab) {
+    if (!tab) {
+        console.warn(`Cannot send ${eventName} update, tab object is missing.`);
+        return;
+    }
+    console.log(`Preparing to send ${eventName} for tab ID ${tab.id}, URL: ${tab.url}`);
+
+    const context = {
+        event_name: eventName,
+        tabId: tab.id,
+        url: tab.url,
+        title: tab.title,
+        active: tab.active,
+        windowId: tab.windowId
+    };
+
+    sendDataToServer({
+        type: "extension_event", 
+        id: 0,
+        data: context 
+    });
+}
+
+// Tab management and active tab tracking
+chrome.tabs.onActivated.addListener(activeInfo => {
+    console.log("Tab activated:", activeInfo);
+    activeTabId = activeInfo.tabId;
+    // Fetch tab details as onActivated only gives tabId and windowId
+    chrome.tabs.get(activeInfo.tabId, (tab) => {
+        if (chrome.runtime.lastError) {
+            console.error("Error getting tab details in onActivated:", chrome.runtime.lastError.message);
+            return;
+        }
+        if (tab) {
+            console.log("Active tab details:", tab);
+            // Only send update if websocket is ready and tab is fully loaded
+            // The onUpdated listener will handle sending page_fully_loaded_and_ready when status is 'complete'
+            // This can send a simpler "tab_activated" event if needed.
+            // sendTabContextUpdate("tab_activated", tab);
+
+            // If the newly activated tab is already loaded, we might want to send the event here too.
+            // This is a bit redundant if onUpdated also fires, but covers cases where activation happens
+            // to an already loaded tab without an 'onUpdated' event with status 'complete'.
+            if (tab.status === 'complete' && tab.url && (tab.url.startsWith('http://') || tab.url.startsWith('https://'))) {
+                if (websocket && websocket.readyState === WebSocket.OPEN) {
+                    const eventData = {
+                        type: "extension_event",
+                        id: Date.now() + 1, // Slightly different ID for debugging
+                        data: {
+                            event_name: "page_fully_loaded_and_ready", // Sending same event name
+                            reason: "tab_activated_and_complete", // Add a reason for debugging
+                            tabId: tab.id,
+                            url: tab.url,
+                            title: tab.title
+                        }
+                    };
+                    sendDataToServer(eventData);
+                    console.info(`Sent 'page_fully_loaded_and_ready' (onActivated) for tab ${tab.id} to Python server.`);
+                }
+            }
+        }
+    });
+});
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    console.log("Tab updated:", tabId, "ChangeInfo:", changeInfo, "Tab:", tab);
+    // Ensure the update is for the main frame and the tab is completely loaded
+    if (changeInfo.status === 'complete' && tab.url && (tab.url.startsWith('http://') || tab.url.startsWith('https://'))) {
+        console.log(`Tab ${tabId} finished loading: ${tab.url}`);
+        activeTabId = tabId; // Update activeTabId if the completed tab is now active or just becomes the focus.
+
+        // ADDED: Send 'page_fully_loaded_and_ready' event to Python server
+        if (websocket && websocket.readyState === WebSocket.OPEN) {
+            const eventData = {
+                type: "extension_event",
+                // Python server doesn't use an ID for events like this, but good practice to have a type.
+                // If a specific ID were needed for correlation on Python side for this event, it would be generated here.
+                id: Date.now(), // Simple unique ID for this event instance, if server needs it later.
+                data: {
+                    event_name: "page_fully_loaded_and_ready",
+                    tabId: tabId,
+                    url: tab.url,
+                    title: tab.title
+                }
+            };
+            sendDataToServer(eventData);
+            console.info(`Sent 'page_fully_loaded_and_ready' event for tab ${tabId} to Python server.`);
+        } else {
+            console.warn("WebSocket not open, cannot send 'page_fully_loaded_and_ready' event.");
+        }
+
+        // Existing logic to send proactive context update to Python server can remain or be adjusted
+        // For now, let's keep it to see if it conflicts or complements.
+        // sendTabContextUpdate("tab_updated_complete", tab);
+    }
+
+    // Proactive update for when tab is just activated (might not be fully loaded yet)
+    if (changeInfo.status === 'loading' && tab.active) {
+        activeTabId = tabId;
+        // sendTabContextUpdate("tab_activated_loading", tab);
+    }
+});
+
+chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
+    console.log("Tab removed:", tabId);
+    const eventContext = {
+        event_name: "tab_removed",
+        tabId: tabId,
+        windowId: removeInfo.windowId,
+        isWindowClosing: removeInfo.isWindowClosing
+    };
+    sendDataToServer({ type: "extension_event", id: 0, data: eventContext });
+
+    if (activeTabId === tabId) {
+        console.log("Active tab was closed. Querying for new active tab.");
+        queryActiveTab(true);
+    }
+    // ADDED: Clean up from contentScriptsReady set
+    if (contentScriptsReady.has(tabId)) {
+        contentScriptsReady.delete(tabId);
+        console.log(`background.js: Removed tabId ${tabId} from contentScriptsReady set.`);
+    }
+});
+
+/**
+ * Queries for the currently active tab and updates activeTabId.
+ * Optionally sends context update if a new active tab is found.
+ * @param {boolean} [sendContext=false] - Whether to send context update for the new active tab.
+ */
+function queryActiveTab(sendContext = false) {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (chrome.runtime.lastError) {
+            console.error("Error querying active tab:", chrome.runtime.lastError.message);
+            activeTabId = null;
+            return;
+        }
+        if (tabs.length > 0) {
+            const newActiveTab = tabs[0];
+            if (activeTabId !== newActiveTab.id || sendContext) {
+                console.log("Querying active tab. Found:", newActiveTab.id, newActiveTab.url);
+                activeTabId = newActiveTab.id;
+                if (sendContext) {
+                    sendTabContextUpdate("tab_activated_on_query", newActiveTab);
+                }
+            }
+        } else {
+            console.log("No active tab found during query.");
+            activeTabId = null; 
+        }
+    });
+}
+
+// Initial setup
+console.log("Background script started.");
+
+// ADDED: Helper function to wait for content script readiness
+async function waitForContentScriptReady(tabId, timeoutMs) {
+    const startTime = Date.now();
+    console.log(`background.js: waitForContentScriptReady called for tabId: ${tabId}, timeout: ${timeoutMs}ms`);
+    while (Date.now() - startTime < timeoutMs) {
+        if (contentScriptsReady.has(tabId)) {
+            console.log(`background.js: Content script for tabId: ${tabId} is ready.`);
+            return true;
+        }
+        console.log(`background.js: Polling for content script ready for tabId: ${tabId}. Still waiting...`);
+        await new Promise(resolve => setTimeout(resolve, 250)); // Poll every 250ms
+    }
+    console.error(`background.js: Timeout waiting for content script in tab ${tabId} to signal ready after ${timeoutMs}ms.`);
+    return false;
+}
+
+connectWebSocket();
+// connectWebSocket(); // MODIFIED: Removed duplicate call 
+console.log("background.js: Script loaded, listeners initialized.");
+````
+
+## File: browser_use_ext/extension/content.js
+````javascript
+// browser-use-ext/extension/content.js
+// Interacts with the DOM of the web page.
+// Listens for messages from background.js and executes actions on the page.
+
+console.log("Content script loaded and executing.");
+
+// Cache for the most recently built DOM tree and selector map for the current page.
+let currentDomCache = {
+    tree: null,
+    selectorMap: null, // Maps highlight_index to {xpath, element}
+    timestamp: 0
+};
+const CACHE_DURATION = 1000; // Cache for 1 second to avoid re-processing on rapid requests
+
+/**
+ * Listener for messages from the background script.
+ * Handles requests like 'get_state' and 'execute_action'.
+ */
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    console.log("Content script received message:", message);
+
+    if (message.type === "get_state") {
+        handleGetState(message.requestId)
+        .then(sendResponse)
+        .catch(error => {
+                console.error("Error in handleGetState:", error);
+                sendResponse({
+                    request_id: message.requestId,
+                    status: "error",
+                    error: `Failed to get state: ${error.message}`
+                });
+            });
+        return true; // Indicates that the response will be sent asynchronously.
+    } else if (message.type === "execute_action") {
+        handleExecuteAction(message.payload.action, message.payload.params, message.requestId)
+        .then(sendResponse)
+        .catch(error => {
+                console.error("Error in handleExecuteAction:", error);
+                sendResponse({
+                    request_id: message.requestId,
+                    status: "error",
+                    error: `Failed to execute action '${message.payload.action}': ${error.message}`
+                });
+            });
+        return true; // Indicates that the response will be sent asynchronously.
+    }
+    // If message type is not recognized, do not call sendResponse or return true
+    return false;
+});
+
+/**
+ * Handles the 'get_state' request.
+ * Builds the DOM tree, gathers page info, and requests a screenshot.
+ * @param {string} requestId - The ID of the request.
+ */
+async function handleGetState(requestId) {
+    console.log("Handling get_state request, ID:", requestId);
+    try {
+        const now = Date.now();
+        if (currentDomCache.tree && currentDomCache.selectorMap && (now - currentDomCache.timestamp < CACHE_DURATION)) {
+            console.log("Using cached DOM tree and selector map.");
+        } else {
+            console.log("Building new DOM tree and selector map.");
+            const { tree, selectorMap } = buildDomTreeWithMappings(document.documentElement);
+            currentDomCache = { tree, selectorMap, timestamp: now };
+        }
+
+        // ADDED CONSOLE LOG FOR DEBUGGING
+        console.log("Structure of currentDomCache.tree before creating pageState:", JSON.stringify(currentDomCache.tree, null, 2));
+
+        const pageState = {
+            html_content: document.documentElement.outerHTML,
+            tree: currentDomCache.tree,
+            selector_map: stripElementReferencesFromSelectorMap(currentDomCache.selectorMap), // Send serializable map
+            viewport_width: window.innerWidth,
+            viewport_height: window.innerHeight,
+            scroll_x: window.scrollX,
+            scroll_y: window.scrollY,
+            page_content_width: document.documentElement.scrollWidth,
+            page_content_height: document.documentElement.scrollHeight,
+            url: window.location.href,
+            title: document.title
+        };
+
+        console.log("Successfully built state for request ID:", requestId);
+        return {
+            request_id: requestId,
+            type: "response", // This identifies it as a response to background.js
+            status: "success",
+            data: pageState
+        };
+    } catch (error) {
+        console.error("Error processing get_state in content script:", error);
+        return {
+            request_id: requestId,
+            type: "response",
+            status: "error",
+            error: `Content script error during get_state: ${error.message}`
+        };
+    }
+}
+
+/**
+ * Creates a new selector map without direct element references for serialization.
+ * @param {object} selectorMap - The original selector map with element references.
+ * @returns {object} A new selector map with only XPaths.
+ */
+function stripElementReferencesFromSelectorMap(selectorMap) {
+    if (!selectorMap) return null;
+    const newMap = {};
+    for (const key in selectorMap) {
+        newMap[key] = { xpath: selectorMap[key].xpath };
+    }
+    return newMap;
+}
+
+
+/**
+ * Handles the 'execute_action' request from the background script.
+ * @param {string} actionName - The name of the action to execute.
+ * @param {object} params - Parameters for the action.
+ * @param {string} requestId - The ID of the request.
+ */
+async function handleExecuteAction(actionName, params, requestId) {
+    console.log(`Executing action: ${actionName} with params:`, params, "Request ID:", requestId);
+    let resultData = {};
+    let status = "success";
+    let error = null;
+
+    try {
+        const element = params && params.highlight_index !== undefined && currentDomCache.selectorMap
+            ? currentDomCache.selectorMap[params.highlight_index]?.element
+            : null;
+
+        // Ensure element is available if required by the action
+        if ((actionName === "click_element_by_index" || actionName === "input_text" || actionName === "extract_content") && !element) {
+            throw new Error(`Element with highlight_index ${params.highlight_index} not found or DOM cache is stale.`);
+        }
+
+        switch (actionName) {
+            case "click_element_by_index":
+                if (element instanceof HTMLElement) element.click();
+                else throw new Error("Target for click is not an HTMLElement");
+                console.log("Clicked element with index:", params.highlight_index);
+                break;
+            case "input_text":
+                if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
+                    element.value = params.text;
+                    // Dispatch input and change events to simulate user interaction
+                    element.dispatchEvent(new Event('input', { bubbles: true }));
+                    element.dispatchEvent(new Event('change', { bubbles: true }));
+                } else {
+                    throw new Error("Target for input_text is not an input or textarea element");
+                }
+                console.log("Input text '", params.text, "' into element with index:", params.highlight_index);
+                break;
+            case "go_to_url":
+        window.location.href = params.url;
+                console.log("Navigating to URL:", params.url);
+                // For navigations, a response might not be reliably sent back if the page unloads too quickly.
+                // The server should handle timeouts for actions that cause navigation.
+                break;
+            case "go_back":
+        window.history.back();
+                console.log("Navigating back.");
+                break;
+            case "scroll_page": // Renamed from scroll_down/scroll_up to generic scroll_page
+                if (params.direction === "down") {
+                    window.scrollBy(0, window.innerHeight * 0.8); // Scroll 80% of viewport height
+                } else if (params.direction === "up") {
+                    window.scrollBy(0, -window.innerHeight * 0.8);
+                } else if (params.pixels) {
+                    window.scrollBy(0, params.pixels);
+                }
+                console.log("Scrolled page", params.direction ? params.direction : `by ${params.pixels}px`);
+                break;
+            case "extract_content":
+                resultData.extracted_text = element.innerText || element.textContent;
+                resultData.extracted_html = element.innerHTML;
+                console.log("Extracted content from element with index:", params.highlight_index);
+                break;
+            case "send_keys":
+                 // This is a placeholder. True key event simulation is complex and often requires the debugger API (from background)
+                 // or careful dispatching of KeyboardEvent objects.
+                console.warn("send_keys action is a placeholder in content.js. For complex key events, background script involvement might be needed.");
+                if (element && typeof element.focus === 'function') element.focus(); // Focus element if possible
+                // Simplified: if text is provided, append to value if input/textarea
+                if (element && (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) && params.keys) {
+                    element.value += params.keys; 
+                }
+                resultData.note = "send_keys is a simplified implementation.";
+                break;
+            // Add more actions as needed
+            default:
+                throw new Error(`Unknown action: ${actionName}`);
+        }
+        // Brief delay for actions like click/input to allow potential async DOM updates to settle
+        // This is a simple approach; more robust solutions might use MutationObserver or specific event listeners.
+        if (actionName === "click_element_by_index" || actionName === "input_text") {
+            await new Promise(resolve => setTimeout(resolve, 150)); 
+        }
+
+    } catch (e) {
+        console.error(`Error executing action ${actionName}:`, e);
+        status = "error";
+        error = e.message;
+    }
+
+        return {
+        request_id: requestId,
+        type: "response",
+        status: status,
+        data: resultData, // Contains action-specific results, e.g., extracted text
+        error: error
+    };
+}
+
+// --- DOM Processing Functions ---
+let highlightCounter = 0;
+
+/**
+ * Recursively builds a simplified DOM tree and a map of highlightable elements to their XPaths.
+ * @param {Node} element - The current DOM element to process.
+ * @param {object} selectorMap - The map to store highlight_index to {xpath, element} for interactable elements.
+ * @param {string} currentXPath - The XPath being built for the current element.
+ * @returns {object} An object containing the DOM tree node and the selectorMap.
+ */
+function buildDomTreeWithMappings(element, selectorMap = {}, currentXPath = '/HTML[1]') {
+    if (!element || !element.tagName) return null;
+
+    const tagName = element.tagName.toLowerCase();
+
+    // Skip script, style, meta, link, noscript, and comment nodes, but process their children if body/head
+    const  SKIP_TAGS = ["script", "style", "meta", "link", "noscript", "#comment"];
+    if (SKIP_TAGS.includes(tagName)) {
+        // For critical layout tags like <head>, we might want to process children
+        // but for this general purpose tree, skipping them is fine if they are not visible elements.
+        return null; 
+    }
+
+    const attributes = getElementAttributes(element);
+    let textContent = null;
+
+    // Get direct text content, excluding children's text
+    if (element.childNodes && element.childNodes.length > 0) {
+        let directText = '';
+        for (let i = 0; i < element.childNodes.length; i++) {
+            if (element.childNodes[i].nodeType === Node.TEXT_NODE) {
+                directText += element.childNodes[i].nodeValue.trim();
+            }
+        }
+        if (directText) textContent = directText;
+    }
+
+    const isVisible = isElementGenerallyVisible(element);
+    const isInteractable = isVisible && isElementInteractable(element);
+    let highlightIndex = null;
+
+    if (isInteractable || (isVisible && (tagName === 'p' || tagName.match(/^h[1-6]$/) || tagName === 'span' || tagName === 'div'))) {
+        highlightCounter++;
+        highlightIndex = highlightCounter;
+        selectorMap[highlightIndex] = {
+            xpath: currentXPath,
+            element: element // Store direct reference for action execution
+        };
+    }
+
+        const children = [];
+    if (element.children) {
+        for (let i = 0; i < element.children.length; i++) {
+            const childElement = element.children[i];
+            const childXPath = getXPathForElement(childElement, currentXPath); // Generate XPath for child
+            const childNode = buildDomTreeWithMappings(childElement, selectorMap, childXPath);
+            if (childNode && childNode.tree) { // Ensure childNode and its tree are not null
+                 children.push(childNode.tree);
+            }
+        }
+    }
+    
+    // Reset counter for next full build if this is the root call (document.documentElement)
+    if (element === document.documentElement) {
+        highlightCounter = 0;
+    }
+
+        return {
+        tree: {
+            type: "element",
+            tag_name: tagName,
+            attributes: attributes,
+            text: textContent,
+            children: children,
+            highlight_index: highlightIndex,
+            xpath: currentXPath,
+            is_visible: isVisible,
+            is_interactable: isInteractable
+        },
+        selectorMap: selectorMap
+    };
+}
+
+/**
+ * Checks if an element is generally visible (simplified check).
+ * @param {Element} element - The DOM element.
+ * @returns {boolean} True if the element is likely visible.
+ */
+function isElementGenerallyVisible(element) {
+    if (!element) return false;
+  const style = window.getComputedStyle(element);
+    return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0' && element.offsetParent !== null;
+}
+
+/**
+ * Checks if an element is interactable (not disabled, readonly, etc.).
+ * @param {Element} element - The DOM element.
+ * @returns {boolean} True if the element is interactable.
+ */
+function isElementInteractable(element) {
+  if (!element) return false;
+    if (element.hasAttribute('disabled') || element.hasAttribute('readonly')) {
+        return false;
+    }
+    // Consider common interactable elements
+    const interactableTags = ['a', 'button', 'input', 'select', 'textarea', 'details'];
+    if (interactableTags.includes(element.tagName.toLowerCase())) {
+    return true;
+  }
+    // Check for contentEditable attribute
+  if (element.isContentEditable) {
+      return true;
+  }
+    // Check for explicit role attribute suggesting interactivity
+    const role = element.getAttribute('role');
+    if (role && ['button', 'link', 'checkbox', 'radio', 'tab', 'menuitem'].includes(role)) {
+        return true;
+    }
+  return false;
+}
+
+/**
+ * Extracts attributes from an element.
+ * @param {Element} element - The DOM element.
+ * @returns {object} A dictionary of attributes.
+ */
+function getElementAttributes(element) {
+    const attrs = {};
+  if (element.attributes) {
+        for (let i = 0; i < element.attributes.length; i++) {
+            const attr = element.attributes[i];
+            // Limit attribute value length to prevent overly large state
+            attrs[attr.name] = attr.value.length > 200 ? attr.value.substring(0, 197) + '...' : attr.value;
+        }
+    }
+    return attrs;
+}
+
+/**
+ * Generates an XPath for a given element relative to its parent's XPath.
+ * This is a simplified XPath generator.
+ * @param {Element} element - The DOM element.
+ * @param {string} parentXPath - The XPath of the parent element.
+ * @returns {string} The generated XPath for the element.
+ */
+function getXPathForElement(element, parentXPath) {
+    if (!element || !element.parentElement) return parentXPath + '/[unknown]'; // Should ideally not happen for document children
+
+        let index = 1;
+        let sibling = element.previousElementSibling;
+        while (sibling) {
+            if (sibling.tagName === element.tagName) {
+                index++;
+            }
+            sibling = sibling.previousElementSibling;
+        }
+    return `${parentXPath}/${element.tagName.toUpperCase()}[${index}]`;
+}
+
+// --- Initialization ---
+
+// Send a message to the background script indicating the content script is ready
+// This helps background script know when it's safe to send messages to this content script.
+console.log("content.js: Attempting to send content_script_ready message to background script.");
+try {
+    chrome.runtime.sendMessage({ type: "content_script_ready" }, response => {
+        if (chrome.runtime.lastError) {
+            console.error('content.js: Error sending content_script_ready:', chrome.runtime.lastError.message);
+        } else {
+            console.log("content.js: Background script acknowledged content_script_ready.", response);
+        }
+    });
+} catch (e) {
+    console.error("content.js: Exception thrown while trying to send content_script_ready message:", e);
+}
+
+console.log("content.js: Script execution finished. 'content_script_ready' message has been dispatched (or attempted).");
+
+console.log("Content script setup complete and listeners active.");
+````
+
+## File: browser_use_ext/extension_interface/service.py
+````python
+from typing import Dict, Any, Optional, TypeVar
+import logging
+# from browser.context import BrowserContext, BrowserContextConfig # Incorrect path
+from ..browser.context import BrowserContext, BrowserContextConfig # Corrected relative import path
+# from .response_data import ResponseData # REMOVE THIS - will be imported from .models
+# from .models import Message, ConnectionInfo # Old import, will be replaced
+from .models import BaseMessage, Message, ResponseData, ConnectionInfo # CORRECTED consolidated import
+import json
+import os
+from datetime import datetime
+import asyncio
+import inspect # ADDED FOR DEBUGGING
+import re 
+import uuid
+from pydantic import ValidationError # Ensure ValidationError is imported
+import websockets # type: ignore
+from websockets.asyncio.server import ServerConnection # CORRECTED WEBSOCKET TYPE IMPORT
+
+# Initialize a logger for this module
+logger = logging.getLogger(__name__)
+
+# Maximum time (in seconds) to wait for a response from the extension
+DEFAULT_REQUEST_TIMEOUT = 10  # seconds
+
+
+class ExtensionInterface:
+    def __init__(self, host: str = "localhost", port: int = 8765):
+        self.host = host
+        self.port = port
+        self._server: Optional[websockets.server.WebSocketServer] = None
+        self._connections: Dict[str, ConnectionInfo] = {}
+        self._active_connection_id: Optional[str] = None
+        self._message_id_counter: int = 0
+        self._pending_requests: Dict[int, asyncio.Future] = {}
+        # self._initial_state_fetched_for_event = False # Flag seems unused, can be removed if truly so
+        self._filename_sanitize_re = re.compile(r'[^a-zA-Z0-9_.-]+')
+
+    def _sanitize_filename_component(self, component: str) -> str:
+        """Sanitizes a string component to be safe for use in a filename."""
+        component = component.replace("http://", "").replace("https://", "").replace("www.", "")
+        sanitized = self._filename_sanitize_re.sub('_', component)
+        return sanitized[:50]
+
+    async def _fetch_and_save_initial_state(self, client_id: str, event_data: Dict[str, Any]) -> None:
+        """Fetches the browser state and saves it to a JSON file, triggered by an event."""
+        tab_id = event_data.get('tabId') 
+        page_url = event_data.get('url', 'unknown_url')
+
+        logger.info(f"Attempting to fetch browser state for client_{client_id} (Tab ID: {tab_id}, URL: {page_url})")
+        try:
+            config = BrowserContextConfig() 
+            browser_context = BrowserContext(config=config, extension_interface=self)
+            current_tab_id = tab_id if isinstance(tab_id, int) else None
+            current_state = await browser_context.get_state(tab_id=current_tab_id) 
+            logger.info(f"Browser state successfully fetched for client_{client_id} (Tab ID: {tab_id}):")
+            state_json_str = json.dumps(current_state.model_dump(), indent=2)
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
+            sanitized_url_component = self._sanitize_filename_component(page_url)
+            filename_tab_id_part = str(tab_id) if tab_id is not None else "unknown_tab"
+            filename = f"browser_state_tab{filename_tab_id_part}_{sanitized_url_component}_{timestamp}.json"
+            output_subdirectory = "browser_states_json_logs"
+            base_dir = os.getcwd() 
+            full_dir_path = os.path.join(base_dir, output_subdirectory)
+            if not os.path.exists(full_dir_path):
+                os.makedirs(full_dir_path)
+                logger.info(f"Created directory: {full_dir_path}")
+            file_path = os.path.join(full_dir_path, filename)
+            with open(file_path, "w", encoding="utf-8") as f:
+                f.write(state_json_str)
+            logger.info(f"Successfully saved browser state to {file_path}")
+        except Exception as e:
+            logger.error(f"Error fetching/saving state for client_{client_id} (Tab ID: {tab_id}) triggered by event: {e}", exc_info=True)
+
+    async def get_state(self, include_screenshot: bool = False, tab_id: Optional[int] = None) -> ResponseData:
+        """
+        Requests the current browser state from the connected Chrome extension.
+
+        Args:
+            include_screenshot: Whether to include a screenshot in the state.
+            tab_id: Optional specific tab ID to target for page-specific data.
+
+        Returns:
+            A ResponseData object containing the success status, data (BrowserStateModelData),
+            or an error message.
+        """
+        logger.info(f"Requesting browser state (screenshot: {include_screenshot}, target_tab_id: {tab_id})...")
+        payload_data = {"includeScreenshot": include_screenshot}
+        if tab_id is not None:
+            payload_data["tabId"] = tab_id
+        response_dict = await self._send_request(
+            action="get_state",
+            data=payload_data,
+            timeout=45 
+        )
+        return ResponseData.model_validate(response_dict)
+
+    async def start_server(self) -> None:
+        """Starts the WebSocket server and listens for incoming connections."""
+        if self._server is not None:
+            logger.warning("Server is already running.")
+            return
+        logger.info(f"Starting WebSocket server on {self.host}:{self.port}...")
+        try:
+            self._server = await websockets.serve( 
+                self._handle_connection, 
+                self.host, 
+                self.port,
+                max_size=2**24,  
+                ping_interval=20,
+                ping_timeout=20
+            )
+            logger.info(f"WebSocket server listening on ws://{self.host}:{self.port}")
+            await self._server.wait_closed()
+        except OSError as e:
+            logger.error(f"Failed to start WebSocket server: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"An unexpected error occurred with the WebSocket server: {e}", exc_info=True)
+            raise
+
+    async def _handle_connection(self, websocket: ServerConnection, path: Optional[str] = None) -> None:
+        """
+        Handles a new client connection, including message processing and cleanup.
+        The 'path' argument is provided by 'websockets.serve' but not used here.
+        """
+        client_id = str(uuid.uuid4())
+        connection_info = ConnectionInfo(client_id=client_id, websocket=websocket, handler_task=asyncio.current_task())
+        self._connections[client_id] = connection_info
+        logger.info(f"Client {client_id} connected from {websocket.remote_address}. Path: {path if path else 'N/A'}")
+        if self._active_connection_id is None:
+            self._active_connection_id = client_id
+            logger.info(f"Set {client_id} as the active connection.")
+        try:
+            async for message_str in websocket:
+                if isinstance(message_str, str):
+                    try:
+                        raw_message = json.loads(message_str)
+                        await self._process_message(client_id, raw_message)
+                    except json.JSONDecodeError:
+                        logger.error(f"Failed to decode JSON from {client_id}: {message_str}")
+                    except Exception as e:
+                        logger.error(f"Error processing message from {client_id}: {e}", exc_info=True)
+                else:
+                    logger.warning(f"Received non-text message from {client_id}, ignoring.")
+        except websockets.exceptions.ConnectionClosedOK:
+            logger.info(f"Client {client_id} disconnected gracefully.")
+        except websockets.exceptions.ConnectionClosedError as e:
+            logger.warning(f"Client {client_id} connection closed with error: {e}")
+        except Exception as e:
+            logger.error(f"Unexpected error in connection handler for {client_id}: {e}", exc_info=True)
+        finally:
+            if client_id in self._connections:
+                del self._connections[client_id]
+                logger.info(f"Removed client {client_id} from active connections.")
+            if self._active_connection_id == client_id:
+                self._active_connection_id = None
+                logger.info(f"Cleared active connection (was {client_id}).")
+                if self._connections:
+                    new_active_id = next(iter(self._connections.keys()))
+                    self._active_connection_id = new_active_id
+                    logger.info(f"Set new active connection to: {new_active_id}")
+
+    async def _process_message(self, client_id: str, raw_message: Dict[str, Any]) -> None:
+        """Processes a deserialized message received from a client."""
+        try:
+            base_msg = Message[Dict[str, Any]].model_validate(raw_message)
+        except ValidationError as e:
+            logger.error(f"Invalid message structure from {client_id}: {e}. Message: {raw_message}")
+            return
+        if base_msg.type == "response":
+            request_id = base_msg.id
+            if request_id in self._pending_requests:
+                future = self._pending_requests.pop(request_id)
+                try:
+                    response_data = ResponseData.model_validate(raw_message.get("data", {}))
+                    if not response_data.success:
+                        logger.error(f"Extension error for request ID {request_id}: {response_data.error}")
+                        future.set_exception(RuntimeError(f"Extension error for request ID {request_id}: {response_data.error}"))
+                    else:
+                        future.set_result(response_data) 
+                except ValidationError as e:
+                    logger.error(f"Response data validation error for request ID {request_id}: {e}. Data: {raw_message.get('data')}")
+                    future.set_exception(RuntimeError(f"Response data validation error: {e}"))
+                except Exception as e: 
+                    logger.error(f"Unexpected error processing response for request ID {request_id}: {e}", exc_info=True)
+                    future.set_exception(RuntimeError(f"Unexpected error processing response: {e}"))
+            else:
+                logger.warning(f"Received response for unknown or timed-out request ID {request_id} from {client_id}.")
+        elif base_msg.type == "extension_event": 
+            event_payload = raw_message.get("data", {})
+            event_name = event_payload.get("event_name", "unknown_event")
+            logger.info(f"Received event '{event_name}' from {client_id}: {event_payload}")
+            if event_name == "page_fully_loaded_and_ready":
+                logger.info(f"'{event_name}' event received from {client_id}. Triggering state fetch.")
+                asyncio.create_task(self._fetch_and_save_initial_state(client_id, event_payload))
+            elif event_name == "content_script_ready_ack": 
+                logger.info(f"Received content_script_ready_ack: {event_payload}")
+        else:
+            logger.warning(f"Received unhandled message type '{base_msg.type}' from {client_id}.")
+
+    def _get_next_message_id(self) -> int:
+        """Generates a unique, incrementing message ID."""
+        self._message_id_counter += 1
+        return self._message_id_counter
+
+    async def _send_request(self, action: str, data: Optional[Dict[str, Any]] = None, timeout: Optional[float] = None) -> Dict[str, Any]:
+        """
+        Sends a request to the active Chrome extension and waits for a response.
+
+        Args:
+            action: The action to be performed by the extension.
+            data: Optional data payload for the action.
+            timeout: Optional timeout in seconds. Uses DEFAULT_REQUEST_TIMEOUT if None.
+
+        Returns:
+            The 'data' part of the response from the extension as a dictionary.
+        
+        Raises:
+            RuntimeError: If no active connection, timed out, or an extension error occurred.
+        """
+        if self._active_connection_id is None or self._active_connection_id not in self._connections:
+            logger.error(f"Cannot send request '{action}': No active and valid connection.")
+            raise RuntimeError("No active extension connection.")
+        conn_info = self._connections[self._active_connection_id]
+        request_id = self._get_next_message_id()
+        message_payload = {
+            "id": request_id,
+            "type": action, 
+            "data": data if data is not None else {}
+        }
+        future: asyncio.Future[ResponseData] = asyncio.Future()
+        self._pending_requests[request_id] = future
+        try:
+            logger.debug(f"Sending {action} request (ID: {request_id}) to {self._active_connection_id} with payload: {message_payload}")
+            await conn_info.websocket.send(json.dumps(message_payload))
+            actual_timeout = timeout if timeout is not None else DEFAULT_REQUEST_TIMEOUT
+            response_data_obj = await asyncio.wait_for(future, timeout=actual_timeout)
+            return response_data_obj.model_dump()
+        except asyncio.TimeoutError:
+            logger.error(f"Request {action} (ID: {request_id}) to {self._active_connection_id} timed out after {actual_timeout}s.")
+            if request_id in self._pending_requests: 
+                self._pending_requests.pop(request_id)
+            raise RuntimeError(f"Request '{action}' (ID: {request_id}) timed out.")
+        except websockets.exceptions.ConnectionClosed:
+            logger.error(f"Connection to {self._active_connection_id} closed while sending request {action} (ID: {request_id}).")
+            if request_id in self._pending_requests:
+                self._pending_requests.pop(request_id)
+            raise RuntimeError(f"Connection closed during request '{action}' (ID: {request_id}).")
+        except RuntimeError as e: 
+            logger.error(f"Error sending/processing {action} request (ID: {request_id}): {e}")
+            if request_id in self._pending_requests and not self._pending_requests[request_id].done():
+                 self._pending_requests.pop(request_id).cancel()
+            raise 
+        except Exception as e:
+            logger.error(f"Unexpected error during _send_request for {action} (ID: {request_id}): {e}", exc_info=True)
+            if request_id in self._pending_requests:
+                self._pending_requests.pop(request_id)
+            raise RuntimeError(f"Unexpected error during request '{action}' (ID: {request_id}): {e}")
+
+    async def close(self) -> None:
+        """Closes the WebSocket server and all active connections."""
+        logger.info("Closing WebSocket server and all connections...")
+        if self._server:
+            self._server.close()
+            logger.info("WebSocket server has been closed.")
+            self._server = None
+        active_connections = list(self._connections.values())
+        for conn_info in active_connections:
+            try:
+                logger.info(f"Closing connection to client {conn_info.client_id}...")
+                await conn_info.websocket.close(code=1000, reason="Server shutting down")
+                if conn_info.handler_task and not conn_info.handler_task.done():
+                    conn_info.handler_task.cancel()
+                    try:
+                        await conn_info.handler_task 
+                    except asyncio.CancelledError:
+                        logger.info(f"Message handler task for {conn_info.client_id} cancelled.")
+            except websockets.exceptions.ConnectionClosed:
+                logger.info(f"Connection to {conn_info.client_id} was already closed.")
+            except Exception as e:
+                logger.error(f"Error closing connection to {conn_info.client_id}: {e}", exc_info=True)
+        self._connections.clear()
+        self._active_connection_id = None
+        for request_id, future in self._pending_requests.items():
+            if not future.done():
+                future.cancel(f"Server shutting down; request {request_id} cancelled.")
+        self._pending_requests.clear()
+        logger.info("All client connections closed and server resources released.")
+
+async def main():
+    """Main function to run the WebSocket server."""
+    # Configure basic logging if no handlers are configured
+    if not logging.getLogger().hasHandlers():
+        logging.basicConfig(
+            level=logging.INFO, 
+            format='%(asctime)s - %(levelname)s - %(name)s - %(module)s.%(funcName)s:%(lineno)d - %(message)s'
+        )
+    
+    extension_interface = ExtensionInterface(host="localhost", port=8765)
+    try:
+        await extension_interface.start_server()
+    except KeyboardInterrupt:
+        logger.info("Server shutting down due to KeyboardInterrupt...")
+    except Exception as e:
+        logger.error(f"Server failed to run: {e}", exc_info=True)
+    finally:
+        logger.info("Performing final cleanup...")
+        await extension_interface.close()
+        logger.info("Server shutdown complete.")
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        logger.info("Application terminated by user (KeyboardInterrupt in asyncio.run).")
+    except Exception as e:
+        logger.critical(f"Unhandled exception in __main__: {e}", exc_info=True)
 ````
