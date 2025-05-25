@@ -1,7 +1,7 @@
 import pytest
 from datetime import datetime, timezone
 from typing import List, Dict, Any
-from agent.message_manager.service import Message, MessageManager
+from browser_use_ext.agent.message_manager.service import Message, MessageManager
 
 @pytest.fixture
 def message_manager_instance() -> MessageManager:

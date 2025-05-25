@@ -34,7 +34,7 @@ class DOMElementNode(BaseModel):
     children: List[DOMNode] = Field(default_factory=list, description="List of child nodes.")
     
     # XPath to uniquely identify the element in the DOM.
-    xpath: str = Field(description="XPath of the element.")
+    xpath: Optional[str] = Field(default=None, description="XPath of the element (optional).")
 
     # Optional unique ID assigned by the content script for highlighting and interaction.
     highlight_index: Optional[int] = Field(None, description="Unique ID for highlighting interactive elements.")

@@ -6,8 +6,8 @@ from typing import Dict, Any, Optional, Callable, Awaitable, Union, List
 from pydantic import BaseModel, Field # For potential future use with action definitions
 
 # Local application/library specific imports
-from browser.context import BrowserContext
-from dom.views import DOMElementNode
+from ..browser.context import BrowserContext
+from ..dom.views import DOMElementNode
 from .registry.views import get_action_definition, list_available_actions, ActionDefinition
 
 # Initialize logger for this module
@@ -244,9 +244,9 @@ async def example_controller_usage():
             #     logger.info(f"Current URL: {current_state.get('tabs',[{}])[0].get('url', 'N/A')}")
 
             # Navigate
-                nav_result = await controller.go_to_url("https://www.example.com")
+            nav_result = await controller.go_to_url("https://www.example.com")
             logger.info(f"Navigation to example.com result: {nav_result}")
-                await asyncio.sleep(2) # Allow page to load
+            await asyncio.sleep(2) # Allow page to load
 
             # Refresh state and log new URL
             # refreshed_state_data = await controller.get_current_browser_state(force_refresh=True)
@@ -264,8 +264,8 @@ async def example_controller_usage():
             # input_result = await controller.input_text(index=1, text="Hello from controller") # Guess for index 1
             # logger.info(f"Input text result: {input_result}")
 
-            except Exception as e:
-                logger.error(f"Error during controller example: {e}", exc_info=True)
+        except Exception as e:
+            logger.error(f"Error during controller example: {e}", exc_info=True)
         finally:
             logger.info("Closing browser context in controller example...")
             await b_context.close_context() # Context is managed by the `async with browser` block too

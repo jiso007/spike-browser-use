@@ -3,3 +3,5 @@
 # It is often kept empty.
 
 __all__ = [] 
+
+# This file makes Python treat the 'tests' directory as a package. 

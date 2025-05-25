@@ -1,7 +1,7 @@
 from typing import Dict, Any, Optional, TypeVar
 import logging
 # from browser.context import BrowserContext, BrowserContextConfig # Incorrect path
-from ..browser.context import BrowserContext, BrowserContextConfig # Corrected relative import path
+# from ..browser.context import BrowserContext, BrowserContextConfig # Corrected relative import path -> REMOVE THIS TOP-LEVEL IMPORT
 # from .response_data import ResponseData # REMOVE THIS - will be imported from .models
 # from .models import Message, ConnectionInfo # Old import, will be replaced
 from .models import BaseMessage, Message, ResponseData, ConnectionInfo # CORRECTED consolidated import
@@ -14,7 +14,9 @@ import re
 import uuid
 from pydantic import ValidationError # Ensure ValidationError is imported
 import websockets # type: ignore
-from websockets.asyncio.server import ServerConnection # CORRECTED WEBSOCKET TYPE IMPORT
+from websockets.server import ServerConnection, serve
+# from websockets.asyncio.server import ServerConnection # Old import for older versions
+# from websockets import serve # Old import for serve
 
 # Initialize a logger for this module
 logger = logging.getLogger(__name__)
@@ -43,6 +45,9 @@ class ExtensionInterface:
 
     async def _fetch_and_save_initial_state(self, client_id: str, event_data: Dict[str, Any]) -> None:
         """Fetches the browser state and saves it to a JSON file, triggered by an event."""
+        # Import moved here to break circular dependency
+        from ..browser.context import BrowserContext, BrowserContextConfig
+
         tab_id = event_data.get('tabId') 
         page_url = event_data.get('url', 'unknown_url')
 
@@ -84,15 +89,16 @@ class ExtensionInterface:
             or an error message.
         """
         logger.info(f"Requesting browser state (screenshot: {include_screenshot}, target_tab_id: {tab_id})...")
-        payload_data = {"includeScreenshot": include_screenshot}
+        payload_data_for_send_request = {"include_screenshot": include_screenshot}
         if tab_id is not None:
-            payload_data["tabId"] = tab_id
-        response_dict = await self._send_request(
+            payload_data_for_send_request["tab_id"] = tab_id
+        
+        response_model = await self._send_request(
             action="get_state",
-            data=payload_data,
+            data=payload_data_for_send_request,
             timeout=45 
         )
-        return ResponseData.model_validate(response_dict)
+        return response_model
 
     async def start_server(self) -> None:
         """Starts the WebSocket server and listens for incoming connections."""

@@ -8,7 +8,7 @@ let websocket = null;
 let activeTabId = null;
 let reconnectInterval = 5000; // 5 seconds
 const contentScriptsReady = new Set(); // Stores tabIds where content script is ready
-const CONTENT_SCRIPT_READY_TIMEOUT = 5000; // Reduced to 5 seconds
+const CONTENT_SCRIPT_READY_TIMEOUT = 10000; // Increased to 10 seconds
 
 /**
  * Initializes the WebSocket connection.
@@ -117,7 +117,6 @@ async function handleServerMessage(message) {
                     console.log(`Content script for tab ${targetTabIdForState} is ready. Forwarding 'get_state' (ID: ${requestId}).`);
                     const contentResponse = await chrome.tabs.sendMessage(targetTabIdForState, {
                         type: "get_state", 
-                        payload: serverParams, 
                         requestId: requestId
                     });
 
@@ -186,13 +185,28 @@ async function handleServerMessage(message) {
                 return;
             }
 
-            console.log(`Forwarding sub-action '${subActionName}' (ID: ${requestId}) to tab ${activeTabId}`);
+            console.log(`Forwarding action '${subActionName}' (ID: ${requestId}) to tab ${activeTabId} as type 'execute_action'`);
+            // Ensure content script is ready before sending execute_action
+            const isReady = await waitForContentScriptReady(activeTabId, CONTENT_SCRIPT_READY_TIMEOUT);
+            if (!isReady) {
+                console.error(`Content script in tab ${activeTabId} not ready for execute_action (ID: ${requestId}).`);
+                sendDataToServer({
+                    type: "response",
+                    id: requestId,
+                    data: { success: false, error: `Content script in tab ${activeTabId} not ready after ${CONTENT_SCRIPT_READY_TIMEOUT}ms` }
+                });
+                return;
+            }
+
             chrome.tabs.sendMessage(activeTabId, {
-                type: subActionName,       // This is the actual action for content.js (e.g., "click_element_by_index")
-                payload: subActionParams,  // These are the params for the sub-action
+                type: "execute_action",       // CORRECTED: Send 'execute_action' as the type
+                payload: {                  // CORRECTED: Nest subActionName and subActionParams in payload
+                    action: subActionName,
+                    params: subActionParams
+                },
                 requestId: requestId
             }).then(response => {
-                console.log(`Response from content script for sub-action '${subActionName}' (ID: ${requestId}):`, response);
+                console.log(`Response from content script for action '${subActionName}' (ID: ${requestId}):`, response);
                 if (response && response.type === "response") {
                     sendDataToServer({
                         type: "response",
@@ -204,12 +218,12 @@ async function handleServerMessage(message) {
                         }
                     });
                 } else {
-                    console.warn(`Undefined or malformed response from content script for sub-action: '${subActionName}' (ID: ${requestId}). Tab ID: ${activeTabId}`);
-                    sendDataToServer({ type: "response", id: requestId, data: { success: false, error: `Content script for sub-action '${subActionName}' returned malformed response. Tab ID: ${activeTabId}` }});
+                    console.warn(`Undefined or malformed response from content script for action: '${subActionName}' (ID: ${requestId}). Tab ID: ${activeTabId}`);
+                    sendDataToServer({ type: "response", id: requestId, data: { success: false, error: `Content script for action '${subActionName}' returned malformed response. Tab ID: ${activeTabId}` }});
                 }
             }).catch(error => {
-                console.error(`Error sending/receiving for sub-action '${subActionName}' (ID: ${requestId}):`, error);
-                sendDataToServer({ type: "response", id: requestId, data: { success: false, error: `Failed to communicate with content script for sub-action '${subActionName}': ${error.message}` }});
+                console.error(`Error sending/receiving for action '${subActionName}' (ID: ${requestId}):`, error);
+                sendDataToServer({ type: "response", id: requestId, data: { success: false, error: `Failed to communicate with content script for action '${subActionName}': ${error.message}` }});
             });
         } else {
             console.warn(`Received unhandled server action type '${serverActionType}' (ID: ${requestId}):`, message);
@@ -254,48 +268,61 @@ function sendDataToServer(dataToSend) {
     }
 }
 
-// Listener for messages from content scripts or popup
+// Listener for messages from content scripts or other extension parts (e.g., popup)
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    console.log("Message received in background script:", message, "from sender:", sender);
-
-    // Handle messages from content.js (typically responses to server requests that were relayed by background.js)
-    if (sender.tab && message.type === "response_to_server") {
-        console.log("Forwarding response from content script to server:", message.payload);
-        sendDataToServer({
-            type: "response",
-            id: message.payload.id, // This should be the original Python request ID
-            data: message.payload.data // This is the actual data payload from content.js
-        });
-        return false; 
-    }
-    // Listener for content script ready signal
+    // Handle readiness signal from content script
     if (sender.tab && message.type === "content_script_ready") {
         console.log(`background.js: Received 'content_script_ready' from tabId: ${sender.tab.id}`);
         contentScriptsReady.add(sender.tab.id);
         sendResponse({ status: "acknowledged_content_script_ready", tabId: sender.tab.id });
-        return true; // Keep channel open for async response
-    }
-    // Handle messages from the POPUP
-    else if (message.source === "POPUP_ACTION") {
-        if (message.action === "GET_POPUP_STATUS") {
-            console.log("Popup requested status.");
-            queryActiveTab(false); // Update activeTabId without sending context
-            sendResponse({
-                websocketStatus: websocket ? websocket.readyState : WebSocket.CLOSED,
-                activeTabId: activeTabId
-            });
-        } else {
-            console.warn("Unknown popup action:", message.action);
-            sendResponse({ error: "Unknown popup action" });
-        }
-        return true; // Indicate async response for popup messages
-    }
-    // Add other specific message handlers here if needed, e.g., from popup for other actions
 
-    console.warn("Message type not explicitly handled in onMessage listener or response already sent:", message.type, "Sender:", sender.id);
-    // Return false if not handling the message or not intending to send an async response from this top-level listener.
-    // Specific handlers might return true if they use sendResponse asynchronously.
-    return false;
+        // NEW: Check if this tab is also complete and then send page_fully_loaded_and_ready
+        // This helps if onUpdated fired before content_script_ready was processed.
+        chrome.tabs.get(sender.tab.id, (tabDetails) => {
+            if (chrome.runtime.lastError) {
+                console.error(`Error getting tab details for ${sender.tab.id} after content_script_ready:`, chrome.runtime.lastError.message);
+                return;
+            }
+            if (tabDetails && tabDetails.status === 'complete' && tabDetails.url && !tabDetails.url.startsWith('chrome://')) {
+                console.log(`Content script for tab ${sender.tab.id} is ready, and tab status is complete. Sending page_fully_loaded_and_ready from onMessage handler.`);
+                sendPageFullyLoadedAndReadyEventToPython(sender.tab.id, tabDetails.url, tabDetails.title, "cs_ready_and_tab_complete");
+            } else {
+                console.log(`Content script for tab ${sender.tab.id} is ready, but tab not yet complete (Status: ${tabDetails?.status}). Waiting for onUpdated.`);
+            }
+        });
+
+        return true; // For async response
+    }
+
+    // Handle messages from content scripts intended for the server (e.g., responses to actions)
+    // This assumes content script sends messages with a specific structure for server forwarding
+    if (message.type === "forward_to_server") { // Example: Content script wants to send something to Python
+        console.log("Forwarding message from content script to server:", message.payload);
+        // Ensure the message payload from content script is structured as expected by sendDataToServer
+        // or directly by the Python server if sendDataToServer just wraps it.
+        sendDataToServer(message.payload); 
+        sendResponse({status: "Message forwarded to server"});
+        return true;
+    }
+
+    // Handle other message types from popup or other parts of the extension if necessary
+    if (message.type === "GET_WS_STATUS") {
+        sendResponse({ status: websocket && websocket.readyState === WebSocket.OPEN ? "Connected" : "Disconnected" });
+        return true;
+    }
+
+    // If not handled, log and potentially return false or nothing
+    console.log("Background.js received unhandled message type or from unexpected sender:", message, sender);
+    // sendResponse({status: "unknown_message_type"}); // Optionally respond for unhandled types
+    return false; // If not sending an async response or if not handled
+});
+
+// Clean up contentScriptsReady set when a tab is removed
+chrome.tabs.onRemoved.addListener(tabId => {
+    if (contentScriptsReady.has(tabId)) {
+        contentScriptsReady.delete(tabId);
+        console.log(`background.js: Removed tabId ${tabId} from contentScriptsReady set due to tab removal.`);
+    }
 });
 
 /**
@@ -338,30 +365,23 @@ chrome.tabs.onActivated.addListener(activeInfo => {
         }
         if (tab) {
             console.log("Active tab details:", tab);
-            // Only send update if websocket is ready and tab is fully loaded
-            // The onUpdated listener will handle sending page_fully_loaded_and_ready when status is 'complete'
-            // This can send a simpler "tab_activated" event if needed.
-            // sendTabContextUpdate("tab_activated", tab);
-
-            // If the newly activated tab is already loaded, we might want to send the event here too.
-            // This is a bit redundant if onUpdated also fires, but covers cases where activation happens
-            // to an already loaded tab without an 'onUpdated' event with status 'complete'.
+            // MODIFIED: Check both tab.status and contentScriptsReady
             if (tab.status === 'complete' && tab.url && (tab.url.startsWith('http://') || tab.url.startsWith('https://'))) {
-                if (websocket && websocket.readyState === WebSocket.OPEN) {
-                    const eventData = {
-                        type: "extension_event",
-                        id: Date.now() + 1, // Slightly different ID for debugging
-                        data: {
-                            event_name: "page_fully_loaded_and_ready", // Sending same event name
-                            reason: "tab_activated_and_complete", // Add a reason for debugging
-                            tabId: tab.id,
-                            url: tab.url,
-                            title: tab.title
-                        }
-                    };
-                    sendDataToServer(eventData);
-                    console.info(`Sent 'page_fully_loaded_and_ready' (onActivated) for tab ${tab.id} to Python server.`);
+                if (contentScriptsReady.has(tab.id)) {
+                    console.log(`background.js: Tab ${tab.id} activated, is complete, and content script is ready. Sending page_fully_loaded_and_ready.`);
+                    if (websocket && websocket.readyState === WebSocket.OPEN) {
+                        // Using the helper function for consistency
+                        sendPageFullyLoadedAndReadyEventToPython(tab.id, tab.url, tab.title, "tab_activated_and_cs_ready_and_tab_complete");
+                    } else {
+                         console.warn(`WebSocket not open, cannot send 'page_fully_loaded_and_ready' (Reason: tab_activated_and_cs_ready_and_tab_complete) for tab ${tab.id}.`);
+                    }
+                } else {
+                    console.log(`background.js: Tab ${tab.id} activated and is complete, but content script NOT YET ready. Waiting for content_script_ready message or onUpdated.`);
+                    // The onMessage listener for "content_script_ready" will handle sending the event if tab is also complete.
+                    // The onUpdated listener will also handle sending if content script becomes ready later.
                 }
+            } else {
+                 console.log(`background.js: Tab ${tab.id} activated, but not yet complete (Status: ${tab.status}) or content script not ready, or not a http(s) URL. Will rely on onUpdated or onMessage for 'page_fully_loaded_and_ready'.`);
             }
         }
     });
@@ -372,59 +392,23 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     // Ensure the update is for the main frame and the tab is completely loaded
     if (changeInfo.status === 'complete' && tab.url && (tab.url.startsWith('http://') || tab.url.startsWith('https://'))) {
         console.log(`Tab ${tabId} finished loading: ${tab.url}`);
-        activeTabId = tabId; // Update activeTabId if the completed tab is now active or just becomes the focus.
+        // activeTabId = tabId; // Update activeTabId - This is handled by onActivated mostly
 
-        // ADDED: Send 'page_fully_loaded_and_ready' event to Python server
-        if (websocket && websocket.readyState === WebSocket.OPEN) {
-            const eventData = {
-                type: "extension_event",
-                // Python server doesn't use an ID for events like this, but good practice to have a type.
-                // If a specific ID were needed for correlation on Python side for this event, it would be generated here.
-                id: Date.now(), // Simple unique ID for this event instance, if server needs it later.
-                data: {
-                    event_name: "page_fully_loaded_and_ready",
-                    tabId: tabId,
-                    url: tab.url,
-                    title: tab.title
-                }
-            };
-            sendDataToServer(eventData);
-            console.info(`Sent 'page_fully_loaded_and_ready' event for tab ${tabId} to Python server.`);
+        // MODIFIED: Only send page_fully_loaded_and_ready if content script is also ready.
+        if (contentScriptsReady.has(tabId)) {
+            console.log(`background.js: Tab ${tabId} is complete and content script already reported ready. Sending page_fully_loaded_and_ready to Python.`);
+            sendPageFullyLoadedAndReadyEventToPython(tabId, tab.url, tab.title, "tab_updated_and_content_script_was_ready");
         } else {
-            console.warn("WebSocket not open, cannot send 'page_fully_loaded_and_ready' event.");
+            console.log(`background.js: Tab ${tabId} is complete, but content script has NOT YET reported ready. Waiting for content_script_ready signal.`);
+            // We will now rely on the content_script_ready handler to send the event once it fires for this tab.
         }
-
-        // Existing logic to send proactive context update to Python server can remain or be adjusted
-        // For now, let's keep it to see if it conflicts or complements.
-        // sendTabContextUpdate("tab_updated_complete", tab);
     }
 
     // Proactive update for when tab is just activated (might not be fully loaded yet)
-    if (changeInfo.status === 'loading' && tab.active) {
-        activeTabId = tabId;
-        // sendTabContextUpdate("tab_activated_loading", tab);
-    }
-});
-
-chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
-    console.log("Tab removed:", tabId);
-    const eventContext = {
-        event_name: "tab_removed",
-        tabId: tabId,
-        windowId: removeInfo.windowId,
-        isWindowClosing: removeInfo.isWindowClosing
-    };
-    sendDataToServer({ type: "extension_event", id: 0, data: eventContext });
-
-    if (activeTabId === tabId) {
-        console.log("Active tab was closed. Querying for new active tab.");
-        queryActiveTab(true);
-    }
-    // ADDED: Clean up from contentScriptsReady set
-    if (contentScriptsReady.has(tabId)) {
-        contentScriptsReady.delete(tabId);
-        console.log(`background.js: Removed tabId ${tabId} from contentScriptsReady set.`);
-    }
+    // if (changeInfo.status === 'loading' && tab.active) { // This might be too noisy or premature
+    // activeTabId = tabId;
+    // sendTabContextUpdate("tab_activated_loading", tab);
+    // }
 });
 
 /**
@@ -472,6 +456,33 @@ async function waitForContentScriptReady(tabId, timeoutMs) {
     }
     console.error(`background.js: Timeout waiting for content script in tab ${tabId} to signal ready after ${timeoutMs}ms.`);
     return false;
+}
+
+/**
+ * Helper function to send the 'page_fully_loaded_and_ready' event to the Python server.
+ * @param {number} tabId
+ * @param {string} url
+ * @param {string} title
+ * @param {string} reason - For logging/debugging, why this event is being sent.
+ */
+function sendPageFullyLoadedAndReadyEventToPython(tabId, url, title, reason) {
+    if (websocket && websocket.readyState === WebSocket.OPEN) {
+        const eventData = {
+            type: "extension_event",
+            id: Date.now(), 
+            data: {
+                event_name: "page_fully_loaded_and_ready",
+                reason: reason, // Added reason for better debugging
+                tabId: tabId,
+                url: url,
+                title: title
+            }
+        };
+        sendDataToServer(eventData);
+        console.info(`Sent 'page_fully_loaded_and_ready' (Reason: ${reason}) for tab ${tabId} to Python server.`);
+    } else {
+        console.warn(`WebSocket not open, cannot send 'page_fully_loaded_and_ready' (Reason: ${reason}) event for tab ${tabId}.`);
+    }
 }
 
 connectWebSocket();

@@ -3,11 +3,11 @@ import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 # Adjust imports based on the new project structure `browser-use-ext`
-from browser.browser import Browser, BrowserConfig
-from browser.context import BrowserContext, BrowserContextConfig
+from browser_use_ext.browser.browser import Browser, BrowserConfig
+from browser_use_ext.browser.context import BrowserContext, BrowserContextConfig
 # Import the service module directly to use with patch.object
-from extension_interface import service as ei_service
-from extension_interface.service import ExtensionInterface # For spec in mock
+from browser_use_ext.extension_interface import service as ei_service
+from browser_use_ext.extension_interface.service import ExtensionInterface # For spec in mock
 
 @pytest.fixture
 def browser_config():
@@ -36,7 +36,7 @@ def mock_extension_interface_instance():
 def patched_extension_interface_cls(mock_extension_interface_instance: AsyncMock):
     """Patches the ExtensionInterface class to return a specific mock instance."""
     # Patch where ExtensionInterface is IMPORTED by the Browser class
-    with patch("browser.browser.ExtensionInterface", return_value=mock_extension_interface_instance, autospec=True) as mock_cls:
+    with patch("browser_use_ext.browser.browser.ExtensionInterface", return_value=mock_extension_interface_instance, autospec=True) as mock_cls:
         yield mock_cls # Yield the mock class itself for assertions on constructor calls
 
 
@@ -141,7 +141,7 @@ async def test_browser_close_when_not_launched(browser_config: BrowserConfig, mo
     # For isolation, explicitly mock what an unlaunched browser might have or do.
     # However, the current Browser() immediately creates an ei_service.ExtensionInterface().
     # So this test implicitly relies on patching if other tests use patched_extension_interface_cls.
-    # A truly isolated test would patch 'browser.browser.ExtensionInterface' just for this test scope.
+    # A truly isolated test would patch 'browser_use_ext.browser.browser.ExtensionInterface' just for this test scope.
 
     assert not browser.is_launched
     
@@ -153,7 +153,7 @@ async def test_browser_close_when_not_launched(browser_config: BrowserConfig, mo
     # So, we check the one Browser itself creates.
     
     # To be robust, let's patch just for this test to control the instance
-    with patch("browser.browser.ExtensionInterface", return_value=mock_extension_interface_instance) as temp_mock_cls:
+    with patch("browser_use_ext.browser.browser.ExtensionInterface", return_value=mock_extension_interface_instance) as temp_mock_cls:
         fresh_browser = Browser(config=browser_config)
         assert not fresh_browser.is_launched
         assert fresh_browser._extension_interface == mock_extension_interface_instance
@@ -165,4 +165,4 @@ async def test_browser_close_when_not_launched(browser_config: BrowserConfig, mo
         mock_extension_interface_instance.stop_server.assert_not_called()
 
 # Consider adding tests for error handling during ExtensionInterface start/stop if applicable,
-# e.g., if start_server could fail and Browser needs to handle that gracefully.
+# e.g., if start_server could fail and Browser needs to handle that gracefully. 

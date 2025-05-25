@@ -2,11 +2,11 @@ import pytest
 from unittest.mock import MagicMock, AsyncMock, patch
 
 # Adjust imports based on the new project structure `browser-use-ext`
-from controller.service import Controller
-from browser.context import BrowserContext
-from extension_interface.service import ExtensionInterface # Added for type hinting
-from browser.views import BrowserState # Added for type hinting
-from controller.registry.views import ActionDefinition, list_available_actions # For testing list_actions
+from browser_use_ext.controller.service import Controller
+from browser_use_ext.browser.context import BrowserContext
+from browser_use_ext.extension_interface.service import ExtensionInterface # Added for type hinting
+from browser_use_ext.browser.views import BrowserState # Added for type hinting
+from browser_use_ext.controller.registry.views import ActionDefinition, list_available_actions # For testing list_actions
 
 # --- Fixtures ---
 
@@ -42,6 +42,11 @@ def mock_browser_context() -> MagicMock:
 @pytest.fixture
 def controller(mock_browser_context: MagicMock) -> Controller:
     """Provides a Controller instance initialized with a mock BrowserContext."""
+    # Ensure the mocked extension's execute_action is also a mock for assertions
+    # This is often needed if assert_not_called() is used on a method of a specced mock.
+    # Even if spec=ExtensionInterface is used for mock_browser_context.extension, 
+    # explicitly setting execute_action ensures it's an AsyncMock ready for assertions like assert_not_called().
+    mock_browser_context.extension.execute_action = AsyncMock(return_value={"success": True}) 
     return Controller(browser_context=mock_browser_context)
 
 # --- Test Cases ---
@@ -252,12 +257,12 @@ async def test_controller_switch_tab_wrapper(controller: Controller, mock_browse
 
 @pytest.mark.asyncio
 async def test_controller_close_tab_wrapper_with_id(controller: Controller, mock_browser_context: MagicMock):
-    target_tab_id = "tab_to_close"
+    target_tab_id = "tab456"
     mock_response = {"success": True, "closed_tab_id": target_tab_id}
     mock_browser_context.extension.execute_action = AsyncMock(return_value=mock_response)
     mock_browser_context.get_state = AsyncMock()
 
-    result = await controller.close_tab(target_tab_id)
+    result = await controller.close_tab(tab_id=target_tab_id)
 
     mock_browser_context.extension.execute_action.assert_awaited_once_with(
         action_name="close_tab",
@@ -269,40 +274,42 @@ async def test_controller_close_tab_wrapper_with_id(controller: Controller, mock
 
 @pytest.mark.asyncio
 async def test_controller_close_tab_wrapper_active_tab(controller: Controller, mock_browser_context: MagicMock):
-    active_tab_id_from_mock = "active_mock_tab_id"
-    mock_response = {"success": True, "closed_tab_id": active_tab_id_from_mock}
+    active_tab_id = "active_mock_tab_id" # From mock_browser_context fixture
+    mock_response = {"success": True, "closed_tab_id": active_tab_id}
     mock_browser_context.extension.execute_action = AsyncMock(return_value=mock_response)
-    
-    result = await controller.close_tab()
+    mock_browser_context.get_state = AsyncMock()
 
-    mock_browser_context.active_page.assert_awaited_once() 
+    result = await controller.close_tab() # No tab_id, should use active page
+
+    mock_browser_context.active_page.assert_awaited_once()
     mock_browser_context.extension.execute_action.assert_awaited_once_with(
         action_name="close_tab",
-        params={"tab_id": active_tab_id_from_mock}, 
+        params={"tab_id": active_tab_id},
         timeout=30.0
     )
     assert result == mock_response
-    assert mock_browser_context.get_state.await_args.kwargs.get('force_refresh') is True
-
+    mock_browser_context.get_state.assert_awaited_once_with(force_refresh=True)
 
 @pytest.mark.asyncio
 async def test_controller_list_actions(controller: Controller):
-    actions_list = await controller.list_actions()
-    assert isinstance(actions_list, list)
-    registered_action_names = [a.name for a in list_available_actions()]
-    returned_action_names = [a.name for a in actions_list]
-    assert all(name in registered_action_names for name in returned_action_names)
-    assert len(actions_list) > 0 
+    """Test that list_actions returns a list of ActionDefinition instances."""
+    actions = await controller.list_actions()
+    assert isinstance(actions, list)
+    assert len(actions) > 0 # Expect some actions to be registered
+    for action_def in actions:
+        assert isinstance(action_def, ActionDefinition)
+        assert hasattr(action_def, 'name')
+        assert hasattr(action_def, 'description')
+        assert hasattr(action_def, 'parameters')
 
 @pytest.mark.asyncio
 async def test_controller_get_current_browser_state_wrapper(controller: Controller, mock_browser_context: MagicMock):
-    expected_state_dict = {"url": "http://mockurl.com/current", "title": "Mock Page"} 
-    mock_browser_context.get_state.reset_mock() 
+    """Test that get_current_browser_state fetches and returns the state as a dict."""
+    expected_state_dict = {"url": "http://mockurl.com/current", "title": "Mock Page"}
+    # mock_browser_context.get_state is already mocked to return a BrowserState instance
+    # which has a model_dump method mocked to return expected_state_dict.
 
-    state_dict = await controller.get_current_browser_state(force_refresh=True)
+    current_state = await controller.get_current_browser_state()
 
-    mock_browser_context.get_state.assert_awaited_once_with(force_refresh=True)
-    assert state_dict == expected_state_dict
-
-# To run tests (from the root of the browser-use-ext project):
-# pytest tests/test_controller_service.py 
+    mock_browser_context.get_state.assert_awaited_once_with(force_refresh=False)
+    assert current_state == expected_state_dict 

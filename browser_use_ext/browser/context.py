@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field, ValidationError
 
 # Local application/library specific imports
 from .views import BrowserState, TabInfo
-from ..dom.views import DOMElementNode
+from ..dom.views import DOMElementNode, DOMDocumentNode
 from ..extension_interface.models import ResponseData
 
 if TYPE_CHECKING:
@@ -131,30 +131,43 @@ class BrowserContext:
         if not state_data_obj.success:
             error_message = f"ExtensionInterface reported an error: {state_data_obj.error}"
             logger.error(error_message)
-            # Return a BrowserState indicating failure, populating with any partial data available
+            # Return a BrowserState indicating failure.
+            # For tree, provide a minimal valid DOMDocumentNode.
+            # Other fields can be default or empty.
             return BrowserState(
-                active_tab_id=state_data_obj.active_tab_id,
-                tabs=state_data_obj.tabs if state_data_obj.tabs is not None else [],
-                url=state_data_obj.url if state_data_obj.url is not None else "",
-                title=state_data_obj.title if state_data_obj.title is not None else "",
-                html_content=f"Error: {error_message}", # Main error here
-                tree=state_data_obj.tree if state_data_obj.tree is not None else {},
-                viewport_size=state_data_obj.viewport_size if state_data_obj.viewport_size is not None else {"width": 0, "height": 0},
-                scroll_position=state_data_obj.scroll_position if state_data_obj.scroll_position is not None else {"x": 0, "y": 0},
-                pixels_below=state_data_obj.pixels_below if state_data_obj.pixels_below is not None else 0,
-                screenshot=state_data_obj.screenshot,
-                # selector_map will be handled by BrowserState.model_validate from the dict
+                url="", # Default empty string for URL in error case
+                title="", # Default empty string for title
+                tabs=[], # Default empty list for tabs
+                tree=DOMDocumentNode(children=[]), # Minimal valid tree
+                selector_map={},
+                screenshot=None,
+                pixels_above=0,
+                pixels_below=0,
                 error_message=error_message # Explicit error field in BrowserState
             )
 
         try:
-            # Convert the ResponseData object to a dictionary.
-            # This dictionary will contain all fields from ResponseData (url, title, html_content, tree, tabs, etc.)
-            # including any 'extra' fields like 'selector_map' if sent by the extension.
-            browser_state_dict = state_data_obj.model_dump(exclude_none=True)
+            # The 'result' field of ResponseData is expected to be a dictionary 
+            # that can be validated into a BrowserState model.
+            if not state_data_obj.result or not isinstance(state_data_obj.result, dict):
+                error_msg_detail = f"ResponseData.result is missing or not a dict, cannot create BrowserState. Got: {state_data_obj.result}"
+                logger.error(error_msg_detail)
+                # Create a minimal valid DOMDocumentNode for the error case
+                error_tree_validation = DOMDocumentNode(children=[])
+                return BrowserState(
+                    url=getattr(state_data_obj, 'url', ""), # Fallback, though result was the primary source
+                    title=getattr(state_data_obj, 'title', ""),
+                    tabs=getattr(state_data_obj, 'tabs', []),
+                    tree=error_tree_validation, 
+                    selector_map=getattr(state_data_obj, 'selector_map', {}),
+                    screenshot=getattr(state_data_obj, 'screenshot', None),
+                    pixels_above=getattr(state_data_obj, 'pixels_above', 0),
+                    pixels_below=getattr(state_data_obj, 'pixels_below', 0),
+                    error_message=error_msg_detail
+                )
             
-            # Validate this dictionary into a BrowserState object.
-            browser_state = BrowserState.model_validate(browser_state_dict)
+            browser_state_data_for_validation = state_data_obj.result
+            browser_state = BrowserState.model_validate(browser_state_data_for_validation)
             
             # Update caches
             self._cached_browser_state = browser_state
@@ -164,21 +177,30 @@ class BrowserContext:
         except ValidationError as e: # ValidationError should already be imported
             error_msg_detail = f"Pydantic validation error while creating BrowserState: {e}"
             logger.error(error_msg_detail)
-            problematic_dict_for_validation = state_data_obj.model_dump(exclude_none=True)
-            logger.error(f"Data that failed BrowserState validation: {problematic_dict_for_validation}")
-            
+            # Log the actual data that was passed to BrowserState.model_validate
+            logger.error(f"Data that failed BrowserState validation: {browser_state_data_for_validation}") 
+
+            error_tree_validation = DOMDocumentNode(children=[]) # Minimal valid tree
+            # Attempt to get tree from problematic_dict_for_validation if possible
+            tree_data_for_error_state = browser_state_data_for_validation.get("tree")
+            if isinstance(tree_data_for_error_state, DOMDocumentNode):
+                error_tree_validation = tree_data_for_error_state
+            elif isinstance(tree_data_for_error_state, dict):
+                try:
+                    error_tree_validation = DOMDocumentNode.model_validate(tree_data_for_error_state)
+                except ValidationError:
+                    pass # Stick with empty tree
+
             # Return BrowserState indicating this validation error
             return BrowserState(
-                active_tab_id=state_data_obj.active_tab_id,
-                tabs=state_data_obj.tabs if state_data_obj.tabs is not None else [],
-                url=state_data_obj.url if state_data_obj.url is not None else "",
-                title=state_data_obj.title if state_data_obj.title is not None else "",
-                html_content=f"Error: {error_msg_detail}",
-                tree=state_data_obj.tree if state_data_obj.tree is not None else {},
-                viewport_size=state_data_obj.viewport_size if state_data_obj.viewport_size is not None else {"width": 0, "height": 0},
-                scroll_position=state_data_obj.scroll_position if state_data_obj.scroll_position is not None else {"x": 0, "y": 0},
-                pixels_below=state_data_obj.pixels_below if state_data_obj.pixels_below is not None else 0,
-                screenshot=state_data_obj.screenshot,
+                url=browser_state_data_for_validation.get("url", ""),
+                title=browser_state_data_for_validation.get("title", ""),
+                tabs=browser_state_data_for_validation.get("tabs", []),
+                tree=error_tree_validation, # Use the prepared error_tree
+                selector_map=browser_state_data_for_validation.get("selector_map", {}),
+                screenshot=browser_state_data_for_validation.get("screenshot"),
+                pixels_above=browser_state_data_for_validation.get("pixels_above", 0),
+                pixels_below=browser_state_data_for_validation.get("pixels_below", 0),
                 error_message=error_msg_detail
             )
         
@@ -203,7 +225,7 @@ class BrowserContext:
         """
         return self # Returns self, as this class is the session/context.
     
-    async def get_selector_map(self) -> Dict[int, Any]:
+    async def get_selector_map(self) -> Dict[int, Dict[str, str]]:
         """
         Retrieves the cached selector map from the last call to get_state.
 
@@ -236,50 +258,40 @@ class BrowserContext:
 
         Raises:
             ValueError: If the element with the given index is not found in the selector map.
-            RuntimeError: If the state or element tree hasn\'t been fetched yet.
+            RuntimeError: If the state or element tree hasn't been fetched yet.
         """
-        selector_map = await self.get_selector_map()
-        element_info = selector_map.get(index)
+        # Ensure the state is fresh enough or update it
+        # _ = await self.get_state() # get_state updates caches, but might be too broad here if only tree needed
+        # For now, assume _cached_browser_state is populated by a prior get_state() call in the test setup or real flow.
 
-        if not element_info:
-            logger.error(f"Element with index {index} not found in selector_map.")
-            raise ValueError(f"Element with index {index} not found in selector_map.")
+        if not self._cached_browser_state or not self._cached_browser_state.tree: # MODIFIED: element_tree -> tree
+            logger.error("Attempted to get DOM element by index, but browser state or DOM tree is not cached.")
+            raise RuntimeError("Browser state or DOM tree not available. Call get_state() first.")
 
-        if not self._cached_browser_state or not self._cached_browser_state.element_tree:
-            logger.error(f"Cannot get DOM element by index {index} because element_tree is not cached.")
-            raise RuntimeError("Browser state or element tree not available. Call get_state() first.")
+        # This is a conceptual placeholder. In reality, the selector_map from the extension
+        # gives us info, and the actual DOMElementNode might be constructed or found based on that.
+        # The current BrowserState.tree *is* the parsed DOM tree (DOMDocumentNode).
+        # We need to find the element within this tree that corresponds to the highlight_index.
+        # The DOMElementNode itself now contains highlight_index.
 
-        # Try to find the corresponding DOMElementNode in the cached element_tree
-        # This requires traversing the tree, which can be inefficient.
-        # The primary use of highlight_index is for the *extension* to act on the element.
-        # This function provides a Python-side representation if possible.
-        
-        # Helper function to search the DOM tree
-        def find_node_by_highlight_index(node: DOMElementNode, target_index: int) -> Optional[DOMElementNode]:
-            if node.highlight_index == target_index:
+        # Helper function to search the tree
+        def find_node_by_highlight_index(node: Union[DOMElementNode, DOMDocumentNode], target_index: int) -> Optional[DOMElementNode]:
+            if isinstance(node, DOMElementNode) and node.highlight_index == target_index:
                 return node
-            for child in node.children:
-                found = find_node_by_highlight_index(child, target_index)
-                if found:
-                    return found
+            if node.children:
+                for child in node.children:
+                    found = find_node_by_highlight_index(child, target_index)
+                    if found:
+                        return found
             return None
 
-        found_node = find_node_by_highlight_index(self._cached_browser_state.element_tree, index)
+        found_node = find_node_by_highlight_index(self._cached_browser_state.tree, index)
+
+        if not found_node:
+            logger.error(f"Element with highlight_index {index} not found in the cached DOM tree.")
+            raise ValueError(f"No DOM element found for highlight index {index} in the cached DOM tree.") # MODIFIED ERROR MESSAGE
         
-        if found_node:
-            return found_node
-        else:
-            # If not found in the tree (e.g., if selector_map has items not in element_tree
-            # or tree is partial), create a placeholder based on info from selector_map.
-            logger.warning(f"Element with index {index} found in selector_map but not in cached element_tree. Returning placeholder.")
-            return DOMElementNode(
-                tag_name=element_info.get("tag_name", "unknown"), # Assuming selector_map might have tag_name
-                attributes=element_info.get("attributes", {}),
-                highlight_index=index,
-                is_visible=element_info.get("is_visible", True), # Assuming visibility info might be there
-                xpath=element_info.get("xpath", ""), # XPath is critical
-                children=[] # Cannot determine children from selector_map alone
-            )
+        return found_node
 
     async def _click_element_node(self, element_node: DOMElementNode) -> Optional[str]:
         """

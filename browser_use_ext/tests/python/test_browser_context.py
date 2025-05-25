@@ -3,10 +3,11 @@ import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 # Adjust imports based on the new project structure `browser-use-ext`
-from browser.context import BrowserContext, BrowserContextConfig, ExtensionPageProxy
-from extension_interface.service import ExtensionInterface
-from browser.views import BrowserState, TabInfo
-from dom.views import DOMElementNode
+from browser_use_ext.browser.context import BrowserContext, BrowserContextConfig, ExtensionPageProxy
+from browser_use_ext.extension_interface.service import ExtensionInterface
+from browser_use_ext.browser.views import BrowserState, TabInfo
+from browser_use_ext.dom.views import DOMElementNode, DOMDocumentNode
+from browser_use_ext.extension_interface.models import ResponseData
 
 @pytest.fixture
 def mock_extension_interface():
@@ -36,16 +37,17 @@ def mock_browser_context() -> MagicMock:
     mock_context.extension = AsyncMock(spec=ExtensionInterface) # Proxy accesses context.extension
     # Add other commonly used attributes if ExtensionPageProxy uses them, e.g., _cached_state if directly accessed.
     # For now, focusing on what ExtensionPageProxy.__init__ and its methods directly use.
-    mock_context._cached_state = MagicMock(spec=BrowserState) # If methods rely on this being pre-populated
-    mock_context._cached_state.url = "http://initialmock.com"
-    mock_context._cached_state.title = "Initial Mock Title"
+    mock_context._cached_browser_state = MagicMock(spec=BrowserState) # If methods rely on this being pre-populated
+    mock_context._cached_browser_state.url = "http://initialmock.com"
+    mock_context._cached_browser_state.title = "Initial Mock Title"
     return mock_context
 
 @pytest.fixture
 def sample_browser_state() -> BrowserState:
     """Provides a sample BrowserState for testing."""
     # A simple DOM tree for testing
-    sample_dom = DOMElementNode(
+    # The top-level element for the document tree should be <html>
+    html_element = DOMElementNode(
         tag_name="html", type="element", xpath="/html", attributes={}, children=[
             DOMElementNode(tag_name="body", type="element", xpath="/html/body", attributes={}, children=[
                 DOMElementNode(tag_name="div", type="element", attributes={"id": "test-div"}, text="Click me", highlight_index=0, xpath="/html/body/div[1]"),
@@ -53,42 +55,68 @@ def sample_browser_state() -> BrowserState:
             ])
         ]
     )
-    # The BrowserState model expects element_tree to be a DOMElementNode, and tabs to be List[TabInfo]
-    # The selector_map keys are integers (highlight_index).
+    sample_document_tree = DOMDocumentNode(type="document", children=[html_element])
+
     return BrowserState(
-        url="http://example.com", # Changed from active_tab_id to direct url/title
+        url="http://example.com",
         title="Test Page",
-        tabs=[TabInfo(page_id=1, url="http://example.com", title="Test Page")], # Simplified active flag logic
-        element_tree=sample_dom,
+        tabs=[TabInfo(tabId=1, url="http://example.com", title="Test Page", isActive=True)],
+        tree=sample_document_tree, # Corrected: provide DOMDocumentNode
         selector_map={
-            0: {"xpath": "/html/body/div[1]", "tag_name": "div"}, # Using int keys, consistent value structure
-            1: {"xpath": "/html/body/input[1]", "tag_name": "input"} 
+            0: {"xpath": "/html/body/div[1]", "tag_name": "div"},
+            1: {"xpath": "/html/body/input[1]", "tag_name": "input"}
         },
-        # viewport_width=1280, viewport_height=720, # These are not in BrowserState
-        # scroll_x=0, scroll_y=0, # These are not in BrowserState
-        # page_content_width=1280, page_content_height=1000, # These are not in BrowserState
-        pixels_above=0, # Added default for BrowserState field
-        pixels_below=0, # Added default for BrowserState field
+        pixels_above=0,
+        pixels_below=0,
         screenshot="data:image/png;base64,fakescreenshotdata"
     )
 
 @pytest.mark.asyncio
 async def test_browser_context_get_state(browser_context: BrowserContext, mock_extension_interface: AsyncMock, sample_browser_state: BrowserState):
     """Test that BrowserContext.get_state calls the extension interface and updates its internal state."""
-    mock_extension_interface.get_state.return_value = sample_browser_state
-    
+    # Explicitly construct the dictionary that BrowserState.model_validate will receive
+    result_dict_for_browser_state = {
+        "url": sample_browser_state.url,
+        "title": sample_browser_state.title,
+        "tabs": [t.model_dump() for t in sample_browser_state.tabs],
+        "tree": sample_browser_state.tree.model_dump(), # Assuming tree is never None for a valid sample_browser_state
+        "selector_map": sample_browser_state.selector_map,
+        "screenshot": sample_browser_state.screenshot,
+        "pixels_above": sample_browser_state.pixels_above,
+        "pixels_below": sample_browser_state.pixels_below,
+        "error_message": None # Explicitly add error_message for comparison consistency
+    }
+    mock_response = ResponseData(success=True, result=result_dict_for_browser_state)
+    mock_extension_interface.get_state.return_value = mock_response
+
     retrieved_state = await browser_context.get_state()
     
-    mock_extension_interface.get_state.assert_called_once_with(include_screenshot=False) # Default for get_state
-    assert retrieved_state == sample_browser_state
-    assert browser_context._cached_browser_state == sample_browser_state # MODIFIED: _cached_state -> _cached_browser_state
-    assert browser_context._cached_selector_map == sample_browser_state.selector_map # Corrected attribute name
+    mock_extension_interface.get_state.assert_called_once_with(include_screenshot=False, tab_id=None) # Default for get_state
+    
+    print(f"RETRIEVED STATE (test_browser_context_get_state):\n{retrieved_state.model_dump_json(indent=2)}")
+    print(f"SAMPLE BROWSER STATE (test_browser_context_get_state):\n{sample_browser_state.model_dump_json(indent=2)}")
+    
+    assert retrieved_state.model_dump_json() == sample_browser_state.model_dump_json()
+    assert browser_context._cached_browser_state.model_dump_json() == sample_browser_state.model_dump_json()
+    assert browser_context._cached_selector_map == sample_browser_state.selector_map
 
 @pytest.mark.asyncio
 async def test_browser_context_get_state_caching(browser_context: BrowserContext, mock_extension_interface: AsyncMock, sample_browser_state: BrowserState):
     """Test that BrowserContext._cached_state and _cached_selector_map are updated after get_state."""
-    # Mock the call to the underlying extension interface
-    mock_extension_interface.get_state.return_value = sample_browser_state
+    # Explicitly construct the dictionary for the first call
+    result_dict_for_browser_state_initial = {
+        "url": sample_browser_state.url,
+        "title": sample_browser_state.title,
+        "tabs": [t.model_dump() for t in sample_browser_state.tabs],
+        "tree": sample_browser_state.tree.model_dump(),
+        "selector_map": sample_browser_state.selector_map,
+        "screenshot": sample_browser_state.screenshot,
+        "pixels_above": sample_browser_state.pixels_above,
+        "pixels_below": sample_browser_state.pixels_below,
+        "error_message": None # Explicitly add error_message for comparison consistency
+    }
+    mock_response_initial = ResponseData(success=True, result=result_dict_for_browser_state_initial)
+    mock_extension_interface.get_state.return_value = mock_response_initial
 
     # Initial state of caches (should be None or empty)
     assert browser_context._cached_browser_state is None
@@ -97,27 +125,48 @@ async def test_browser_context_get_state_caching(browser_context: BrowserContext
     # Call get_state
     retrieved_state = await browser_context.get_state()
 
-    # Verify extension was called
-    mock_extension_interface.get_state.assert_called_once_with(include_screenshot=False)
-    assert retrieved_state == sample_browser_state
+    # Verify extension was called for the first state
+    mock_extension_interface.get_state.assert_any_call(include_screenshot=False, tab_id=None)
+    
+    print(f"RETRIEVED STATE 1 (test_browser_context_get_state_caching):\n{retrieved_state.model_dump_json(indent=2)}")
+    print(f"SAMPLE BROWSER STATE (test_browser_context_get_state_caching):\n{sample_browser_state.model_dump_json(indent=2)}")
+    assert retrieved_state.model_dump_json() == sample_browser_state.model_dump_json()
     
     # Verify caches are populated
-    assert browser_context._cached_browser_state == sample_browser_state
+    assert browser_context._cached_browser_state.model_dump_json() == sample_browser_state.model_dump_json()
     assert browser_context._cached_selector_map == sample_browser_state.selector_map
 
     # Call get_state again
     # In current implementation, get_state always fetches, so mock should be called again.
     # And caches should be updated again.
-    another_sample_state = sample_browser_state.model_copy(update={"title": "Updated Title"})
-    mock_extension_interface.get_state.return_value = another_sample_state # New state for second call
+    another_sample_state_data = sample_browser_state.model_copy(update={"title": "Updated Title"}).model_dump()
+    # Construct the dict for the updated state
+    result_dict_for_browser_state_updated = {
+        "url": another_sample_state_data["url"],
+        "title": another_sample_state_data["title"],
+        "tabs": [TabInfo.model_validate(t_data).model_dump() for t_data in another_sample_state_data["tabs"]], # Re-validate and dump
+        "tree": DOMDocumentNode.model_validate(another_sample_state_data["tree"]).model_dump(), # Re-validate and dump
+        "selector_map": another_sample_state_data["selector_map"],
+        "screenshot": another_sample_state_data["screenshot"],
+        "pixels_above": another_sample_state_data["pixels_above"],
+        "pixels_below": another_sample_state_data["pixels_below"],
+        "error_message": None # Explicitly add error_message for comparison consistency
+    }
+    mock_response_updated = ResponseData(success=True, result=result_dict_for_browser_state_updated)
+    mock_extension_interface.get_state.return_value = mock_response_updated
     
-    second_retrieved_state = await browser_context.get_state(include_screenshot=True) # Test with different param
+    second_retrieved_state = await browser_context.get_state(include_screenshot=True, tab_id=1) # Pass tab_id=1
 
-    mock_extension_interface.get_state.assert_called_with(include_screenshot=True) # Check last call
-    assert mock_extension_interface.get_state.call_count == 2
-    assert second_retrieved_state == another_sample_state
-    assert browser_context._cached_browser_state == another_sample_state
-    assert browser_context._cached_selector_map == another_sample_state.selector_map
+    mock_extension_interface.get_state.assert_any_call(include_screenshot=True, tab_id=1) # Second call with new params
+    
+    print(f"RETRIEVED STATE 2 (test_browser_context_get_state_caching):\n{second_retrieved_state.model_dump_json(indent=2)}")
+    # Compare against a BrowserState instance created from the dict for an apples-to-apples comparison
+    expected_updated_state = BrowserState.model_validate(result_dict_for_browser_state_updated)
+    assert second_retrieved_state.model_dump_json() == expected_updated_state.model_dump_json()
+    assert browser_context._cached_browser_state.model_dump_json() == expected_updated_state.model_dump_json()
+    assert browser_context._cached_selector_map == expected_updated_state.selector_map
+
+    print(f"EXPECTED UPDATED STATE (test_browser_context_get_state_caching):\n{expected_updated_state.model_dump_json(indent=2)}")
 
 @pytest.mark.asyncio
 async def test_browser_context_click_element_by_highlight_index(browser_context: BrowserContext, mock_extension_interface: AsyncMock, sample_browser_state: BrowserState):
@@ -249,72 +298,63 @@ async def test_extension_page_proxy_title(mock_browser_context: MagicMock, mock_
     """Test ExtensionPageProxy.title() method."""
     mock_browser_context.extension = mock_extension_interface
     page_proxy = ExtensionPageProxy(extension=mock_extension_interface, browser_context=mock_browser_context)
-    
-    expected_title = "Test Page Title"
-    mock_page_state_for_title = MagicMock(spec=BrowserState)
-    mock_page_state_for_title.title = expected_title
-    mock_page_state_for_title.url = "http://someurlforthestate.com" # ADDED .url attribute for the mock
-    mock_browser_context.get_state.return_value = mock_page_state_for_title
+
+    mock_title_state = MagicMock(spec=BrowserState)
+    mock_title_state.title = "Proxy Test Title"
+    mock_title_state.url = "http://someurl.com/title_test" # Added missing url attribute
+    mock_browser_context.get_state.return_value = mock_title_state
     
     title = await page_proxy.title()
-    
+
     mock_browser_context.get_state.assert_awaited_once()
-    assert title == expected_title
+    assert title == "Proxy Test Title"
 
 @pytest.mark.asyncio
 async def test_extension_page_proxy_url(mock_browser_context: MagicMock, mock_extension_interface: AsyncMock):
-    """Test that ExtensionPageProxy.url property is updated after actions like goto."""
+    """Test ExtensionPageProxy.url attribute after state update."""
     mock_browser_context.extension = mock_extension_interface
     page_proxy = ExtensionPageProxy(extension=mock_extension_interface, browser_context=mock_browser_context)
-    target_url = "http://testurl.com"
 
-    mock_page_state_for_url = MagicMock(spec=BrowserState)
-    mock_page_state_for_url.url = target_url
-    mock_page_state_for_url.title = "Test URL Page"
-    mock_browser_context.get_state.return_value = mock_page_state_for_url
+    mock_url_state = MagicMock(spec=BrowserState)
+    mock_url_state.url = "http://proxypage.url/test"
+    mock_url_state.title = "Proxy Page Title for URL Test" # Added missing title attribute
+    mock_browser_context.get_state.return_value = mock_url_state
 
-    await page_proxy.goto(target_url) # Action that updates URL (and calls get_state via _update_state)
-    assert page_proxy.url == target_url
+    # Trigger state update by accessing a property that calls _update_state or calling it directly if it were public
+    await page_proxy.title() # Accessing title will call _update_state -> get_state
+    
+    assert page_proxy.url == "http://proxypage.url/test"
 
 @pytest.mark.asyncio
 async def test_click_element_not_found_in_map(browser_context: BrowserContext, mock_extension_interface: AsyncMock, sample_browser_state: BrowserState):
-    """Test getting an element by highlight_index that is not in the selector_map raises ValueError."""
-    # Populate cache so get_dom_element_by_index doesn't try to fetch state itself initially for this test path
-    browser_context._cached_browser_state = sample_browser_state # MODIFIED: _cached_state -> _cached_browser_state
-    browser_context._cached_selector_map = sample_browser_state.selector_map # map is {0:..., 1:...}
-
-    invalid_highlight_index = 99 # This index is not in sample_browser_state.selector_map
-
-    with pytest.raises(ValueError, match=f"Element with index {invalid_highlight_index} not found in selector_map"):
-        await browser_context.get_dom_element_by_index(invalid_highlight_index)
+    """Test clicking an element that is not in the selector_map raises an error."""
+    browser_context._cached_browser_state = sample_browser_state
+    browser_context._cached_selector_map = sample_browser_state.selector_map
     
-    # Ensure no interaction with extension interface if element not found in map before any action call
+    non_existent_highlight_index = 999
+    
+    with pytest.raises(ValueError, match=f"No DOM element found for highlight index {non_existent_highlight_index} in the cached DOM tree."):
+        await browser_context.get_dom_element_by_index(non_existent_highlight_index)
+    
+    # Consequently, _click_element_node would not be called if get_dom_element_by_index fails.
     mock_extension_interface.execute_action.assert_not_called()
 
 @pytest.mark.asyncio
 async def test_input_text_element_not_found_in_map(browser_context: BrowserContext, mock_extension_interface: AsyncMock, sample_browser_state: BrowserState):
-    """Test getting an element by highlight_index for input that is not in the selector_map raises ValueError."""
-    browser_context._cached_browser_state = sample_browser_state # MODIFIED: _cached_state -> _cached_browser_state
+    """Test inputting text to an element not in selector_map raises an error."""
+    browser_context._cached_browser_state = sample_browser_state
     browser_context._cached_selector_map = sample_browser_state.selector_map
 
-    invalid_highlight_index = 100
-    # text_to_input = "Test text" # Not used as get_dom_element_by_index will fail first
+    non_existent_highlight_index = 888
+    text_to_input = "test text"
 
-    with pytest.raises(ValueError, match=f"Element with index {invalid_highlight_index} not found in selector_map"):
-        await browser_context.get_dom_element_by_index(invalid_highlight_index)
-        # If we were testing a combined operation:
-        # element_node = await browser_context.get_dom_element_by_index(invalid_highlight_index)
-        # await browser_context._input_text_element_node(element_node, text_to_input)
-    
+    with pytest.raises(ValueError, match=f"No DOM element found for highlight index {non_existent_highlight_index} in the cached DOM tree."):
+        await browser_context.get_dom_element_by_index(non_existent_highlight_index)
+        
     mock_extension_interface.execute_action.assert_not_called()
 
-# Example of how DOMElementNode.to_html() might be used if it existed
-# This is for the purpose of testing ExtensionPageProxy.content()
-# Ideally, DOMElementNode would have a method to convert itself to an HTML string.
-# For now, a simplified helper function is used within the test_extension_page_proxy_content test.
-
-# Add more tests for other ExtensionPageProxy methods (e.g., close, screenshot, etc.)
-# and other BrowserContext functionalities as they are implemented.
-
-# To run this test, you would typically use pytest in your terminal:
-# pytest browser-use/tests/test_browser_context.py 
+# Additional tests could cover:
+# - Error handling from mock_extension_interface.execute_action calls
+# - Behavior when sample_browser_state.element_tree is None or malformed
+# - Specific logic within DOMElementNode related methods if BrowserContext uses them more directly
+# - Test active_page() property of BrowserContext

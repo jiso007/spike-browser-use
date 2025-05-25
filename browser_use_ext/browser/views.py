@@ -82,4 +82,7 @@ class BrowserState(BaseModel):
     # This indicates how much more content is available by scrolling down.
     pixels_below: int = Field(
         default=0, description="Number of pixels scrollable below the viewport."
-    ) 
+    )
+
+    # Optional error message if the state represents an error condition.
+    error_message: Optional[str] = Field(default=None, description="Error message if state retrieval failed.") 
