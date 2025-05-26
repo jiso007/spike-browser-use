@@ -6,6 +6,10 @@ This document outlines the plan for modernizing the existing browser interaction
 
 The new `/browser_use_ext` system aims to achieve the following:
 
+*   **Minimize Modifications to Existing `/browser_use` Codebase:**
+    *   A primary objective is to retain as much of the original `/browser_use` functionality and code structure as possible.
+    *   Changes to `/browser_use` should be limited to what is strictly necessary to integrate with the new Chrome extension interface (`/browser_use_ext`) and decouple from Playwright.
+    *   The goal is to leverage the mature components of `/browser_use` (especially agent logic, controller structures, and data models where applicable) rather than completely rewriting them, adapting them to work with the extension as the new browser interaction layer.
 *   **Decouple from Playwright:**
     *   Completely remove Playwright as the browser automation and control framework.
     *   Eliminate the need for the backend to launch and manage dedicated browser instances (e.g., via Chromedriver).
