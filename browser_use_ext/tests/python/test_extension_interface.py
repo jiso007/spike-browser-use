@@ -5,6 +5,7 @@ import pytest_asyncio
 from unittest.mock import AsyncMock, MagicMock, patch, call
 from typing import Any, Dict, Optional, Tuple, List, Callable
 import uuid
+from contextlib import suppress
 
 from browser_use_ext.extension_interface.service import ExtensionInterface, ConnectionInfo
 from browser_use_ext.extension_interface.models import Message, RequestData, ResponseData
@@ -298,33 +299,39 @@ async def test_remove_client_clears_active(interface_instance: ExtensionInterfac
     client_id, handler_task = await connect_mock_client(interface_instance, mock_websocket)
     assert interface_instance._active_connection_id == client_id
 
-    interface_instance.logger.info.reset_mock() # Reset mock before actions that trigger disconnect logs
+    # Patch the module-level logger used by service.py
+    with patch('browser_use_ext.extension_interface.service.logger') as mock_service_logger:
+        mock_service_logger.info.reset_mock() # Reset mock before actions
 
-    # Simulate client disconnecting by making the websocket iterator stop
-    mock_websocket.stop_iteration()
-    
-    # Wait for the _handle_connection task to complete its finally block
-    try:
-        await asyncio.wait_for(handler_task, timeout=0.5) # Adjust timeout if needed
-    except asyncio.TimeoutError:
-        interface_instance.logger.warning("Handler task did not complete in time after stop_iteration.")
-        if not handler_task.done():
-            handler_task.cancel()
-            with pytest.raises(asyncio.CancelledError):
-                await handler_task # Ensure cancellation is processed
-    except Exception as e:
-        interface_instance.logger.error(f"Error waiting for handler task: {e}")
-        if not handler_task.done(): handler_task.cancel() # Still try to cancel
+        # Simulate client disconnecting by making the websocket iterator stop
+        mock_websocket.stop_iteration()
+        
+        # Wait for the _handle_connection task to complete its finally block
+        try:
+            await asyncio.wait_for(handler_task, timeout=0.5) # Adjust timeout if needed
+        except asyncio.TimeoutError:
+            # Use mock_service_logger here if you want to check this warning
+            mock_service_logger.warning("Handler task did not complete in time after stop_iteration.")
+            if not handler_task.done():
+                handler_task.cancel()
+                with pytest.raises(asyncio.CancelledError):
+                    await handler_task # Ensure cancellation is processed
+        except Exception as e:
+            # Use mock_service_logger here if you want to check this error
+            mock_service_logger.error(f"Error waiting for handler task: {e}")
+            if not handler_task.done(): handler_task.cancel() # Still try to cancel
 
-    await asyncio.sleep(0.1) # Allow more time for logs from finally block to propagate
+        await asyncio.sleep(0.25) # Allow more time for logs from finally block to propagate
 
-    # Assertions after _handle_connection should have cleaned up
-    assert client_id not in interface_instance._connections
-    assert interface_instance._active_connection_id is None 
-    # Check logs for graceful disconnect and active connection clearing
-    # interface_instance.logger.info.assert_any_call(f"Client {client_id} disconnected gracefully.") # Temporarily commented out
-    interface_instance.logger.info.assert_any_call(f"Removed client {client_id} from active connections.")
-    interface_instance.logger.info.assert_any_call(f"Cleared active connection (was {client_id}).")
+        # Assertions after _handle_connection should have cleaned up
+        assert client_id not in interface_instance._connections
+        assert interface_instance._active_connection_id is None 
+        
+        # Assert against the patched module-level logger
+        # interface_instance.logger.info.assert_any_call(f"Client {client_id} disconnected gracefully.") # This would still use instance logger if un-commented
+        mock_service_logger.info.assert_any_call(f"Client {client_id} disconnected gracefully.") # Check for graceful disconnect log
+        mock_service_logger.info.assert_any_call(f"Removed client {client_id} from active connections.")
+        mock_service_logger.info.assert_any_call(f"Cleared active connection (was {client_id}).")
 
 # @pytest.mark.asyncio
 # async def test_handle_connection_multiple_clients(interface_instance: ExtensionInterface, mock_websocket_factory):

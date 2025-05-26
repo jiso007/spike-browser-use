@@ -12,7 +12,7 @@ const DEBUG_ELEMENT_IDENTIFICATION = false;
 // Helps in understanding why an element is or is not considered actionable.
 const DEBUG_ACTIONABILITY_CHECK = false; 
 
-console.log("Content script loaded and executing. Version: 2.0 (Refactored)");
+console.log('Content script starting initialization...'); // MODIFIED LINE to match PERPLEXITY_OUTPUT.md
 
 // --- Global Variables & Constants ---
 // Tracks IDs used in the current scan to ensure uniqueness. Cleared on each new detectActionableElements call.
@@ -23,6 +23,7 @@ let currentScanUsedIds = new Set();
  * Listener for messages from the background script.
  * Handles requests like 'get_state' and 'execute_action'.
  */
+/*
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log("Content script received message:", message);
 
@@ -67,6 +68,131 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     // If message type is not recognized, return false to allow other listeners to process it.
     return false;
 });
+*/
+// ADDED CODE based on PERPLEXITY_OUTPUT.md
+let isContentScriptReady = false;
+let messageListener = null;
+
+// Establish the message listener first
+function setupMessageListener() {
+    if (messageListener) {
+        console.warn('Message listener already established');
+        return;
+    }
+
+    messageListener = function(request, sender, sendResponse) {
+        console.log('Content script received message:', request);
+        
+        if (!isContentScriptReady) {
+            console.warn('Content script received message before ready state');
+            sendResponse({ error: 'Content script not ready' });
+            return false; // Return false for sync response, or true if planning async for error
+        }
+
+        // Handle different message types
+        switch (request.type) {
+            case 'get_state':
+                // Pass requestId from the original request if available
+                handleGetState(request.requestId)
+                    .then(response => {
+                        sendResponse({ request_id: request.requestId, ...response });
+                    })
+                    .catch(error => {
+                        console.error("Error in handleGetState:", error);
+                        sendResponse({
+                            request_id: request.requestId,
+                            type: "response",
+                            status: "error",
+                            error: `Failed to get state: ${error.message}`
+                        });
+                    });
+                return true; // Indicates async response
+            case 'execute_action':
+                 // Pass requestId from the original request if available
+                handleExecuteAction(request.payload, request.requestId)
+                    .then(response => {
+                        sendResponse({ request_id: request.requestId, ...response });
+                    })
+                    .catch(error => {
+                        console.error("Error in handleExecuteAction:", error);
+                        sendResponse({
+                            request_id: request.requestId,
+                            type: "response",
+                            status: "error",
+                            error: `Failed to execute action \'${request.payload && request.payload.action}\': ${error.message}`
+                        });
+                    });
+                return true; // Indicates async response
+            case 'ping':
+                sendResponse({ status: 'ready', timestamp: Date.now() });
+                return false; // Synchronous response
+            default:
+                console.warn('Unknown message type:', request.type);
+                sendResponse({ error: 'Unknown message type' });
+                return false; // Synchronous response
+        }
+    };
+
+    chrome.runtime.onMessage.addListener(messageListener);
+    console.log('Message listener established');
+}
+
+// Send ready signal to background script
+function signalContentScriptReady() {
+    const maxRetries = 3;
+    const baseDelay = 100; // milliseconds
+    
+    function attemptSignal(retryCount = 0) {
+        console.log(`Attempting to signal ready state (attempt ${retryCount + 1}/${maxRetries})`);
+        
+        // The PERPLEXITY_OUTPUT.md shows tabId: null, but content scripts usually don't know their tabId
+        // when sending to background. background.js can get it from the sender object.
+        chrome.runtime.sendMessage(
+            { type: "content_script_ready", timestamp: Date.now() }, 
+            function(response) {
+                if (chrome.runtime.lastError) {
+                    console.error('Error sending ready signal:', chrome.runtime.lastError.message);
+                    
+                    if (retryCount < maxRetries -1 ) { // Corrected retry condition
+                        const delay = baseDelay * Math.pow(2, retryCount);
+                        console.log(`Retrying ready signal in ${delay}ms`);
+                        setTimeout(() => attemptSignal(retryCount + 1), delay);
+                    } else {
+                        console.error('Failed to signal ready state after all retries');
+                    }
+                } else {
+                    console.log('Content script ready signal acknowledged by background:', response);
+                    isContentScriptReady = true;
+                }
+            }
+        );
+    }
+    
+    attemptSignal();
+}
+
+// Initialize content script
+function initializeContentScript() {
+    console.log('Initializing content script...');
+    
+    try {
+        // Set up message handling first
+        setupMessageListener();
+        
+        // Perform any other initialization tasks
+        // ... existing initialization code ...
+        // (Assuming existing initialization like unique ID generation setup, etc., remains)
+        
+        // Signal readiness after all setup is complete
+        signalContentScriptReady();
+        
+    } catch (error) {
+        console.error('Content script initialization failed:', error);
+        // Could implement additional error recovery here
+    }
+}
+// END ADDED CODE
+
 
 // --- Enhanced Element Identification System ---
 
@@ -1112,72 +1238,47 @@ function executeGetAttributes(element, params) {
  * tries to message a content script that hasn't fully initialized its listeners.
  */
 async function signalReadyToBackground() {
-    console.log("CONTENT.JS: Entered signalReadyToBackground - VERSION WITH LATEST CHANGES - Checkpoint Alpha"); // UNIQUE LOG
-    console.log("content.js: Attempting to send content_script_ready message.");
-    const maxAttempts = 3;
-    const retryDelayMs = 500;
-
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-        try {
-            console.log(`content.js: Sending content_script_ready, attempt ${attempt}/${maxAttempts}`);
-            // It's important to use a Promise here to properly handle the async response
-            // and chrome.runtime.lastError in the context of an async function.
-            await new Promise((resolve, reject) => {
-                chrome.runtime.sendMessage({ type: "content_script_ready" }, response => {
-                    if (chrome.runtime.lastError) {
-                        const errorMsg = chrome.runtime.lastError.message;
-                        // ADDED/MODIFIED: More direct logging here
-                        console.warn(`content.js: sendMessage CALLBACK - chrome.runtime.lastError detected. Attempt: ${attempt}. Error Message: "${errorMsg}"`);
-                        
-                        if (errorMsg === "Could not establish connection. Receiving end does not exist.") {
-                            // This specific error will trigger a retry via reject(new Error(errorMsg))
-                            reject(new Error(errorMsg)); 
-                        } else {
-                            // For any other errors, log them and also reject to stop further attempts.
-                            console.error('content.js: Error sending content_script_ready (other error inside callback):', errorMsg);
-                            reject(new Error(errorMsg));
-                        }
-                    } else {
-                        console.log("content.js: Background acked content_script_ready:", response);
-                        resolve(response); 
-                    }
-                });
-            });
-            // If the promise above resolves, it means the message was sent successfully.
-            console.log("content.js: content_script_ready message successfully sent and acknowledged.");
-            return; // Exit the function successfully
-        } catch (error) {
-            // Check if it's the specific connection error we want to retry.
-            if (error.message === "Could not establish connection. Receiving end does not exist.") {
-                if (attempt < maxAttempts) {
-                    console.log(`content.js: Will retry sending content_script_ready in ${retryDelayMs}ms.`);
-                    await new Promise(resolve => setTimeout(resolve, retryDelayMs));
-                } else {
-                    console.error(`content.js: Failed to send content_script_ready after ${maxAttempts} attempts. Final error:`, error.message);
-                    // Optionally, rethrow or handle the persistent failure.
-                    // For now, we just log it, as background.js has its own timeout.
-                    return; // Stop retrying
-                }
-            } else {
-                // For any other error caught by the outer try...catch, log and stop.
-                console.error(`content.js: An unexpected error occurred while trying to send content_script_ready:`, error);
-                return; // Stop on other errors
-            }
+    // This function seems to be a leftover or an alternative implementation attempt.
+    // The PERPLEXITY_OUTPUT.md details a `signalContentScriptReady` function, which has been implemented above.
+    // To avoid conflicts and align with the plan, this function will be commented out or removed.
+    /*
+    console.log("content.js: Attempting to send content_script_ready message (from signalReadyToBackground).");
+    try {
+        const response = await chrome.runtime.sendMessage({ type: "content_script_ready" });
+        // console.log("content.js: Background acked content_script_ready:", response);
+    } catch (error) {
+        if (error.message.includes("Receiving end does not exist")) {
+            console.warn("content.js: Background script not ready yet for content_script_ready signal. This might be okay if background initializes slower.");
+        } else {
+            console.error('content.js: Error sending content_script_ready (from signalReadyToBackground):', error.message);
         }
     }
+    */
 }
 
-// --- Initialization ---
-// Call the function to signal readiness after all other initializations are complete.
-// This should be one of the last things executed in the script.
+// ADDED CODE based on PERPLEXITY_OUTPUT.md
+// Start initialization when DOM is ready
 if (document.readyState === 'loading') {
-    // Wait for the DOM to be fully loaded before signaling readiness.
-    // This ensures that elements are available if the background script immediately queries state.
-    document.addEventListener('DOMContentLoaded', signalReadyToBackground);
+    document.addEventListener('DOMContentLoaded', initializeContentScript);
 } else {
-    // If the DOM is already loaded, signal readiness immediately.
-    signalReadyToBackground();
+    initializeContentScript();
 }
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', function() {
+    console.log('Content script cleaning up...');
+    // Resetting ready state. If the script is re-injected on a new page, it will re-initialize.
+    isContentScriptReady = false; 
+    // It's also good practice to remove the listener if the script instance is truly being destroyed
+    // and not just for a page navigation where it might be re-used or re-injected.
+    // However, typical content script lifecycle means it's unloaded with the page.
+    // if (messageListener && chrome.runtime.onMessage.hasListener(messageListener)) {
+    //     chrome.runtime.onMessage.removeListener(messageListener);
+    //     console.log('Message listener removed during cleanup.');
+    //     messageListener = null;
+    // }
+});
+// END ADDED CODE
 
 console.log("Content script initialized and message listener added. Ready signal will be sent.");
 // Ensure this log appears. If not, the script might be crashing before this point.

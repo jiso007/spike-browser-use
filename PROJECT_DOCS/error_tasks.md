@@ -1,0 +1,30 @@
+- [x] Create or modify browser_use_ext/extension/content.js to implement content script ready handshake
+- [x] Add chrome.runtime.onMessage.addListener setup in content.js before signaling ready
+- [x] Implement signalContentScriptReady function with retry logic and error handling in content.js
+- [x] Add comprehensive logging for debugging ready signal attempts in content.js
+- [x] Implement message handling logic that checks ready state before processing in content.js
+- [x] Create or modify browser_use_ext/extension/background.js to handle content_script_ready messages
+- [x] Implement contentScriptsReady Set for tracking ready tab IDs in background.js
+- [x] Add handleContentScriptReady function to process ready signals and send acknowledgments in background.js
+- [x] Enhance waitForContentScriptReady function to use new tracking system in background.js
+- [x] Implement chrome.tabs.onRemoved listener for cleanup of ready state in background.js
+- [x] Add comprehensive logging for ready state changes and message handling in background.js
+- [x] Create browser_use_ext/tests/javascript/content.test.js for content script unit tests
+- [x] Implement test cases for successful ready signal and acknowledgment in content.test.js
+- [x] Add test cases for retry logic and error handling in content.test.js
+- [x] Create test cases for message handling before and after ready state in content.test.js
+- [x] Create browser_use_ext/tests/javascript/background.test.js for background script unit tests
+- [x] Implement test cases for ready signal reception and tab tracking in background.test.js
+- [x] Add test cases for tab cleanup on removal in background.test.js
+- [x] Create test cases for waitForContentScriptReady function behavior in background.test.js
+- [x] Create browser_use_ext/tests/test_content_script_ready.py for Python integration tests
+- [x] Implement test cases for ExtensionInterface wait_for_content_script_ready method
+- [x] Add test cases for get_state and execute_action readiness verification
+- [x] Create test cases for timeout handling and error scenarios
+- [x] Verify integration between Python ExtensionInterface and JavaScript ready tracking
+- [ ] Test end-to-end communication flow from Python through WebSocket to extension # MANUAL VERIFICATION REQUIRED
+- [x] Add error handling for cases where content script fails to initialize
+- [x] Implement timeout configuration for ready signal waiting
+- [x] Add debugging utilities for monitoring ready state across tabs
+- [x] Verify manifest.json permissions support the messaging requirements
+- [ ] Test handshake mechanism across different browser scenarios (reload, navigation, etc.) # MANUAL VERIFICATION REQUIRED
