@@ -89,96 +89,78 @@ def test_get_extension_path_standard_layout(mock_extension_path: Path):
 
 def test_get_extension_path_fallback_layout(tmp_path: Path):
     """Tests get_extension_path when the extension is found via os.getcwd() fallback."""
-    # Simulate CWD being the project root, and extension is at CWD / browser_use_ext / extension
+    # Create the actual extension directory structure that the fallback should find
     project_root_sim = tmp_path / "project_root"
     project_root_sim.mkdir()
     
     mock_ext_dir = project_root_sim / "browser_use_ext" / "extension"
     mock_ext_dir.mkdir(parents=True)
 
-    # Simulate conftest.py being somewhere that its relative path logic would fail
-    # e.g. Path(__file__).parent.parent / "extension" does NOT exist
-    simulated_conftest_file_path = tmp_path / "some_other_place" / "conftest.py"
-    simulated_conftest_file_path.parent.mkdir(parents=True, exist_ok=True)
-
+    # Use a simpler approach - patch only what we need
     with patch("browser_use_ext.tests.conftest.Path") as mock_path_class, \
          patch("browser_use_ext.tests.conftest.os.getcwd") as mock_getcwd:
         
-        # Mock Path(__file__)
-        mock_path_instance_for_file = MagicMock(spec=Path)
-        mock_path_instance_for_file.parent = MagicMock(spec=Path)
-        mock_path_instance_for_file.parent.parent = MagicMock(spec=Path)
-        mock_path_class.return_value = mock_path_instance_for_file
-
-        # Ensure the primary relative lookup fails
-        # (Path(__file__).parent.parent / "extension").exists() should be False
-        # The actual Path object for (Path(__file__).parent.parent / "extension") needs to mock exists()
-        primary_lookup_path_mock = MagicMock(spec=Path)
-        primary_lookup_path_mock.exists.return_value = False # Key for fallback
-        primary_lookup_path_mock.is_dir.return_value = False
-        #mock_path_instance_for_file.parent.parent / "extension" = primary_lookup_path_mock
-        
-        # Configure the mock so that when / "extension" is called on mock_path_instance_for_file.parent.parent, it returns primary_lookup_path_mock
-        # Need to mock __truediv__ for the / operator
-        mock_path_instance_for_file.parent.parent.__truediv__ = MagicMock(return_value=primary_lookup_path_mock)
-        
-        # Mock os.getcwd() to return our simulated project root
+        # Set up getcwd to return our project root
         mock_getcwd.return_value = str(project_root_sim)
-
-        # Mock Path() calls for the fallback path check
-        # Path(os.getcwd()) -> should be project_root_sim
-        # Path(os.getcwd()) / "browser_use_ext" / "extension" -> should be mock_ext_dir
-        # This is tricky because Path() is called multiple times. We need to control specific instances.
-        # For simplicity, we rely on the real Path for the fallback logic, but with mocked getcwd.
-        # We need to ensure that the actual Path(mock_getcwd_result / "browser_use_ext" / "extension") works.
         
-        # Call the function
-        found_path_str = get_extension_path()
-        found_path = Path(found_path_str)
+        # Mock Path() to behave differently based on the argument
+        def path_side_effect(arg):
+            if arg == "__file__":
+                # Return a mock for __file__ that makes the primary lookup fail
+                mock_file_path = MagicMock()
+                mock_file_path.parent.parent = tmp_path / "nonexistent"  # This will make the primary lookup fail
+                return mock_file_path
+            else:
+                # For all other calls (like Path(os.getcwd())), use the real Path class
+                return Path(arg)
         
-        assert found_path.exists(), "Path found by get_extension_path fallback should exist."
-        assert found_path.is_dir(), "Path found by fallback should be a directory."
-        assert str(found_path.resolve()) == str(mock_ext_dir.resolve()), \
-            f"Expected fallback path {mock_ext_dir.resolve()}, but got {found_path.resolve()}"
+        mock_path_class.side_effect = path_side_effect
+        
+        # Patch __file__ to return our mock file string
+        with patch("browser_use_ext.tests.conftest.__file__", "__file__"):
+            # Call the function
+            found_path_str = get_extension_path()
+            found_path = Path(found_path_str)
+            
+            assert found_path.exists(), "Path found by get_extension_path fallback should exist."
+            assert found_path.is_dir(), "Path found by fallback should be a directory."
+            assert str(found_path.resolve()) == str(mock_ext_dir.resolve()), \
+                f"Expected fallback path {mock_ext_dir.resolve()}, but got {found_path.resolve()}"
 
 
 def test_get_extension_path_not_found(tmp_path: Path):
     """Tests get_extension_path when the extension directory cannot be found by any method."""
-    # Simulate conftest.py being somewhere and no extension directory exists at expected relative or fallback paths.
-    simulated_conftest_file_path = tmp_path / "deep" / "folder" / "tests" / "conftest.py"
-    simulated_conftest_file_path.parent.mkdir(parents=True, exist_ok=True)
-    
-    # Simulate CWD where no 'browser_use_ext/extension' exists
+    # Create a CWD where no 'browser_use_ext/extension' exists
     cwd_sim = tmp_path / "random_cwd"
     cwd_sim.mkdir()
 
     with patch("browser_use_ext.tests.conftest.Path") as mock_path_class, \
          patch("browser_use_ext.tests.conftest.os.getcwd") as mock_getcwd:
 
-        # Mock Path(__file__)
-        mock_path_instance_for_file = MagicMock(spec=Path)
-        mock_path_instance_for_file.parent = MagicMock(spec=Path)
-        mock_path_instance_for_file.parent.parent = MagicMock(spec=Path)
-        mock_path_class.return_value = mock_path_instance_for_file
+        # Set up getcwd to return a directory without extension
+        mock_getcwd.return_value = str(cwd_sim)
         
-        # Ensure primary relative lookup fails
-        primary_lookup_path_mock = MagicMock(spec=Path)
-        primary_lookup_path_mock.exists.return_value = False
-        #mock_path_instance_for_file.parent.parent / "extension" = primary_lookup_path_mock # .../deep/folder/extension
+        # Mock Path() to behave differently based on the argument
+        def path_side_effect(arg):
+            if arg == "__file__":
+                # Return a mock for __file__ that makes the primary lookup fail
+                mock_file_path = MagicMock()
+                mock_file_path.parent.parent = tmp_path / "nonexistent"  # This will make the primary lookup fail
+                return mock_file_path
+            else:
+                # For all other calls (like Path(os.getcwd())), use the real Path class
+                return Path(arg)
         
-        # Configure the mock so that when / "extension" is called on mock_path_instance_for_file.parent.parent, it returns primary_lookup_path_mock
-        # Need to mock __truediv__ for the / operator
-        mock_path_instance_for_file.parent.parent.__truediv__ = MagicMock(return_value=primary_lookup_path_mock)
-
+        mock_path_class.side_effect = path_side_effect
         
-        # Ensure fallback lookup also fails by os.getcwd()
-        mock_getcwd.return_value = str(cwd_sim) # CWD is random_cwd
-        # Path(cwd_sim) / "browser_use_ext" / "extension" should not exist.
-
-        with pytest.raises(FileNotFoundError) as excinfo:
-            get_extension_path()
-        
-        assert "Extension directory not found" in str(excinfo.value)
+        # Patch __file__ to return our mock file string
+        with patch("browser_use_ext.tests.conftest.__file__", "__file__"):
+            with pytest.raises(FileNotFoundError) as excinfo:
+                get_extension_path()
+            
+            # Verify the error message mentions both attempted paths
+            error_msg = str(excinfo.value)
+            assert "Extension directory not found" in error_msg
 
 
 # Test for wait_for_extension_connection()
