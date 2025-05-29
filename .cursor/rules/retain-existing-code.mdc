@@ -1,0 +1,39 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+- **Core Principle: Preserve and Adapt, Don't Rebuild Unnecessarily**
+    - When modifying a codebase, adding features, or refactoring components, the primary goal should be to retain as much of the existing, functional code as possible.
+    - Avoid deleting or significantly altering code that is not directly impacted by the current task, unless explicitly instructed or if the code is genuinely obsolete and being replaced as part of a clearly defined goal (e.g., removing an old library like Playwright when the goal is to replace it with a Chrome Extension).
+
+- **Rationale:**
+    - **Leverage Proven Logic:** Existing code, especially in mature systems, often contains battle-tested logic and handles edge cases that might not be immediately obvious. Preserving it minimizes the risk of introducing regressions. (As discussed regarding the agent's prompt content in `browser_use/agent/prompts.py` and `browser_use/agent/system_prompt.md`).
+    - **Focused Changes:** Keeping changes targeted to the specific feature or modification at hand makes development more manageable, easier to review, and reduces the scope of potential issues.
+    - **Efficiency:** Reusing existing code is generally more efficient than rewriting it from scratch.
+
+- **Key Scenarios & Guidelines:**
+    - **Component Replacement (e.g., Playwright to Chrome Extension):**
+        - The focus should be on replacing the specific component and adapting the interfaces of surrounding modules to work with the new component.
+        - Core logic within those surrounding modules (e.g., agent decision-making, data processing) should be preserved as much as possible, changing only what's necessary to interact with the new interface.
+        - Example: If migrating from `browser_use` (Playwright-based) to `browser_use_ext` (Chrome Extension-based), the agent's core prompting strategy and decision logic (`agent_core.py`, content of `prompts.py`) should ideally remain consistent, even if the *method* of defining/loading prompts changes structurally. The *instructions* to the LLM are paramount.
+    - **Adding New Features:**
+        - Strive to integrate new features into the existing architecture and codebase.
+        - Look for ways to extend current classes, functions, or modules rather than creating parallel or duplicative structures.
+    - **Refactoring:**
+        - Refactoring should improve code structure or performance but maintain existing functionality. Changes should be justifiable and ideally covered by tests.
+        - If refactoring how a piece of data is managed (e.g., prompt templates moving from external files to inline Pydantic models), ensure the *actual data/content* is preserved faithfully if it's proven to work.
+    - **Code Deletion:**
+        - Only delete code if:
+            1.  It is part of a component being explicitly removed/replaced.
+            2.  It is genuinely dead/unreachable code AND its removal doesn't affect desired functionality.
+            3.  You are explicitly asked to remove it as part of the task.
+        - Do not delete code simply because its structure is being changed if the underlying logic or content is still valid and required.
+
+- **Self-Correction/Verification:**
+    - Before committing to large-scale changes or deletions, ask:
+        - "Is this change absolutely necessary to achieve the current, specific goal?"
+        - "Am I preserving the core, proven logic from the existing system?"
+        - "Could this change be achieved with less disruption to the existing codebase?"
+    - Refer to overarching project goals (like "Minimize Modifications to Existing Codebase" in [PROJECT_DOCS/CURRENT_PROJECT_GOAL.md](mdc:PROJECT_DOCS/CURRENT_PROJECT_GOAL.md)) to guide decisions.
+

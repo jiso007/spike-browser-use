@@ -122,89 +122,52 @@ class BrowserContext:
         """
         logger.info(f"Requesting browser state (screenshot: {include_screenshot}, target_tab_id: {tab_id}).")
         
-        # state_data_obj will be an instance of the ResponseData model
-        state_data_obj: ResponseData = await self._extension.get_state(
-            include_screenshot=include_screenshot,
-            tab_id=tab_id
-        )
-
-        if not state_data_obj.success:
-            error_message = f"ExtensionInterface reported an error: {state_data_obj.error}"
-            logger.error(error_message)
-            # Return a BrowserState indicating failure.
-            # For tree, provide a minimal valid DOMDocumentNode.
-            # Other fields can be default or empty.
-            return BrowserState(
-                url="", # Default empty string for URL in error case
-                title="", # Default empty string for title
-                tabs=[], # Default empty list for tabs
-                tree=DOMDocumentNode(children=[]), # Minimal valid tree
-                selector_map={},
-                screenshot=None,
-                pixels_above=0,
-                pixels_below=0,
-                error_message=error_message # Explicit error field in BrowserState
-            )
-
         try:
-            # The 'result' field of ResponseData is expected to be a dictionary 
-            # that can be validated into a BrowserState model.
-            if not state_data_obj.result or not isinstance(state_data_obj.result, dict):
-                error_msg_detail = f"ResponseData.result is missing or not a dict, cannot create BrowserState. Got: {state_data_obj.result}"
-                logger.error(error_msg_detail)
-                # Create a minimal valid DOMDocumentNode for the error case
-                error_tree_validation = DOMDocumentNode(children=[])
-                return BrowserState(
-                    url=getattr(state_data_obj, 'url', ""), # Fallback, though result was the primary source
-                    title=getattr(state_data_obj, 'title', ""),
-                    tabs=getattr(state_data_obj, 'tabs', []),
-                    tree=error_tree_validation, 
-                    selector_map=getattr(state_data_obj, 'selector_map', {}),
-                    screenshot=getattr(state_data_obj, 'screenshot', None),
-                    pixels_above=getattr(state_data_obj, 'pixels_above', 0),
-                    pixels_below=getattr(state_data_obj, 'pixels_below', 0),
-                    error_message=error_msg_detail
-                )
-            
-            browser_state_data_for_validation = state_data_obj.result
-            browser_state = BrowserState.model_validate(browser_state_data_for_validation)
+            # self._extension.get_state() now directly returns a BrowserState object on success
+            # or raises an error (e.g., RuntimeError) on failure.
+            browser_state: BrowserState = await self._extension.get_state(
+                for_vision=include_screenshot,
+                # tab_id is handled by ExtensionInterface._active_tab_id internally
+            )
             
             # Update caches
             self._cached_browser_state = browser_state
-            # BrowserState model itself should define/contain selector_map
             self._cached_selector_map = browser_state.selector_map if browser_state.selector_map is not None else {}
-
-        except ValidationError as e: # ValidationError should already be imported
-            error_msg_detail = f"Pydantic validation error while creating BrowserState: {e}"
-            logger.error(error_msg_detail)
-            # Log the actual data that was passed to BrowserState.model_validate
-            logger.error(f"Data that failed BrowserState validation: {browser_state_data_for_validation}") 
-
-            error_tree_validation = DOMDocumentNode(children=[]) # Minimal valid tree
-            # Attempt to get tree from problematic_dict_for_validation if possible
-            tree_data_for_error_state = browser_state_data_for_validation.get("tree")
-            if isinstance(tree_data_for_error_state, DOMDocumentNode):
-                error_tree_validation = tree_data_for_error_state
-            elif isinstance(tree_data_for_error_state, dict):
-                try:
-                    error_tree_validation = DOMDocumentNode.model_validate(tree_data_for_error_state)
-                except ValidationError:
-                    pass # Stick with empty tree
-
-            # Return BrowserState indicating this validation error
+            return browser_state
+            
+        except RuntimeError as e: # Catch specific errors from ExtensionInterface.get_state
+            error_message = f"Failed to get browser state from ExtensionInterface: {e}"
+            logger.error(error_message, exc_info=True)
             return BrowserState(
-                url=browser_state_data_for_validation.get("url", ""),
-                title=browser_state_data_for_validation.get("title", ""),
-                tabs=browser_state_data_for_validation.get("tabs", []),
-                tree=error_tree_validation, # Use the prepared error_tree
-                selector_map=browser_state_data_for_validation.get("selector_map", {}),
-                screenshot=browser_state_data_for_validation.get("screenshot"),
-                pixels_above=browser_state_data_for_validation.get("pixels_above", 0),
-                pixels_below=browser_state_data_for_validation.get("pixels_below", 0),
-                error_message=error_msg_detail
+                url="", title="", tabs=[],
+                tree=DOMDocumentNode(children=[]),
+                selector_map={},
+                screenshot=None,
+                pixels_above=0, pixels_below=0,
+                error_message=error_message
             )
-        
-        return browser_state
+        except ValidationError as e: # Should ideally not happen here if ExtensionInterface.get_state returns valid BrowserState
+            error_message = f"Pydantic validation error for BrowserState (unexpected): {e}"
+            logger.error(error_message, exc_info=True)
+            return BrowserState(
+                url="", title="", tabs=[],
+                tree=DOMDocumentNode(children=[]),
+                selector_map={},
+                screenshot=None,
+                pixels_above=0, pixels_below=0,
+                error_message=error_message
+            )
+        except Exception as e: # Catch any other unexpected errors
+            error_message = f"Unexpected error in BrowserContext.get_state: {e}"
+            logger.error(error_message, exc_info=True)
+            return BrowserState(
+                url="", title="", tabs=[],
+                tree=DOMDocumentNode(children=[]),
+                selector_map={},
+                screenshot=None,
+                pixels_above=0, pixels_below=0,
+                error_message=error_message
+            )
     
     async def get_current_page(self) -> "ExtensionPageProxy":
         """

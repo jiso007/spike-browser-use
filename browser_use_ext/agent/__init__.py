@@ -24,22 +24,66 @@ from .views import (
 from .prompts import SystemPrompt #, UserPrompt, AgentMessagePrompt, PlannerPrompt
 
 # NEW: Export Agent and ActionCommand from agent_core.py
-from .agent_core import Agent, ActionCommand, InvalidActionError
+# from .agent_core import Agent, ActionCommand, InvalidActionError
+
+# Core agent components
+from .prompts import (
+    DEFAULT_SYSTEM_PROMPT,
+    DEFAULT_PLANNER_PROMPT,
+    SystemPrompt,
+    PromptVariable,
+    generate_actions_text_description,
+    get_agent_llm_output_json_schema,
+)
+from .actions import *
+from .views import (
+    AgentSettings,
+    AgentState,
+    AgentHistoryList,
+    AgentHistory,
+    AgentLLMOutput,
+    ActionCommand, # ActionCommand is here
+    InvalidActionError, # InvalidActionError is here
+    ActionResult,
+    StepMetadata,
+    AgentError,
+    AgentBrain,
+    AgentOutput,
+    AgentThought
+)
+from .message_manager import MessageManager
+from .service import Agent # Import Agent from .service
 
 __all__ = [
-    "AgentSettings",
-    "AgentThought",
-    "AgentOutput",
-    # "ActionResult",
-    # "AgentHistory",
-    # "AgentState",
-    # "StepMetadata",
+    # Prompts
+    "DEFAULT_SYSTEM_PROMPT",
+    "DEFAULT_PLANNER_PROMPT",
     "SystemPrompt",
-    # "UserPrompt", 
-    # "AgentMessagePrompt",
-    # "PlannerPrompt",
-    # Add new exports to __all__
-    "Agent",
+    "PromptVariable",
+    "generate_actions_text_description",
+    "get_agent_llm_output_json_schema",
+    # Actions (assuming you want to export all from .actions using *)
+    # If not, list them explicitly similar to how views are handled.
+    # For now, let's assume * export is fine for .actions if it contains only Pydantic models.
+
+    # Views
+    "AgentSettings",
+    "AgentState",
+    "AgentHistoryList",
+    "AgentHistory",
+    "AgentLLMOutput",
     "ActionCommand",
     "InvalidActionError",
+    "ActionResult",
+    "StepMetadata",
+    "AgentError",
+    "AgentBrain",
+    "AgentOutput",
+    "AgentThought",
+
+    # Message Manager
+    "MessageManager",
+
+    # Agent Service
+    "Agent",
 ] 

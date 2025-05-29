@@ -6,7 +6,11 @@ module.exports = {
   collectCoverage: true,
 
   // An array of glob patterns indicating a set of files for which coverage information should be collected
-  // collectCoverageFrom: undefined,
+  collectCoverageFrom: [
+    'src/**/*.{js,jsx,ts,tsx}', // Assuming source files are in src
+    '!src/index.js',
+    '!src/**/*.stories.{js,jsx,ts,tsx}',
+  ],
 
   // The directory where Jest should output its coverage files
   coverageDirectory: "coverage",
@@ -28,7 +32,14 @@ module.exports = {
   // ],
 
   // An object that configures minimum threshold enforcement for coverage results
-  // coverageThreshold: undefined,
+  coverageThreshold: {
+    global: {
+      branches: 80,
+      functions: 80,
+      lines: 80,
+      statements: 80,
+    },
+  },
 
   // A path to a custom dependency extractor
   // dependencyExtractor: undefined,
@@ -70,7 +81,9 @@ module.exports = {
   ],
 
   // A map from regular expressions to module names or to arrays of module names that allow to stub out resources with a single module
-  // moduleNameMapper: {},
+  moduleNameMapper: {
+    '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
+  },
 
   // An array of regexp pattern strings, matched against all module paths before considered 'visible' to the module loader
   // modulePathIgnorePatterns: [],
@@ -100,7 +113,7 @@ module.exports = {
   // setupFiles: [],
 
   // A list of paths to modules that run some code to configure or set up the testing framework before each test
-  setupFilesAfterEnv: [],
+  setupFilesAfterEnv: ['/src/setupTests.js'],
 
   // The number of seconds after which a test is considered as slow and reported as such in the results.
   // slowTestThreshold: 5,
@@ -109,10 +122,10 @@ module.exports = {
   // snapshotSerializers: [],
 
   // The test environment that will be used for testing. The default is "node".
-  testEnvironment: "jest-environment-jsdom", // Crucial for DOM testing
+  testEnvironment: 'jsdom',
 
   // Options that will be passed to the testEnvironment
-  // testEnvironmentOptions: {},
+  testEnvironmentOptions: {},
 
   // Adds a location field to test results
   // testLocationInResults: false,
@@ -121,8 +134,11 @@ module.exports = {
   // By default, Jest looks for .js, .jsx, .ts, and .tsx files inside of __tests__ folders, as well as any files with a suffix of .test or .spec
   // For your project, tests are in browser_use_ext/tests/
   testMatch: [
-    "**/tests/javascript/**/*.test.js", // Looks for .test.js files in any subfolder of tests/javascript
-    // You can add other patterns if your tests are located elsewhere
+    '<rootDir>/browser_use_ext/tests/unit/javascript/**/*_test.{js,jsx,ts,tsx}',
+    '<rootDir>/browser_use_ext/tests/unit/javascript/**/*_unit.{js,jsx,ts,tsx}',
+    // Also include .test files if there are any in the future
+    '<rootDir>/browser_use_ext/tests/unit/**/*.test.{js,jsx,ts,tsx}',
+    '<rootDir>/browser_use_ext/tests/integration/**/*.test.{js,jsx,ts,tsx}',
   ],
 
   // An array of regexp pattern strings that are matched against all test paths, matched tests are skipped
@@ -141,7 +157,7 @@ module.exports = {
 
   // A map from regular expressions to paths to transformers
   transform: {
-    '^.+\\\.js$': 'babel-jest',
+    '^.+\.js$': 'babel-jest',
   },
 
   // An array of regexp pattern strings that are matched against all source file paths, matched files will skip transformation

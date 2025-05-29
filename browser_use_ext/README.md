@@ -87,6 +87,58 @@ browser-use-ext/
     pip install -r requirements.txt
     ```
 
+## Static Analysis and Code Quality Checks
+
+This project utilizes several static analysis tools to ensure code quality, type safety, and consistency, particularly for the JavaScript/TypeScript parts of the project (located in the parent workspace). These tools are configured based on Section 6 of the `test_rules.md` document.
+
+**Prerequisites:**
+
+*   [Node.js](https://nodejs.org/) and [npm](https://www.npmjs.com/) must be installed.
+
+**Installation:**
+
+1.  Navigate to the workspace root (the directory containing `package.json`).
+    ```bash
+    cd /path/to/your/workspace_root
+    ```
+2.  Install the Node.js development dependencies:
+    ```bash
+    npm install --save-dev eslint @typescript-eslint/eslint-plugin eslint-plugin-unicorn eslint-plugin-import eslint-plugin-deprecation typescript ts-unused-exports unimported madge @microsoft/api-extractor npm-run-all
+    ```
+    *(Note: You might need to use `--force` or `--legacy-peer-deps` if dependency conflicts arise during installation)*
+
+**Configuration:**
+
+The tools are configured via the following files in the workspace root:
+
+*   `.eslintrc.cjs` / `eslint.config.mjs`: ESLint configuration for code style and linting rules.
+*   `tsconfig.json`: TypeScript compiler options for type checking.
+*   `.unimportedrc.json`: Configuration for `unimported` (dead code detection).
+*   `api-extractor.json`: Configuration for `@microsoft/api-extractor` (API consistency and bundling).
+*   `package.json`: Defines the npm scripts to run the checks.
+
+**Running Checks:**
+
+The main script to run all static analysis checks is `npm run check` from the workspace root.
+
+```bash
+cd /path/to/to/your/workspace_root
+npm run check
+```
+
+This script runs the following individual checks sequentially, continuing even if one fails:
+
+*   `check-lint`: Runs ESLint for code style and quality issues.
+*   `check-types`: Runs the TypeScript compiler (`tsc --noEmit`) to check for type errors.
+*   `check-unused-exports`: Uses `ts-unused-exports` to find unused exported code.
+*   `check-dead-code`: Uses `unimported` to find files that are not imported anywhere.
+*   `check-circular-deps`: Uses `madge` to detect circular dependencies between modules.
+*   `lint:api`: Uses `api-extractor` to validate and report on the public API surface.
+
+You can also run these checks individually, e.g., `npm run check-lint`.
+
+Passing all these checks helps maintain a high standard of code quality and reduces potential issues.
+
 ## Running Tests
 
 The project uses `pytest` for unit testing. The necessary `pytest.ini` is located in the parent directory (one level above `browser-use-ext/`) to ensure correct path resolution for imports.

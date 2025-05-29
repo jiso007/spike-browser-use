@@ -9,7 +9,8 @@ from unittest.mock import Mock, patch, AsyncMock
 # This assumes that when pytest runs, 'browser_use_ext' is on the python path.
 # (e.g., running pytest from the project root directory that contains browser_use_ext)
 from browser_use_ext.extension_interface.service import ExtensionInterface
-from browser_use_ext.extension_interface.models import Message, ExtensionEvent, Response, ActionPayload, ActionRequest # Assuming BrowserState is in models not views
+from browser_use_ext.extension_interface.models import Message, ResponseData # Removed ActionRequest
+from browser_use_ext.agent.views import ActionCommand # Import ActionCommand
 from browser_use_ext.browser.views import BrowserState # Keep this if BrowserState is indeed here
 
 class TestContentScriptReadiness:
@@ -146,7 +147,7 @@ class TestContentScriptReadiness:
     async def test_execute_action_waits_for_readiness_and_succeeds(self, extension_interface, mock_websocket):
         """Test that execute_action succeeds if background.js reports content script ready"""
         tab_id_to_test = 789
-        action_to_execute = ActionPayload(action="click", params={"element_id": "btn-1"})
+        action_to_execute = ActionCommand(action="click", params={"element_id": "btn-1"})
         request_id_sent_from_python = None
 
         async def send_side_effect(message_str):
@@ -188,7 +189,7 @@ class TestContentScriptReadiness:
     async def test_execute_action_fails_if_content_script_not_ready(self, extension_interface, mock_websocket):
         """Test execute_action failure if background.js indicates content script not ready"""
         tab_id_to_test = 101
-        action_to_execute = ActionPayload(action="input", params={"element_id": "text-1", "text": "hello"})
+        action_to_execute = ActionCommand(action="input", params={"element_id": "text-1", "text": "hello"})
         request_id_sent_from_python = None
 
         async def send_side_effect(message_str):
@@ -229,4 +230,4 @@ class TestContentScriptReadiness:
     # Comments from original PERPLEXITY_OUTPUT.md regarding JS tests moved/covered by JS test files.
     # Python ExtensionInterface doesn't have wait_for_content_script_ready; it's implicit in background.js.
 
-    # The PERPLEXITY_OUTPUT.md test `
+    # The PERPLEXITY_OUTPUT.md test ` 

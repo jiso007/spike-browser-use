@@ -74,24 +74,13 @@ def sample_browser_state() -> BrowserState:
 @pytest.mark.asyncio
 async def test_browser_context_get_state(browser_context: BrowserContext, mock_extension_interface: AsyncMock, sample_browser_state: BrowserState):
     """Test that BrowserContext.get_state calls the extension interface and updates its internal state."""
-    # Explicitly construct the dictionary that BrowserState.model_validate will receive
-    result_dict_for_browser_state = {
-        "url": sample_browser_state.url,
-        "title": sample_browser_state.title,
-        "tabs": [t.model_dump() for t in sample_browser_state.tabs],
-        "tree": sample_browser_state.tree.model_dump(), # Assuming tree is never None for a valid sample_browser_state
-        "selector_map": sample_browser_state.selector_map,
-        "screenshot": sample_browser_state.screenshot,
-        "pixels_above": sample_browser_state.pixels_above,
-        "pixels_below": sample_browser_state.pixels_below,
-        "error_message": None # Explicitly add error_message for comparison consistency
-    }
-    mock_response = ResponseData(success=True, result=result_dict_for_browser_state)
-    mock_extension_interface.get_state.return_value = mock_response
+    # mock_extension_interface.get_state now directly returns a BrowserState object
+    mock_extension_interface.get_state.return_value = sample_browser_state
 
-    retrieved_state = await browser_context.get_state()
+    retrieved_state = await browser_context.get_state(include_screenshot=False) # BrowserContext.get_state still uses include_screenshot
     
-    mock_extension_interface.get_state.assert_called_once_with(include_screenshot=False, tab_id=None) # Default for get_state
+    # ExtensionInterface.get_state uses for_vision
+    mock_extension_interface.get_state.assert_called_once_with(for_vision=False, tab_id=None) 
     
     print(f"RETRIEVED STATE (test_browser_context_get_state):\n{retrieved_state.model_dump_json(indent=2)}")
     print(f"SAMPLE BROWSER STATE (test_browser_context_get_state):\n{sample_browser_state.model_dump_json(indent=2)}")
@@ -102,31 +91,20 @@ async def test_browser_context_get_state(browser_context: BrowserContext, mock_e
 
 @pytest.mark.asyncio
 async def test_browser_context_get_state_caching(browser_context: BrowserContext, mock_extension_interface: AsyncMock, sample_browser_state: BrowserState):
-    """Test that BrowserContext._cached_state and _cached_selector_map are updated after get_state."""
-    # Explicitly construct the dictionary for the first call
-    result_dict_for_browser_state_initial = {
-        "url": sample_browser_state.url,
-        "title": sample_browser_state.title,
-        "tabs": [t.model_dump() for t in sample_browser_state.tabs],
-        "tree": sample_browser_state.tree.model_dump(),
-        "selector_map": sample_browser_state.selector_map,
-        "screenshot": sample_browser_state.screenshot,
-        "pixels_above": sample_browser_state.pixels_above,
-        "pixels_below": sample_browser_state.pixels_below,
-        "error_message": None # Explicitly add error_message for comparison consistency
-    }
-    mock_response_initial = ResponseData(success=True, result=result_dict_for_browser_state_initial)
-    mock_extension_interface.get_state.return_value = mock_response_initial
+    """Test that BrowserContext._cached_browser_state and _cached_selector_map are updated after get_state."""
+    # mock_extension_interface.get_state now directly returns a BrowserState object
+    mock_extension_interface.get_state.return_value = sample_browser_state
 
     # Initial state of caches (should be None or empty)
     assert browser_context._cached_browser_state is None
     assert browser_context._cached_selector_map == {}
 
     # Call get_state
-    retrieved_state = await browser_context.get_state()
+    retrieved_state = await browser_context.get_state(include_screenshot=False) # BrowserContext.get_state still uses include_screenshot
 
     # Verify extension was called for the first state
-    mock_extension_interface.get_state.assert_any_call(include_screenshot=False, tab_id=None)
+    # ExtensionInterface.get_state uses for_vision
+    mock_extension_interface.get_state.assert_any_call(for_vision=False, tab_id=None)
     
     print(f"RETRIEVED STATE 1 (test_browser_context_get_state_caching):\n{retrieved_state.model_dump_json(indent=2)}")
     print(f"SAMPLE BROWSER STATE (test_browser_context_get_state_caching):\n{sample_browser_state.model_dump_json(indent=2)}")
@@ -139,34 +117,22 @@ async def test_browser_context_get_state_caching(browser_context: BrowserContext
     # Call get_state again
     # In current implementation, get_state always fetches, so mock should be called again.
     # And caches should be updated again.
-    another_sample_state_data = sample_browser_state.model_copy(update={"title": "Updated Title"}).model_dump()
-    # Construct the dict for the updated state
-    result_dict_for_browser_state_updated = {
-        "url": another_sample_state_data["url"],
-        "title": another_sample_state_data["title"],
-        "tabs": [TabInfo.model_validate(t_data).model_dump() for t_data in another_sample_state_data["tabs"]], # Re-validate and dump
-        "tree": DOMDocumentNode.model_validate(another_sample_state_data["tree"]).model_dump(), # Re-validate and dump
-        "selector_map": another_sample_state_data["selector_map"],
-        "screenshot": another_sample_state_data["screenshot"],
-        "pixels_above": another_sample_state_data["pixels_above"],
-        "pixels_below": another_sample_state_data["pixels_below"],
-        "error_message": None # Explicitly add error_message for comparison consistency
-    }
-    mock_response_updated = ResponseData(success=True, result=result_dict_for_browser_state_updated)
-    mock_extension_interface.get_state.return_value = mock_response_updated
+    updated_sample_state = sample_browser_state.model_copy(update={"title": "Updated Title"})
+    mock_extension_interface.get_state.return_value = updated_sample_state
     
-    second_retrieved_state = await browser_context.get_state(include_screenshot=True, tab_id=1) # Pass tab_id=1
+    # BrowserContext.get_state still uses include_screenshot
+    second_retrieved_state = await browser_context.get_state(include_screenshot=True, tab_id=1) 
 
-    mock_extension_interface.get_state.assert_any_call(include_screenshot=True, tab_id=1) # Second call with new params
+    # ExtensionInterface.get_state uses for_vision
+    mock_extension_interface.get_state.assert_any_call(for_vision=True, tab_id=1) 
     
     print(f"RETRIEVED STATE 2 (test_browser_context_get_state_caching):\n{second_retrieved_state.model_dump_json(indent=2)}")
-    # Compare against a BrowserState instance created from the dict for an apples-to-apples comparison
-    expected_updated_state = BrowserState.model_validate(result_dict_for_browser_state_updated)
-    assert second_retrieved_state.model_dump_json() == expected_updated_state.model_dump_json()
-    assert browser_context._cached_browser_state.model_dump_json() == expected_updated_state.model_dump_json()
-    assert browser_context._cached_selector_map == expected_updated_state.selector_map
+    
+    assert second_retrieved_state.model_dump_json() == updated_sample_state.model_dump_json()
+    assert browser_context._cached_browser_state.model_dump_json() == updated_sample_state.model_dump_json()
+    assert browser_context._cached_selector_map == updated_sample_state.selector_map
 
-    print(f"EXPECTED UPDATED STATE (test_browser_context_get_state_caching):\n{expected_updated_state.model_dump_json(indent=2)}")
+    print(f"EXPECTED UPDATED STATE (test_browser_context_get_state_caching):\n{updated_sample_state.model_dump_json(indent=2)}")
 
 @pytest.mark.asyncio
 async def test_browser_context_click_element_by_highlight_index(browser_context: BrowserContext, mock_extension_interface: AsyncMock, sample_browser_state: BrowserState):

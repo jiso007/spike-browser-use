@@ -105,19 +105,20 @@ dev-dependencies = [
     "pre-commit>=4.2.0",
     "codespell>=2.4.1",
     "pyright>=1.1.399",
+    "playwright>=1.0.0"
 ]
 
 [tool.pytest.ini_options]
-# This configuration tells pytest to add the current directory (project root)
-# to the Python path. This allows imports like 'from browser_use_ext.module import ...'
-# to work correctly when tests are run from the project root.
+# This configuration tells pytest to add the specified directories
+# to the Python path. This helps Python find the packages to import.
 pythonpath = [
-  "."
+  ".", # Add project root
+  "browser_use_ext" # Explicitly add the package directory
 ]
 
 # This specifies the directory where pytest should look for tests.
 testpaths = [
-  "browser_use_ext/tests/python"
+  "browser_use_ext/tests"
 ]
 
 # Add asyncio mode to avoid warnings for async tests

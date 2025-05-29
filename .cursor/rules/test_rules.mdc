@@ -1,0 +1,1731 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# COMPREHENSIVE TESTING FRAMEWORK RULES
+# ==============================================
+# These rules guide Cursor AI in implementing comprehensive testing strategies
+# across all project types with specific focus on testing pyramid principles
+
+## CORE TESTING PRINCIPLES
+🔥 CRITICAL: Always implement testing pyramid approach - Unit (70%) → Integration (20%) → E2E (10%)
+🔥 CRITICAL: Every new feature MUST include corresponding tests at appropriate pyramid levels
+🔥 CRITICAL: Tests should be written BEFORE or ALONGSIDE implementation (TDD/BDD approach)
+🔥 CRITICAL: All tests must be deterministic, fast, and isolated
+
+
+## 1. UNIT TESTING LAYER (Foundation - 70% of tests)
+This provides CursorAI with detailed, framework-specific implementation rules for unit testing across all major development platforms, ensuring consistent, high-quality test development regardless of the technology stack.
+
+### Framework Selection & Setup
+
+#### **JavaScript/TypeScript: Jest + Testing Library**
+```bash
+# Installation
+npm install --save-dev jest @testing-library/react @testing-library/jest-dom @testing-library/user-event
+
+# TypeScript support
+npm install --save-dev @types/jest ts-jest
+```
+
+**Jest Configuration (jest.config.js):**
+```javascript
+module.exports = {
+  testEnvironment: 'jsdom',
+  setupFilesAfterEnv: ['/src/setupTests.js'],
+  moduleNameMapping: {
+    '\\.(css|less|scss|sass)$': 'identity-obj-proxy'
+  },
+  collectCoverageFrom: [
+    'src/**/*.{js,jsx,ts,tsx}',
+    '!src/index.js',
+    '!src/**/*.stories.{js,jsx,ts,tsx}'
+  ],
+  coverageThreshold: {
+    global: {
+      branches: 80,
+      functions: 80,
+      lines: 80,
+      statements: 80
+    }
+  }
+};
+```
+
+**Setup File (src/setupTests.js):**
+```javascript
+import '@testing-library/jest-dom';
+import { configure } from '@testing-library/react';
+
+configure({ testIdAttribute: 'data-testid' });
+```
+
+#### **Python: pytest + fixtures**
+```bash
+# Installation
+pip install pytest pytest-mock pytest-cov
+
+# Optional but recommended
+pip install pytest-xdist  # For parallel testing
+```
+
+**pytest Configuration (pytest.ini):**
+```ini
+[tool:pytest]
+testpaths = tests
+python_files = test_*.py *_test.py
+python_classes = Test*
+python_functions = test_*
+addopts = 
+    --cov=src
+    --cov-report=html
+    --cov-report=term-missing
+    --cov-fail-under=80
+    -v
+    --tb=short
+```
+
+---
+
+## 2. FRAMEWORK-SPECIFIC IMPLEMENTATION RULES
+
+### **JavaScript/TypeScript with Jest + Testing Library**
+
+**✅ ALWAYS follow this pattern:**
+```typescript
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import '@testing-library/jest-dom';
+import { ComponentName } from './ComponentName';
+
+describe('ComponentName', () => {
+  // Setup and teardown
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  describe('when rendering with default props', () => {
+    it('should display the component correctly', () => {
+      // Arrange
+      const mockProps = {
+        title: 'Test Title',
+        onClick: jest.fn()
+      };
+
+      // Act
+      render();
+
+      // Assert
+      expect(screen.getByRole('button', { name: /test title/i })).toBeInTheDocument();
+    });
+  });
+
+  describe('when user interacts with component', () => {
+    it('should call onClick handler when button is clicked', async () => {
+      // Arrange
+      const user = userEvent.setup();
+      const mockOnClick = jest.fn();
+      const props = { onClick: mockOnClick };
+
+      // Act
+      render();
+      await user.click(screen.getByRole('button'));
+
+      // Assert
+      expect(mockOnClick).toHaveBeenCalledTimes(1);
+      expect(mockOnClick).toHaveBeenCalledWith(expect.any(Object));
+    });
+  });
+
+  describe('when testing async behavior', () => {
+    it('should handle async operations correctly', async () => {
+      // Arrange
+      const mockApiCall = jest.fn().mockResolvedValue({ data: 'test' });
+      
+      // Act
+      render();
+      
+      // Assert
+      await waitFor(() => {
+        expect(screen.getByText('test')).toBeInTheDocument();
+      });
+    });
+  });
+});
+```
+
+**Mock Patterns:**
+```typescript
+// ✅ Module mocking
+jest.mock('./api', () => ({
+  fetchUser: jest.fn(),
+  updateUser: jest.fn()
+}));
+
+// ✅ Partial mocking
+jest.mock('./utils', () => ({
+  ...jest.requireActual('./utils'),
+  formatDate: jest.fn()
+}));
+
+// ✅ Class mocking
+jest.mock('./UserService');
+const MockedUserService = UserService as jest.MockedClass;
+```
+
+### **Python with pytest**
+
+**✅ ALWAYS follow this pattern:**
+```python
+import pytest
+from unittest.mock import Mock, patch
+from myapp.calculator import Calculator
+
+class TestCalculator:
+    """Test suite for Calculator class following AAA pattern."""
+    
+    @pytest.fixture
+    def calculator(self):
+        """Fixture providing fresh Calculator instance for each test."""
+        return Calculator()
+    
+    @pytest.fixture
+    def mock_database(self):
+        """Fixture providing mocked database dependency."""
+        with patch('myapp.calculator.database') as mock_db:
+            mock_db.get_rate.return_value = 0.1
+            yield mock_db
+    
+    def test_add_positive_numbers_returns_correct_sum(self, calculator):
+        """Test addition with positive numbers returns expected result."""
+        # Arrange
+        a, b = 2, 3
+        expected = 5
+        
+        # Act
+        result = calculator.add(a, b)
+        
+        # Assert
+        assert result == expected
+    
+    def test_add_with_negative_values_raises_value_error(self, calculator):
+        """Test that negative values raise appropriate exception."""
+        # Arrange
+        a, b = -1, -1
+        
+        # Act & Assert
+        with pytest.raises(ValueError, match="must be positive"):
+            calculator.add(a, b)
+    
+    @pytest.mark.parametrize("a,b,expected", [
+        (0, 0, 0),
+        (1, 1, 2),
+        (10, 20, 30),
+        (100, 200, 300)
+    ])
+    def test_add_various_inputs_returns_expected_results(self, calculator, a, b, expected):
+        """Test addition with various input combinations."""
+        # Act
+        result = calculator.add(a, b)
+        
+        # Assert
+        assert result == expected
+    
+    def test_calculate_with_database_rate_returns_correct_value(self, calculator, mock_database):
+        """Test calculation using mocked database rate."""
+        # Arrange
+        base_amount = 100
+        expected = 110  # 100 + (100 * 0.1)
+        
+        # Act
+        result = calculator.calculate_with_rate(base_amount)
+        
+        # Assert
+        assert result == expected
+        mock_database.get_rate.assert_called_once()
+```
+
+**Pytest Best Practices:**
+```python
+# ✅ Fixture organization in conftest.py (for shared fixtures only)
+# conftest.py
+import pytest
+
+@pytest.fixture(scope="session")
+def database_url():
+    """Session-scoped fixture for database URL."""
+    return "postgresql://test:test@localhost/testdb"
+
+@pytest.fixture(scope="function")
+def clean_database(database_url):
+    """Function-scoped fixture ensuring clean database state."""
+    # Setup
+    db = connect(database_url)
+    db.create_tables()
+    yield db
+    # Teardown
+    db.drop_tables()
+    db.close()
+
+# ✅ Async testing pattern
+@pytest.mark.asyncio
+async def test_async_function():
+    """Test async functions properly."""
+    result = await async_function()
+    assert result is not None
+```
+
+### **Test Naming Convention**
+```
+// ✅ Format: [MethodName]_[Scenario]_[ExpectedBehavior]
+test_Add_PositiveNumbers_ReturnsCorrectSum()
+test_GetUser_UserNotFound_ThrowsNotFoundException()
+test_ValidateEmail_InvalidFormat_ReturnsFalse()
+
+// ✅ For UI components: [ComponentName]_[UserAction]_[ExpectedOutcome]
+test_LoginButton_WhenClicked_SubmitsForm()
+test_SearchInput_WhenTyping_FiltersResults()
+test_Modal_WhenEscapePressed_ClosesModal()
+```
+
+### **Mock Usage Guidelines**
+```typescript
+// ✅ DO: Mock external dependencies and side effects
+const mockApiClient = jest.fn();
+const mockLogger = jest.fn();
+const mockEmailService = jest.fn();
+
+// ✅ DO: Mock time-dependent code
+jest.spyOn(Date, 'now').mockReturnValue(1234567890);
+
+// ❌ DON'T: Mock code you control unless it's a side effect
+// Instead, refactor to reduce coupling
+
+// ✅ DO: Verify mock interactions when behavior matters
+expect(mockLogger).toHaveBeenCalledWith('User logged in', { userId: 123 });
+
+// ✅ DO: Reset mocks between tests
+beforeEach(() => {
+  jest.clearAllMocks();
+});
+```
+
+### **Test Independence Rules**
+```python
+# ✅ Each test must be completely independent
+class TestUserService:
+    @pytest.fixture
+    def fresh_database(self):
+        """Provides clean database state for each test."""
+        db = create_test_database()
+        yield db
+        db.cleanup()
+    
+    def test_create_user_success(self, fresh_database):
+        # This test starts with clean state
+        pass
+        
+    def test_update_user_success(self, fresh_database):
+        # This test also starts with clean state
+        pass
+```
+
+### **Required Unit Test Coverage**
+
+#### **Functions/Methods**
+- ✅ **Happy path**: Normal operation with valid inputs
+- ✅ **Edge cases**: Boundary values, empty inputs, null/undefined
+- ✅ **Error conditions**: Invalid inputs, exceptions, failures
+- ✅ **Business rules**: All conditional logic branches
+
+#### **React/Vue Components**
+- ✅ **Rendering**: Component renders without crashing
+- ✅ **Props**: All props are handled correctly
+- ✅ **User interactions**: Click, type, submit, navigation
+- ✅ **State changes**: Local state updates work correctly
+- ✅ **Conditional rendering**: Different UI states
+- ✅ **Accessibility**: ARIA attributes, keyboard navigation
+
+#### **Business Logic**
+- ✅ **Validation rules**: All input validation scenarios
+- ✅ **Calculations**: Mathematical operations and transformations
+- ✅ **Decision trees**: All if/else and switch branches
+- ✅ **Data transformations**: Mapping, filtering, reducing
+
+### **Test File Structure & Organization**
+
+#### **JavaScript/TypeScript Structure**
+```
+src/
+├── components/
+│   ├── Button/
+│   │   ├── Button.tsx
+│   │   ├── Button.test.tsx          # Co-located unit tests
+│   │   ├── Button.stories.tsx       # Storybook stories
+│   │   └── __snapshots__/
+├── services/
+│   ├── api/
+│   │   ├── userService.ts
+│   │   └── userService.test.ts
+├── utils/
+│   ├── formatters.ts
+│   ├── formatters.test.ts
+│   └── __tests__/
+│       └── validators.test.ts
+└── __tests__/
+    ├── setup.ts
+    └── testUtils.tsx
+```
+
+#### **Python Structure**
+```
+project/
+├── src/
+│   ├── calculator/
+│   │   ├── __init__.py
+│   │   ├── calculator.py
+│   │   └── validators.py
+│   └── services/
+│       ├── __init__.py
+│       └── user_service.py
+├── tests/
+│   ├── conftest.py                 # Shared fixtures
+│   ├── unit/
+│   │   ├── test_calculator.py
+│   │   └── test_validators.py
+│   ├── integration/
+│   │   └── test_user_service.py
+│   └── fixtures/
+│       ├── __init__.py
+│       └── database_fixtures.py
+└── pytest.ini
+```
+
+---
+
+## 2. INTEGRATION TESTING LAYER (Middle - 20% of tests)
+This implementation provides framework-specific patterns while maintaining cross-platform consistency in integration testing approaches. The rules emphasize real-world scenarios while ensuring test reliability and performance.
+
+### Framework-Specific Configuration
+
+#### **JavaScript/TypeScript: Jest + MSW + Testing Library**
+```
+# Installation
+npm install --save-dev msw @testing-library/react-hooks
+```
+
+**MSW Configuration (mocks/handlers.js):**
+```
+import { rest } from 'msw';
+import { setupServer } from 'msw/node';
+
+export const server = setupServer(
+  rest.post('https://api.supabase.co/auth/v1/token', (req, res, ctx) => {
+    return res(ctx.json({ access_token: 'test-token' }));
+  }),
+  rest.get('https://api.supabase.co/rest/v1/users', (req, res, ctx) => {
+    return res(ctx.json([{ id: 1, name: 'Test User' }]));
+  })
+);
+```
+
+**Test Setup (src/setupTests.js):**
+```
+import { server } from './mocks/server';
+beforeAll(() => server.listen());
+afterEach(() => server.resetHandlers());
+afterAll(() => server.close());
+```
+
+#### **Python: pytest + HTTPX**
+```
+# conftest.py
+import pytest
+from httpx import AsyncClient
+from fastapi import FastAPI
+
+@pytest.fixture
+async def test_app():
+    app = FastAPI()
+    # Add test routes
+    return app
+
+@pytest.fixture
+async def client(test_app):
+    async with AsyncClient(app=test_app, base_url="http://test") as ac:
+        yield ac
+```
+
+### Supabase ↔ Frontend Integration Tests
+
+**JavaScript/TypeScript Implementation:**
+```
+describe('Supabase Auth Integration', () => {
+  let supabase: SupabaseClient;
+
+  beforeAll(() => {
+    supabase = createClient(
+      process.env.TEST_SUPABASE_URL,
+      process.env.TEST_SUPABASE_KEY
+    );
+  });
+
+  beforeEach(async () => {
+    await supabase.from('users').delete().neq('id', 0);
+  });
+
+  it('should handle user signup flow', async () => {
+    // Arrange
+    const testUser = { email: 'test@example.com', password: 'secure123' };
+
+    // Act
+    const { error, data } = await supabase.auth.signUp(testUser);
+
+    // Assert
+    expect(error).toBeNull();
+    expect(data.user?.email).toBe(testUser.email);
+    expect(data.session).toBeDefined();
+  });
+
+  it('should display user data after auth', async () => {
+    // Arrange
+    const { data: user } = await supabase.auth.signUp({ 
+      email: 'test@example.com', 
+      password: 'secure123' 
+    });
+    
+    // Act
+    render();
+    
+    // Assert
+    await waitFor(() => {
+      expect(screen.getByText(user.email)).toBeInTheDocument();
+    });
+  });
+});
+```
+
+**Best Practices:**
+- Use separate Supabase project for testing
+- Implement automatic test data cleanup
+- Test error states and edge cases
+- Verify real-time subscriptions
+- Test row-level security policies
+
+### API Integration Test Patterns
+
+**REST API Testing (JavaScript/TypeScript):**
+```
+describe('API Integration', () => {
+  const testClient = supertest(app);
+
+  it('should return 401 for unauthenticated requests', async () => {
+    const response = await testClient.get('/api/protected');
+    expect(response.status).toBe(401);
+  });
+
+  it('should handle file uploads', async () => {
+    const response = await testClient
+      .post('/api/upload')
+      .attach('file', Buffer.from('test'), 'test.txt');
+    
+    expect(response.status).toBe(201);
+    expect(response.body).toHaveProperty('url');
+  });
+});
+```
+
+**GraphQL Testing (Python):**
+```
+def test_graphql_query(client):
+    query = """
+    query GetUser($id: ID!) {
+        user(id: $id) {
+            name
+            email
+        }
+    }
+    """
+    
+    response = client.post("/graphql", json={
+        "query": query,
+        "variables": {"id": 1}
+    })
+    
+    assert response.status_code == 200
+    assert response.json()['data']['user']['name'] == 'Test User'
+```
+
+### Database Integration Testing
+
+**Transaction-based Testing (Go):**
+```
+func TestUserCRUD(t *testing.T) {
+    db := setupTestDB(t)
+    tx, _ := db.Begin()
+    defer tx.Rollback()
+
+    // Create
+    _, err := tx.Exec("INSERT INTO users (name) VALUES ($1)", "Test")
+    require.NoError(t, err)
+
+    // Read
+    var count int
+    tx.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
+    assert.Equal(t, 1, count)
+}
+```
+
+**Testcontainers Pattern (Java):**
+```
+@Test
+void shouldPersistUserInDatabase() {
+    User user = new User("test@example.com");
+    userRepository.save(user);
+    
+    User found = userRepository.findById(user.getId()).orElseThrow();
+    assertThat(found.getEmail()).isEqualTo("test@example.com");
+}
+```
+
+### Critical Integration Testing Principles
+
+1. **Environment Isolation**
+   - Use separate database instances/containers
+   - Implement test data factories
+   - Never share state between tests
+
+2. **Test Pyramid Enforcement**
+   ```
+   # CI/CD Pipeline Example
+   - name: Run Unit Tests
+     run: npm test:unit
+   
+   - name: Run Integration Tests
+     run: npm test:integration
+     env:
+       SUPABASE_URL: ${{ secrets.TEST_SUPABASE_URL }}
+       DB_TEST_CONN: ${{ secrets.DB_TEST }}
+   ```
+
+3. **Performance Thresholds**
+   ```
+   // API Performance Test
+   it('should respond under 500ms for critical endpoints', async () => {
+     const start = Date.now();
+     await testClient.get('/api/health');
+     const duration = Date.now() - start;
+     expect(duration).toBeLessThan(500);
+   });
+   ```
+
+4. **Security Validation**
+   ```
+   it('should prevent SQL injection in user search', async () => {
+     const maliciousInput = "'; DROP TABLE users;--";
+     const response = await testClient
+       .get(`/api/users?search=${maliciousInput}`);
+     
+     expect(response.status).toBe(400);
+   });
+   ```
+
+### Integration Test Coverage Requirements
+
+- **API Endpoints**: 100% endpoint coverage
+- **Auth Flows**: All OAuth providers, error states
+- **Database Operations**: CRUD, constraints, migrations
+- **Third-Party Services**: Mocked and live integration
+- **Error Conditions**: Network failures, rate limits
+- **Data Consistency**: Verify across distributed systems
+
+### Recommended Test Structure
+
+```
+tests/
+├── integration/
+│   ├── supabase/
+│   │   ├── auth.test.ts
+│   │   └── realtime.test.ts
+│   ├── api/
+│   │   ├── graphql.test.ts
+│   │   └── rest/
+│   └── third-party/
+│       ├── stripe.test.ts
+│       └── sendgrid.test.ts
+└── utils/
+    ├── testDb.ts
+    └── apiClient.ts
+```
+
+
+## 3. END-TO-END TESTING LAYER (Top - 10% of tests) + BDD Framework
+This implementation combines BDD best practices with modern testing framework configurations, providing executable specifications that align technical implementation with business requirements. The structure enables collaborative test design while maintaining technical rigor required for enterprise-grade applications.
+
+### Behavior-Driven Development (BDD) Implementation
+
+#### **Gherkin Feature Files Structure**
+```
+features/
+├── authentication/
+│   ├── user_login.feature
+│   └── user_registration.feature
+├── checkout/
+│   └── purchase_flow.feature
+└── step_definitions/
+    ├── auth_steps.ts
+    └── checkout_steps.ts
+```
+
+**Example Feature File (user_login.feature):**
+```
+Feature: User Authentication for SaaS Platform
+  As a registered user
+  I want to securely access my account
+  So that I can use the platform features
+
+  @smoke @auth
+  Scenario Outline: Login with various credential combinations
+    Given I am on the "" page
+    When I enter email ""
+    And I enter password ""
+    And I click the "" button
+    Then I should ""
+    
+    Examples:
+      | page   | email              | password       | button | outcome                          |
+      | login  | user@example.com   | SecurePass123! | login  | be redirected to the dashboard   |
+      | login  | invalid@example.com| wrongpass      | login  | see error "Invalid credentials"  |
+```
+
+### Framework-Specific BDD Configuration
+
+#### **Playwright + Cucumber Setup**
+```
+# Installation
+npm install @cucumber/cucumber ts-node @playwright/test --save-dev
+```
+
+**playwright.config.ts:**
+```
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  testDir: './features',
+  globalSetup: require.resolve('./global-setup.ts'),
+  projects: [
+    {
+      name: 'chromium',
+      use: { 
+        browserName: 'chromium',
+        viewport: { width: 1920, height: 1080 }
+      },
+    }
+  ],
+  cucumberOpts: {
+    require: ['./step_definitions/*.ts'],
+    format: ['html:./reports/cucumber.html']
+  }
+});
+```
+
+#### **Cypress + Cucumber Setup**
+```
+# Installation
+npm install cypress-cucumber-preprocessor @bahmutov/cypress-esbuild-preprocessor --save-dev
+```
+
+**cypress/plugins/index.js:**
+```
+const cucumber = require('cypress-cucumber-preprocessor').default;
+const createEsbuildPlugin = require('@bahmutov/cypress-esbuild-preprocessor');
+
+module.exports = (on, config) => {
+  on(
+    'file:preprocessor',
+    createEsbuildPlugin({
+      plugins: [cucumber()]
+    })
+  );
+};
+```
+
+**Step Definitions (checkout_steps.ts):**
+```
+import { Given, When, Then } from '@badeball/cypress-cucumber-preprocessor';
+
+Given('I have items in my cart', () => {
+  cy.task('db:seedCart', { userId: 'testUser' });
+});
+
+When('I complete the checkout process', () => {
+  cy.get('[data-cy="checkout-button"]').click();
+  cy.fillCheckoutForm();
+});
+
+Then('My order should be confirmed within {int} seconds', (timeout) => {
+  cy.contains('Order confirmed', { timeout: timeout * 1000 })
+    .should('be.visible');
+});
+```
+
+### Critical BDD Testing Principles
+
+1. **Living Documentation**
+   - Feature files should serve as single source of truth
+   - Business stakeholders must collaborate on scenario definitions
+   - Version control feature files alongside code
+
+2. **Scenario Design Guidelines**
+   - Each scenario tests exactly one business rule
+   - Avoid implementation details in Gherkin steps
+   - Use data tables for complex inputs
+   - Tag scenarios for targeted execution (@smoke, @regression)
+
+3. **Test Data Management**
+   ```
+   // Factory pattern for test data
+   export class UserFactory {
+     static createValidUser() {
+       return {
+         email: `test${Date.now()}@example.com`,
+         password: 'ValidPass123!'
+       }
+     }
+   }
+   ```
+
+4. **Cross-Browser Execution**
+   ```
+   // playwright.config.ts
+   export default defineConfig({
+     projects: [
+       ...devices['Desktop Chrome'],
+       ...devices['Desktop Firefox'],
+       ...devices['iPhone 13']
+     ]
+   });
+   ```
+
+### Required E2E Test Coverage
+
+- **User Journeys**: Complete business-critical workflows
+- **Third-Party Integrations**: Payment gateways, SSO providers
+- **Performance Baselines**: Key transaction response times
+- **Accessibility**: WCAG 2.1 AA compliance checks
+- **Error Recovery**: Network failure handling
+- **Security**: XSS/SQL injection protection validation
+
+### Recommended Test Architecture
+
+```
+test/
+├── e2e/
+│   ├── features/               # Gherkin feature files
+│   ├── step_definitions/       # Cucumber step implementations
+│   ├── pages/                  # Page object models
+│   └── utils/
+└── integration/
+│   ├── api/
+│   └── database/
+└── unit/
+```
+
+### Advanced Reporting Setup
+
+**Allure Report Configuration:**
+```
+// playwright.config.ts
+export default defineConfig({
+  reporter: [
+    ['list'],
+    ['allure-playwright', {
+      detail: true,
+      outputFolder: 'allure-results',
+      suiteTitle: false
+    }]
+  ]
+});
+```
+
+**Cucumber HTML Report:**
+```
+# Generate HTML report
+npx cucumber-js --format html:reports/cucumber.html
+```
+
+
+## 4. SECURITY TESTING IMPLEMENTATION
+This comprehensive security testing implementation integrates OWASP ZAP across the development lifecycle while maintaining framework-specific best practices. The rules enforce proactive vulnerability detection with automated quality gates in CI/CD pipelines.
+
+### Framework-Specific ZAP Configuration
+
+#### **JavaScript/TypeScript: ZAP + Jest**
+```
+# Install ZAP CLI
+npm install --save-dev @zaproxy/zap-cli
+```
+
+**zap.config.js:**
+```
+module.exports = {
+  scanType: 'full',
+  target: process.env.TARGET_URL,
+  zapOptions: {
+    apiKey: process.env.ZAP_API_KEY,
+    context: 'security-context'
+  },
+  thresholds: {
+    high: 0,
+    medium: 5,
+    low: 10
+  }
+};
+```
+
+#### **Python: ZAP + Pytest**
+```
+# conftest.py
+import pytest
+from zapv2 import ZAPv2
+
+@pytest.fixture(scope="session")
+def zap_scanner():
+    zap = ZAPv2(proxies={'http': 'http://localhost:8080'})
+    zap.context.include_in_context('security-context', '^https://.*^')
+    return zap
+```
+
+### OWASP ZAP CI/CD Integration
+
+#### **GitHub Actions Workflow**
+```
+name: Security Scan
+on: [push, pull_request]
+
+jobs:
+  zap-scan:
+    runs-on: ubuntu-latest
+    services:
+      zap:
+        image: owasp/zap2docker-stable
+        ports: [8080:8080]
+        
+    steps:
+    - name: ZAP Baseline Scan
+      run: |
+        docker exec zap zap-baseline.py -t ${{ secrets.TARGET_URL }} \
+          -c zap.conf -J zap-report.json
+    - name: Analyze Results
+      uses: actions/upload-artifact@v3
+      with:
+        name: zap-report
+        path: zap-report.json
+```
+
+#### **GitLab CI Configuration**
+```
+stages:
+  - security
+
+zap-scan:
+  stage: security
+  image: owasp/zap2docker-stable
+  script:
+    - zap-baseline.py -t $TARGET_URL -g gen.conf -x report.xml
+  artifacts:
+    paths:
+      - report.xml
+```
+
+### Advanced Security Test Implementation
+
+#### **Authenticated Scanning Pattern**
+```
+docker run -v $(pwd):/zap/wrk -t owasp/zap2docker-stable \
+  zap-full-scan.py -t https://app.com \
+  --auth_loginurl https://app.com/login \
+  --auth_username user@example.com \
+  --auth_password securepass123 \
+  --auth_auto
+```
+
+#### **API Security Testing**
+```
+zap-api-scan.py -t https://api.example.com/swagger.json \
+  -f openapi -x api-security-report.xml -S
+```
+
+### Security Test Checklist Implementation
+
+#### **1. SQL Injection Prevention**
+```
+# pytest SQLi test
+def test_sql_injection_protection(zap_scanner):
+    alert_count = zap_scanner.ascan.scan(
+        target='https://app.com/search?q=test', 
+        recurse=True, 
+        scanpolicyname='SQL Injection'
+    )
+    assert alert_count == 0, "SQL injection vulnerabilities detected"
+```
+
+#### **2. XSS Vulnerability Scanning**
+```
+// Jest XSS test
+test('XSS protection headers present', async () => {
+  const response = await fetch('https://app.com');
+  expect(response.headers.get('X-XSS-Protection')).toBe('1; mode=block');
+});
+```
+
+#### **3. Authentication Bypass Detection**
+```
+# ZAP Auth Bypass Scan
+zap-baseline.py -t https://app.com/login \
+  --auth_exclude /logout \
+  -r auth-report.html
+```
+
+#### **4. Authorization Testing**
+```
+# ZAP Context File (auth.context)
+context:
+  name: AdminContext
+  include:
+    - ^https://app.com/admin/.*^
+  users:
+    - name: admin
+      credentials:
+        username: admin@example.com
+        password: AdminPass123!
+```
+
+#### **5. Input Validation Testing**
+```
+# ZAP Active Scan Rules
+zap.ascan.enable_all_scanners()
+zap.ascan.set_scanner_attack_strength('XSS', 'HIGH')
+zap.ascan.set_scanner_alert_threshold('SQLi', 'HIGH')
+```
+
+#### **6. CSRF Protection Verification**
+```
+// CSRF Token Check
+test('CSRF tokens present in forms', async () => {
+  const response = await fetch('https://app.com/form');
+  const html = await response.text();
+  expect(html).toMatch(/]+name="_csrf"/i);
+});
+```
+
+### Critical Security Testing Rules
+
+1. **Scan Coverage Requirements**
+   - 100% authenticated user flows
+   - All API endpoints (REST/GraphQL)
+   - Error handling paths (4xx/5xx pages)
+   - File upload/download functionality
+
+2. **Alert Thresholds**
+   ```
+   # zap.conf
+   rules:
+     - id: 40012  # XSS
+       threshold: HIGH
+       action: FAIL
+     - id: 40026  # SQLi
+       threshold: MEDIUM
+       action: WARN
+   ```
+
+3. **Reporting Standards**
+   - Generate SARIF format for GitHub Code Scanning
+   - Export HTML/JSON reports for audit trails
+   - Integrate with Jira for vulnerability tracking
+
+### CI/CD Pipeline Security Gates
+
+```
+- name: Security Threshold Check
+  run: |
+    python check_zap_results.py \
+      --input zap-report.json \
+      --max-high 0 \
+      --max-medium 5
+  if: always()
+```
+
+
+## 5. CONTRACT TESTING LAYER
+This comprehensive contract testing implementation ensures API reliability across the development lifecycle while maintaining compatibility between services. The rules enforce strict schema validation, bi-directional contract verification, and seamless CI/CD integration for modern distributed systems.
+
+### Framework-Specific Configuration
+
+#### **JavaScript/TypeScript: Dredd + Spectral**
+```
+# Installation
+npm install -g dredd @stoplight/spectral
+```
+
+**Dredd Configuration (dredd.yml):**
+```
+reporter: apiary
+custom:
+  - "dredd-hooks-template"
+language: nodejs
+hooks: ./hooks.js
+output: [stdout, report.md]
+```
+
+**Spectral Ruleset (spectral-ruleset.yaml):**
+```
+extends: [[spectral:oas, off]]
+rules:
+  contact-properties:
+    message: "Must include contact information"
+    given: $.info
+    then:
+      field: contact
+      function: truthy
+  no-trailing-slashes:
+    message: "Paths must not end with slash"
+    given: $.paths
+    then:
+      function: pattern
+      functionOptions:
+        notMatch: /\/$/
+```
+
+#### **Python: Schemathesis + FastAPI**
+```
+pip install schemathesis fastapi
+```
+
+**Schemathesis Test Configuration:**
+```
+import schemathesis
+
+schema = schemathesis.from_uri("https://api.example.com/openapi.json")
+
+@schema.parametrize()
+def test_api(case):
+    response = case.call()
+    case.validate_response(response)
+```
+
+### OpenAPI/Swagger Validation
+
+#### **Automated Contract Testing with Dredd**
+```
+// dredd-hooks.js
+const hooks = require('dredd-hooks-template');
+
+beforeEach((transaction) => {
+  if (transaction.name === 'User API > /users/{id}') {
+    transaction.skip = false;
+  }
+});
+
+afterEach((transaction) => {
+  if (transaction.test.status === 'fail') {
+    console.log(`Contract violation: ${transaction.name}`);
+  }
+});
+```
+
+**CI Pipeline Integration:**
+```
+dredd api-description.yml http://localhost:3000 --hooks=./hooks.js
+```
+
+#### **Response Validation with Spectral**
+```
+import { Spectral } from '@stoplight/spectral-core';
+import { bundleAndLoadRuleset } from '@stoplight/spectral-ruleset-bundler/with-loader';
+
+const spectral = new Spectral();
+const ruleset = await bundleAndLoadRuleset('spectral-ruleset.yaml', { fs, fetch });
+spectral.setRuleset(ruleset);
+
+const results = await spectral.run(openApiDocument);
+results.forEach(result => {
+  expect(result.severity).not.toEqual('error');
+});
+```
+
+### Third-party API Contract Tests
+
+#### **Consumer-Driven Contracts with Pact**
+```
+// consumer.spec.ts
+import { PactV4 } from '@pact-foundation/pact';
+
+const pact = new PactV4({
+  consumer: 'Frontend',
+  provider: 'SupabaseAPI'
+});
+
+test('should receive valid user structure', async () => {
+  await pact
+    .addInteraction()
+    .uponReceiving('GET user request')
+    .withRequest('GET', '/users/123')
+    .willRespondWith(200, (builder) => {
+      builder.jsonBody({
+        id: builder.string('123'),
+        email: builder.string('test@example.com')
+      });
+    })
+    .executeTest(async (mockServer) => {
+      const response = await fetch(mockServer.url + '/users/123');
+      const data = await response.json();
+      expect(data).toMatchObject({
+        id: expect.any(String),
+        email: expect.stringContaining('@')
+      });
+    });
+});
+```
+
+#### **Provider Verification**
+```
+pact-verifier --provider-base-url=http://localhost:3000 \
+              --pact-url=./pacts/frontend-supabaseapi.json
+```
+
+### Critical Contract Testing Principles
+
+1. **Bi-directional Validation**
+   - Validate both consumer expectations and provider implementations
+   - Use pact brokers for contract management
+
+2. **Schema Evolution Rules**
+   ```
+   # spectral-ruleset.yaml
+   rules:
+     no-breaking-changes:
+       message: "Breaking schema change detected"
+       given: $.paths./users.get.responses.200.content.application/json.schema
+       then:
+         function: schema
+         functionOptions:
+           compatibility: draft4
+   ```
+
+3. **Contract Test Coverage**
+   - 100% API endpoint coverage
+   - All response status codes
+   - Request/response headers
+   - Error payload structures
+   - Security schemas (OAuth, API keys)
+
+4. **CI/CD Pipeline Integration**
+   ```
+   # GitHub Actions Example
+   - name: Run Contract Tests
+     run: |
+       dredd api.yml ${{ env.API_URL }} --hookfiles=hooks.js
+       spectral lint api.yml --ruleset=spectral-ruleset.yaml
+     env:
+       API_URL: http://localhost:3000
+   ```
+
+### Required Contract Test Types
+
+| Test Type               | Tools                  | Validation Focus              |
+|-------------------------|------------------------|--------------------------------|
+| Schema Compliance       | Spectral, Dredd       | OpenAPI spec adherence        |
+| Consumer Contracts       | Pact                   | Provider compatibility        |
+| Response Validation      | OpenAPI-core           | Response body structure       |
+| Request Validation       | Schemathesis           | Input parameter validation    |
+| Security Contracts       | OWASP ZAP              | Authentication/Authorization  |
+
+### Advanced Contract Testing Patterns
+
+**Stateful Contract Testing:**
+```
+// pact-stateful.spec.js
+pact.addInteraction()
+  .given('user with ID 123 exists')
+  .uponReceiving('request for user 123')
+  .withRequest('GET', '/users/123')
+  .willRespondWith(200, { /* ... */ });
+```
+
+**Contract Testing in Microservices:**
+```
+# Distributed Contract Validation
+pact-broker publish ./pacts \
+  --consumer-app-version=1.0.0 \
+  --broker-base-url=https://broker.example.com
+```
+
+**AI-Assisted Contract Generation:**
+```
+# schemathesis-ai.py
+from schemathesis import from_uri, DataGenerationMethod
+
+schema = from_uri("http://api.example.com/openapi.json")
+schema.generate(
+  method=DataGenerationMethod.positive,
+  count=100,
+  rate_limit="100/s"
+)
+```
+
+
+## 6. STATIC ANALYSIS & TYPE CHECKING
+This configuration establishes enterprise-grade static analysis guarding against type inconsistencies, dead code accumulation, and API drift while maintaining strict type safety across the development lifecycle. The rules enforce provable correctness through compiler-enforced constraints and comprehensive export hygiene.
+
+### Framework-Specific ESLint Configuration
+
+#### **JavaScript/TypeScript: Strict-Type-Checked Rules**
+```
+# Installation
+npm install --save-dev @typescript-eslint/eslint-plugin eslint-plugin-import eslint-plugin-unicorn
+```
+
+**Advanced ESLint Config (.eslintrc.cjs):**
+```
+module.exports = {
+  extends: [
+    'eslint:recommended',
+    'plugin:@typescript-eslint/recommended-type-checked',
+    'plugin:@typescript-eslint/strict-type-checked',
+    'plugin:import/recommended',
+    'plugin:import/typescript',
+    'plugin:unicorn/recommended'
+  ],
+  plugins: ['@typescript-eslint', 'deprecation'],
+  rules: {
+    '@typescript-eslint/no-unused-vars': ['error', { ignoreRestSiblings: true }],
+    '@typescript-eslint/consistent-type-definitions': ['error', 'type'],
+    '@typescript-eslint/no-misused-promises': 'error',
+    '@typescript-eslint/no-floating-promises': 'error',
+    'deprecation/deprecation': 'warn',
+    'unicorn/prefer-node-protocol': 'off',
+    'import/consistent-type-specifier-style': ['error', 'prefer-top-level']
+  },
+  overrides: [
+    {
+      files: ['*.test.ts'],
+      rules: {
+        '@typescript-eslint/no-unsafe-argument': 'off'
+      }
+    }
+  ]
+};
+```
+
+#### **React Specific Additions**
+```
+{
+  extends: ['plugin:react-hooks/recommended', 'plugin:jsx-a11y/strict'],
+  rules: {
+    'react-hooks/exhaustive-deps': 'error',
+    'jsx-a11y/no-autofocus': 'error'
+  }
+}
+```
+
+### TypeScript Strict Configuration Deep Dive
+
+**Enhanced tsconfig.json:**
+```
+{
+  "compilerOptions": {
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noImplicitOverride": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictBindCallApply": true,
+    "strictFunctionTypes": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": false
+  }
+}
+```
+
+**Critical TypeScript Rules Explained:**
+1. `noUncheckedIndexedAccess`: Requires explicit undefined checks for index signatures
+2. `exactOptionalPropertyTypes`: Prohibits undefined assignment to optional properties
+3. `strictBindCallApply`: Ensures correct parameter types for function bind/call/apply
+
+### Dead Code Detection System
+
+#### **Comprehensive Static Analysis Setup**
+```
+# Install analysis tools
+npm install --save-dev ts-unused-exports unimported depcheck @microsoft/api-extractor
+```
+
+**Package.json Scripts:**
+```
+{
+  "scripts": {
+    "lint:types": "tsc --noEmit --incremental false",
+    "lint:unused": "ts-unused-exports tsconfig.json --showLineNumber --ignoreTestFiles",
+    "lint:dead-code": "unimported --ignore-production-files",
+    "lint:circular": "madge --circular src/index.ts",
+    "lint:api": "api-extractor run --local"
+  }
+}
+```
+
+#### **Advanced Detection Configurations**
+
+**ts-unused-exports Configuration:**
+```
+ts-unused-exports tsconfig.json \
+  --ignoreFiles=".*spec.ts$" \
+  --ignoreLocallyUsed \
+  --searchNamespaces \
+  --exitWithUnusedTypesCount
+```
+
+**unimported Configuration (.unimportedrc.json):**
+```
+{
+  "entry": ["src/main.ts", "src/polyfills.ts"],
+  "ignorePatterns": ["**/__mocks__/**", "**/*.d.ts"],
+  "ignoreUnresolved": ["@internal/types"],
+  "ignoreUnimported": ["src/generated/types.ts"],
+  "ignoreUnused": ["react-dom"]
+}
+```
+
+### Cross-Framework Analysis Rules
+
+#### **React Component Analysis**
+```
+// Component prop validation pattern
+interface Props {
+  readonly children: ReactNode;
+  variant?: 'primary' | 'secondary';
+}
+
+const Component: FC = ({ children, variant = 'primary' }) => {
+  // Component implementation
+};
+```
+
+#### **Node.js Server Validation**
+```
+// Route handler type safety
+import { RequestHandler } from 'express';
+
+export const createUser: RequestHandler = async (req, res) => {
+  // Handler implementation
+};
+```
+
+### CI/CD Integration Example
+
+**.github/workflows/static-analysis.yml:**
+```
+name: Static Analysis
+on: [push, pull_request]
+
+jobs:
+  analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v3
+      
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Type Checking
+        run: npm run lint:types
+        
+      - name: Unused Exports Scan
+        run: npm run lint:unused -- --maxIssues=0
+        
+      - name: Dead Code Detection
+        run: npm run lint:dead-code -- --fail
+```
+
+### Critical Analysis Metrics
+
+| Metric                  | Target          | Measurement Tool       |
+|-------------------------|-----------------|------------------------|
+| Type Coverage           | 100%            | TypeScript Compiler    |
+| Unused Exports          | 0               | ts-unused-exports      |
+| Circular Dependencies   | None            | madge                  |
+| API Surface Stability   | 95%+            | API Extractor          |
+| Third-Party Vulnerable  | None            | npm audit              |
+| Deprecated API Usage    | None            | eslint-deprecation     |
+
+
+## 7. VISUAL REGRESSION TESTING
+This implementation provides enterprise-grade visual testing capabilities with Playwright while maintaining cross-browser consistency and CI/CD integration. The rules enforce pixel-perfect validation while allowing controlled tolerance for non-breaking changes.
+
+### Framework-Specific Configuration
+
+#### **Playwright Core Setup**
+```
+# Installation
+npm install @playwright/test --save-dev
+```
+
+**playwright.config.ts:**
+```
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  expect: {
+    toHaveScreenshot: {
+      maxDiffPixels: 100,
+      maxDiffPixelRatio: 0.01,
+      animations: 'disabled',
+      caret: 'hide'
+    }
+  },
+  use: {
+    viewport: { width: 1920, height: 1080 },
+    headless: true
+  }
+});
+```
+
+#### **Percy Integration**
+```
+# Installation
+npm install @percy/cli @percy/playwright --save-dev
+```
+
+**percy.config.js:**
+```
+module.exports = {
+  snapshot: {
+    widths: [1280],
+    minHeight: 1024,
+    percyCSS: `.ads { display: none; }`
+  }
+};
+```
+
+### Visual Test Implementation Rules
+
+#### **Basic Page Comparison**
+```
+test('full page - homepage', async ({ page }) => {
+  await page.goto('/');
+  await expect(page).toHaveScreenshot('homepage.png', {
+    fullPage: true,
+    timeout: 15_000
+  });
+});
+```
+
+#### **Component-Level Testing**
+```
+test('product card rendering', async ({ page }) => {
+  await page.goto('/products');
+  const card = page.locator('.product-card').first();
+  await expect(card).toHaveScreenshot('product-card.png', {
+    animations: 'disabled'
+  });
+});
+```
+
+#### **Dynamic Content Handling**
+```
+test('user profile with generated content', async ({ page }) => {
+  await page.goto('/profile');
+  await page.evaluate(() => {
+    document.querySelectorAll('[data-testid="timestamp"]')
+      .forEach(el => el.textContent = '2024-01-01');
+  });
+  await expect(page).toHaveScreenshot('profile-page.png');
+});
+```
+
+### Critical Visual Testing Principles
+
+1. **Environment Consistency**
+   - Use identical OS/browser versions for baseline and test runs
+   - Disable animations and CSS transitions
+   - Set fixed viewport sizes
+
+2. **Dynamic Content Masking**
+```
+await expect(page).toHaveScreenshot({
+  mask: [
+    page.locator('.live-chat'),
+    page.locator('[data-testid="ads"]')
+  ]
+});
+```
+
+3. **Threshold Configuration**
+```
+await expect(page).toHaveScreenshot({
+  maxDiffPixels: 50,
+  maxDiffPixelRatio: 0.001,
+  threshold: 0.2
+});
+```
+
+### Required Visual Coverage
+
+| Test Scope              | Frequency | Threshold  | Key Elements Verified          |
+|-------------------------|-----------|------------|---------------------------------|
+| Core Pages              | PR Merge  | 0.01%      | Layout, Navigation, CTAs       |
+| Auth Flows              | Nightly   | 0.1%       | Form States, Error Messaging   |
+| Responsive Breakpoints  | Release   | 0.5%       | Mobile/Tablet/Desktop Views     |
+| Component Library       | PR Merge  | 0%         | Design System Consistency       |
+| Localized Content       | Weekly    | 0.2%       | RTL Support, Translation Layout |
+
+### CI/CD Integration
+
+#### **GitHub Actions Workflow**
+```
+name: Visual Regression
+on: [pull_request]
+
+jobs:
+  visual-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v3
+      
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run Visual Tests
+        run: |
+          npx playwright test --grep "@visual"
+          npx percy exec -- npx playwright test --grep "@visual"
+        env:
+          PERCY_TOKEN: ${{ secrets.PERCY_TOKEN }}
+          
+      - name: Upload Results
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: visual-diffs
+          path: test-results/
+```
+
+#### **Snapshot Management**
+```
+# Update baselines after intentional changes
+npx playwright test --grep "@visual" --update-snapshots
+
+# Approve Percy changes via CLI
+npx percy approve 
+```
+
+### Advanced Patterns
+
+#### **Cross-Browser Validation**
+```
+test.describe('Cross-browser Visual Checks', () => {
+  test.use({ browserName: 'chromium' });
+  test('chrome render', async ({ page }) => { /* ... */ });
+
+  test.use({ browserName: 'firefox' });
+  test('firefox render', async ({ page }) => { /* ... */ });
+});
+```
+
+#### **Anti-Aliasing Normalization**
+```
+await expect(page).toHaveScreenshot({
+  stylePath: [
+    'tests/visual/antialiasing-normalization.css'
+  ]
+});
+```
+
+#### **Visual Test Retries**
+```
+test.describe.configure({ 
+  retries: 2,
+  timeout: 60_000 
+});
+```
+
+### Troubleshooting Guide
+
+| Issue                           | Solution                          | Reference |
+|---------------------------------|-----------------------------------|-----------|
+| Headless/headed mode differences | Set `headless: true` in CI        | [3][12]   |
+| Font rendering variances        | Use system font stack in tests    | [1][11]   |
+| 1px layout shifts               | Add `clip` option to screenshots  | [3][9]    |
+| Animation false positives       | Disable CSS transitions           | [6][11]   |
+| Dynamic content flakiness       | Mock time-sensitive data          | [15][19]  |
+
+
+
+## IMPLEMENTATION WORKFLOW
+### Test-First Development Process
+1. **Feature Planning**: Define acceptance criteria and test scenarios
+2. **Unit Tests**: Write failing unit tests first (TDD)
+3. **Implementation**: Write minimal code to pass tests
+4. **Integration Tests**: Add integration tests for feature interactions
+5. **E2E Tests**: Create critical user journey tests
+6. **Security & Static Analysis**: Run automated security and code quality checks
+7. **Visual Regression**: Capture and validate UI changes
+
+### Continuous Integration Requirements
+```
+# ✅ CI/CD pipeline must include all testing layers
+test_pipeline:
+  stages:
+    - lint_and_typecheck
+    - unit_tests
+    - integration_tests
+    - security_scan
+    - e2e_tests
+    - visual_regression
+  
+  coverage_threshold: 80%
+  security_gate: true
+  visual_approval_required: true
+```
+
+## CURSOR AI SPECIFIC INSTRUCTIONS
+🤖 When generating test code:
+- ALWAYS ask which testing layer is needed before writing tests
+- AUTOMATICALLY suggest appropriate test patterns based on code context
+- INCLUDE setup/teardown code for database and external dependencies
+- GENERATE both positive and negative test cases
+- PROVIDE mock implementations for external dependencies
+- SUGGEST appropriate test data and edge cases
+- INCLUDE accessibility testing for UI components
+- RECOMMEND performance test scenarios for critical paths
+
+🤖 When modifying existing code:
+- AUTOMATICALLY update corresponding tests
+- SUGGEST additional test coverage for new edge cases
+- IDENTIFY potential breaking changes in test scenarios
+- RECOMMEND integration test updates for API changes
+
+
+## QUALITY GATES
+- Unit test coverage: minimum 80%
+- Integration test coverage: critical paths 100%
+- E2E test coverage: major user journeys 100%
+- Security scan: zero high/critical vulnerabilities
+- Static analysis: zero errors, warnings reviewed
+- Visual regression: all changes approved
+
+

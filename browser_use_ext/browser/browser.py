@@ -9,7 +9,6 @@ from typing import Optional, Any
 from pydantic import BaseModel, Field
 
 # Local application/library specific imports
-from ..extension_interface.service import ExtensionInterface
 from .context import BrowserContext, BrowserContextConfig
 
 # Initialize logger for this module
@@ -50,6 +49,9 @@ class Browser:
         Args:
             config: Configuration for the browser and extension interface.
         """
+        # Import ExtensionInterface here to break circular dependency
+        from ..extension_interface.service import ExtensionInterface
+
         self.config = config
         # Initialize the ExtensionInterface which manages the WebSocket server and communication.
         # This interface will be shared across all browser contexts created by this Browser instance.

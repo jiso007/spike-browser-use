@@ -1,1 +1,0 @@
-# This file makes Python treat the 'python' sub-directory within tests as a package. 

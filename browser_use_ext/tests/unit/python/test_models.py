@@ -130,23 +130,35 @@ def test_response_data_success_with_browser_state():
         pixels_below=0     
     )
     # ResponseData is not generic. Instantiate directly.
-    res_data = ResponseData(success=True, result=state_payload.model_dump()) # result should be a dict for current ResponseData
+    # The fields from BrowserState are directly on ResponseData when success=True
+    res_data = ResponseData(success=True, url=state_payload.url, title=state_payload.title, 
+                            tabs=state_payload.model_dump()['tabs'], tree=state_payload.model_dump()['tree'],
+                            screenshot=state_payload.screenshot, pixels_above=state_payload.pixels_above,
+                            pixels_below=state_payload.pixels_below)
     assert res_data.success is True
     assert res_data.error is None
-    # assert isinstance(res_data.result, BrowserState) # result is now a dict from model_dump()
-    assert res_data.result['url'] == "https://example.com"
-    assert len(res_data.result['tabs']) == 1
-    # assert res_data.result.tabs[0].fav_icon_url == "http://icon.png" # fav_icon_url removed
+    # Access fields directly from res_data
+    assert res_data.url == "https://example.com"
+    assert len(res_data.tabs) == 1
+    assert isinstance(res_data.tree, dict) # tree is Dict[str, Any] in ResponseData
+    assert res_data.screenshot == "base64string"
+    assert res_data.pixels_above == 0
+    assert res_data.pixels_below == 0
 
 def test_response_data_error():
     """Test ResponseData for an error response."""
-    # ResponseData is not generic. result field in ResponseData is Optional[Any], so it can be None.
-    # The ResponseData itself has specific fields like url, title, etc. from get_state, not a generic result.
-    # This test should reflect ResponseData's actual structure.
+    # ResponseData is not generic.
     res_data = ResponseData(success=False, error="Something went wrong")
     assert res_data.success is False
     assert res_data.error == "Something went wrong"
-    assert res_data.url is None # Check a field from ResponseData to ensure it's None in error case
+    # The other optional fields should be None by default when not provided
+    assert res_data.url is None
+    assert res_data.title is None
+    assert res_data.tabs is None
+    assert res_data.tree is None
+    assert res_data.screenshot is None
+    assert res_data.pixels_above is None
+    assert res_data.pixels_below is None
 
 # Tests for actual TabInfo from browser_use_ext.browser.views
 def test_tab_info_creation():

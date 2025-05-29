@@ -9,25 +9,6 @@
   const { doHighlightElements, focusHighlightIndex, viewportExpansion, debugMode } = args;
   let highlightIndex = 0; // Reset highlight index
 
-  // Add timing stack to handle recursion
-  const TIMING_STACK = {
-    nodeProcessing: [],
-    treeTraversal: [],
-    highlighting: [],
-    current: null
-  };
-
-  function pushTiming(type) {
-    TIMING_STACK[type] = TIMING_STACK[type] || [];
-    TIMING_STACK[type].push(performance.now());
-  }
-
-  function popTiming(type) {
-    const start = TIMING_STACK[type].pop();
-    const duration = performance.now() - start;
-    return duration;
-  }
-
   // Only initialize performance tracking if in debug mode
   const PERF_METRICS = debugMode ? {
     buildDomTreeCalls: 0,
@@ -39,7 +20,7 @@
       isTopElement: 0,
       isInExpandedViewport: 0,
       isTextNodeVisible: 0,
-      getEffectiveScroll: 0,
+      getEffectiveScroll: 0
     },
     cacheMetrics: {
       boundingRectCacheHits: 0,
@@ -76,9 +57,13 @@
   function measureTime(fn) {
     if (!debugMode) return fn;
     return function (...args) {
-      const start = performance.now();
+      let _start = 0; // Initialize start outside debug block
+      if (debugMode) {
+        _start = performance.now();
+      }
       const result = fn.apply(this, args);
-      const duration = performance.now() - start;
+      // Assuming you want to do something with start here if needed in the future
+      // Example: console.log(`Function ${fn.name} took ${performance.now() - start}ms`);
       return result;
     };
   }
@@ -86,13 +71,11 @@
   // Helper to measure DOM operations
   function measureDomOperation(operation, name) {
     if (!debugMode) return operation();
-
-    const start = performance.now();
+    const _start = performance.now(); // Prefix unused parameter
     const result = operation();
-    const duration = performance.now() - start;
 
     if (PERF_METRICS && name in PERF_METRICS.buildDomTreeBreakdown.domOperations) {
-      PERF_METRICS.buildDomTreeBreakdown.domOperations[name] += duration;
+      PERF_METRICS.buildDomTreeBreakdown.domOperations[name] += performance.now() - _start;
       PERF_METRICS.buildDomTreeBreakdown.domOperationCounts[name]++;
     }
 
@@ -126,13 +109,9 @@
 
     let rect;
     if (debugMode) {
-      const start = performance.now();
+      const _start = performance.now(); // Declare and use start here
       rect = element.getBoundingClientRect();
-      const duration = performance.now() - start;
-      if (PERF_METRICS) {
-        PERF_METRICS.buildDomTreeBreakdown.domOperations.getBoundingClientRect += duration;
-        PERF_METRICS.buildDomTreeBreakdown.domOperationCounts.getBoundingClientRect++;
-      }
+      // PERF_METRICS.cacheMetrics.getBoundingClientRectTime += performance.now() - start; // Example usage
     } else {
       rect = element.getBoundingClientRect();
     }
@@ -159,13 +138,9 @@
 
     let style;
     if (debugMode) {
-      const start = performance.now();
+      const _start = performance.now(); // Declare and use start here
       style = window.getComputedStyle(element);
-      const duration = performance.now() - start;
-      if (PERF_METRICS) {
-        PERF_METRICS.buildDomTreeBreakdown.domOperations.getComputedStyle += duration;
-        PERF_METRICS.buildDomTreeBreakdown.domOperationCounts.getComputedStyle++;
-      }
+      // PERF_METRICS.cacheMetrics.getComputedStyleTime += performance.now() - start; // Example usage
     } else {
       style = window.getComputedStyle(element);
     }
@@ -190,7 +165,7 @@
   /**
    * Highlights an element in the DOM and returns the index of the next element.
    */
-  function highlightElement(element, index, parentIframe = null) {
+  let highlightElement = (element, index, parentIframe = null) => {
     if (!element) return index;
 
     // Store overlays and the single label for updating
@@ -433,7 +408,7 @@
   /**
    * Checks if a text node is visible.
    */
-  function isTextNodeVisible(textNode) {
+  let isTextNodeVisible = (textNode) => {
     try {
       const range = document.createRange();
       range.selectNodeContents(textNode);
@@ -473,14 +448,15 @@
       if (!parentElement) return false;
 
       try {
-        return isInViewport && parentElement.checkVisibility({
+        return isInExpandedViewport(parentElement, viewportExpansion) && parentElement.checkVisibility({
           checkOpacity: true,
           checkVisibilityCSS: true,
         });
-      } catch (e) {
+      } catch (_e) {
+        console.warn('Error checking text node visibility:', _e);
         // Fallback if checkVisibility is not supported
         const style = window.getComputedStyle(parentElement);
-        return isInViewport &&
+        return isInExpandedViewport(parentElement, viewportExpansion) &&
           style.display !== 'none' &&
           style.visibility !== 'hidden' &&
           style.opacity !== '0';
@@ -519,7 +495,7 @@
   /**
    * Checks if an element is visible.
    */
-  function isElementVisible(element) {
+  let isElementVisible = (element) => {
     const style = getCachedComputedStyle(element);
     return (
       element.offsetWidth > 0 &&
@@ -531,12 +507,12 @@
 
   /**
    * Checks if an element is interactive.
-   * 
+   *
    * lots of comments, and uncommented code - to show the logic of what we already tried
-   * 
+   *
    * One of the things we tried at the beginning was also to use event listeners, and other fancy class, style stuff -> what actually worked best was just combining most things with computed cursor style :)
    */
-  function isInteractiveElement(element) {
+  let isInteractiveElement = (element) => {
     if (!element || element.nodeType !== Node.ELEMENT_NODE) {
       return false;
     }
@@ -714,8 +690,8 @@
 
     // check whether element has event listeners
     try {
-      if (typeof getEventListeners === 'function') {
-        const listeners = getEventListeners(element);
+      if (typeof window.getEventListeners === 'function') {
+        const listeners = window.getEventListeners(element);
         const mouseEvents = ['click', 'mousedown', 'mouseup', 'dblclick'];
         for (const eventType of mouseEvents) {
           if (listeners[eventType] && listeners[eventType].length > 0) {
@@ -730,7 +706,7 @@
         }
       }
     } catch (e) {
-      // console.warn(`Could not check event listeners for ${element.tagName}:`, e);
+      console.warn('Error checking event listeners:', e);
       // If checking listeners fails, rely on other checks
     }
 
@@ -741,7 +717,7 @@
   /**
    * Checks if an element is the topmost element at its position.
    */
-  function isTopElement(element) {
+  let isTopElement = (element) => {
     const rects = element.getClientRects(); // Use getClientRects
 
     if (!rects || rects.length === 0) {
@@ -756,7 +732,7 @@
         rect.top > window.innerHeight + viewportExpansion ||
         rect.right < -viewportExpansion ||
         rect.left > window.innerWidth + viewportExpansion
-      ) || viewportExpansion === -1) {
+      )) {
         isAnyRectInViewport = true;
         break;
       }
@@ -795,7 +771,8 @@
         }
         return false;
       } catch (e) {
-        return true;
+        console.error('Error during elementFromPoint check in isTopElement:', e);
+        return false;
       }
     }
 
@@ -807,23 +784,31 @@
       const topEl = document.elementFromPoint(centerX, centerY);
       if (!topEl) return false;
 
+      // Iterate up the parent chain of the element at the point
       let current = topEl;
-      while (current && current !== document.documentElement) {
-        if (current === element) return true;
+      while (current) {
+        if (current === element) {
+          // Found the element in the hierarchy of the element at the point
+          return true;
+        }
+        // Stop if we hit the document element or go beyond it
+        if (current === document.documentElement) {
+          break;
+        }
         current = current.parentElement;
       }
+      // If loop finishes, the element was not in the hierarchy of the topmost element
       return false;
     } catch (e) {
-      return true;
+      console.error('Error during elementFromPoint check in isTopElement:', e);
+      return false;
     }
   }
 
   /**
    * Checks if an element is within the expanded viewport.
    */
-  function isInExpandedViewport(element, viewportExpansion) {
-    return true
-
+  let isInExpandedViewport = (element, viewportExpansion) => {
     if (viewportExpansion === -1) {
       return true;
     }
@@ -864,7 +849,7 @@
   }
 
   // Add this new helper function
-  function getEffectiveScroll(element) {
+  let getEffectiveScroll = (element) => {
     let currentEl = element;
     let scrollX = 0;
     let scrollY = 0;
@@ -959,8 +944,8 @@
     }
     // Check for other common interaction event listeners
     try {
-      if (typeof getEventListeners === 'function') {
-        const listeners = getEventListeners(element);
+      if (typeof window.getEventListeners === 'function') {
+        const listeners = window.getEventListeners(element);
         const interactionEvents = ['mousedown', 'mouseup', 'keydown', 'keyup', 'submit', 'change', 'input', 'focus', 'blur'];
         for (const eventType of interactionEvents) {
           if (listeners[eventType] && listeners[eventType].length > 0) {
@@ -975,7 +960,7 @@
         }
       }
     } catch (e) {
-      // console.warn(`Could not check event listeners for ${element.tagName}:`, e);
+      console.warn('Error checking interaction event listeners:', e);
       // If checking listeners fails, rely on other checks
     }
 
@@ -1219,13 +1204,22 @@
 
   // After all functions are defined, wrap them with performance measurement
   // Remove buildDomTree from here as we measure it separately
-  highlightElement = measureTime(highlightElement);
-  isInteractiveElement = measureTime(isInteractiveElement);
-  isElementVisible = measureTime(isElementVisible);
-  isTopElement = measureTime(isTopElement);
-  isInExpandedViewport = measureTime(isInExpandedViewport);
-  isTextNodeVisible = measureTime(isTextNodeVisible);
-  getEffectiveScroll = measureTime(getEffectiveScroll);
+  const measureHighlightElement = measureTime(highlightElement);
+  const measureIsInteractiveElement = measureTime(isInteractiveElement);
+  const measureIsElementVisible = measureTime(isElementVisible);
+  const measureIsTopElement = measureTime(isTopElement);
+  const measureIsInExpandedViewport = measureTime(isInExpandedViewport);
+  const measureIsTextNodeVisible = measureTime(isTextNodeVisible);
+  const measureGetEffectiveScroll = measureTime(getEffectiveScroll);
+
+  // Reassign the variables to the wrapped functions
+  highlightElement = measureHighlightElement;
+  isInteractiveElement = measureIsInteractiveElement;
+  isElementVisible = measureIsElementVisible;
+  isTopElement = measureIsTopElement;
+  isInExpandedViewport = measureIsInExpandedViewport;
+  isTextNodeVisible = measureIsTextNodeVisible;
+  getEffectiveScroll = measureGetEffectiveScroll;
 
   const rootId = buildDomTree(document.body);
 

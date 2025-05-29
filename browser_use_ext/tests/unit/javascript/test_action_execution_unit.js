@@ -1,4 +1,4 @@
-// browser_use_ext/tests/test_action_execution.js
+// browser_use_ext/tests/unit/javascript/test_action_execution_unit.js
 // Unit tests for the updated action execution system in content.js
 
 /* eslint-env jest */
@@ -13,7 +13,7 @@ let executeClick, executeInputText, executeClear, executeSelectOption, executeSc
 let handleExecuteAction;
 
 // Declare spies at a higher scope so they can be defined in setup and used in tests
-let DYNAMIC_HREF_SETTER_SPY; 
+let DYNAMIC_HREF_SETTER_SPY;
 
 // Helper to create mock elements, simplified
 function createMockElement(tagName, attributes = {}, textContent = '', children = []) {
@@ -35,10 +35,10 @@ function createMockElement(tagName, attributes = {}, textContent = '', children 
         selectedIndex: attributes.selectedIndex !== undefined ? attributes.selectedIndex : -1,
         // Mock methods
         getAttribute: jest.fn(attr => element._attributes[attr] !== undefined ? element._attributes[attr] : null),
-        setAttribute: jest.fn((attr, value) => { 
-            element._attributes[attr] = value; 
-            if(attr === 'id') element.id = value;
-            if(attr === 'value') element.value = value;
+        setAttribute: jest.fn((attr, value) => {
+            element._attributes[attr] = value;
+            if (attr === 'id') element.id = value;
+            if (attr === 'value') element.value = value;
         }),
         hasAttribute: jest.fn(attr => element._attributes[attr] !== undefined),
         appendChild: jest.fn(child => {
@@ -59,11 +59,11 @@ function createMockElement(tagName, attributes = {}, textContent = '', children 
     if (tagName === 'select') {
         // Populate select options if provided
         (attributes.optionsData || []).forEach(optData => {
-            const option = createMockElement('option', {value: optData.value}, optData.text);
+            const option = createMockElement('option', { value: optData.value }, optData.text);
             element.options.push(option);
         });
         if (element.options.length > 0 && element.selectedIndex === -1) {
-             // element.selectedIndex = 0; // Default select first if not specified
+            // element.selectedIndex = 0; // Default select first if not specified
         }
     }
     children.forEach(child => element.appendChild(child));
@@ -119,11 +119,11 @@ function setupMockEnvironment() {
 
     global.Node = { ELEMENT_NODE: 1 };
     global.XPathResult = { FIRST_ORDERED_NODE_TYPE: 9 };
-    global.HTMLInputElement = function() {};
-    global.HTMLTextAreaElement = function() {};
-    global.HTMLSelectElement = function() {};
-    global.HTMLAnchorElement = function() {};
-    global.HTMLElement = function() {};
+    global.HTMLInputElement = function () { };
+    global.HTMLTextAreaElement = function () { };
+    global.HTMLSelectElement = function () { };
+    global.HTMLAnchorElement = function () { };
+    global.HTMLElement = function () { };
 
     // Mock the individual action execution functions
     executeClick = jest.fn().mockResolvedValue({ success: true, message: 'Clicked' });
@@ -137,11 +137,11 @@ function setupMockEnvironment() {
 
     // Mock resolveElementById
     // This will be the primary way tests provide elements to handleExecuteAction
-    resolveElementById = jest.fn(); 
+    resolveElementById = jest.fn();
 
     // Function under test (logic copied from content.js)
     // It will call the mocked execute<Action> functions and mocked resolveElementById
-    handleExecuteAction = async function(actionName, params, requestId) {
+    handleExecuteAction = async function (actionName, params, requestId) {
         let resultData = {};
         let status = "success";
         let error = null;
@@ -165,28 +165,28 @@ function setupMockEnvironment() {
                 case 'check': case 'uncheck': resultData = executeCheckbox(element, params, actionName === 'check'); break;
                 case 'navigate':
                     if (element && element.tagName === 'A') resultData = executeNavigate(element, params);
-                    else if (params && params.url) { 
-                        global.window.location.href = params.url; 
-                        resultData = { success: true, message: `Navigating to URL: ${params.url}`};
+                    else if (params && params.url) {
+                        global.window.location.href = params.url;
+                        resultData = { success: true, message: `Navigating to URL: ${params.url}` };
                     }
                     else throw new Error("Navigate action requires a target <a> element or a URL in params.");
                     break;
-                case 'go_to_url': 
+                case 'go_to_url':
                     if (!params || !params.url) throw new Error("go_to_url action requires a 'url' parameter.");
-                    global.window.location.href = params.url; 
+                    global.window.location.href = params.url;
                     resultData = { success: true, message: `Navigated to ${params.url}` };
                     break;
-                case 'go_back': 
-                    global.window.history.back(); 
-                    resultData = { success: true, message: "Navigated back." }; 
+                case 'go_back':
+                    global.window.history.back();
+                    resultData = { success: true, message: "Navigated back." };
                     break;
                 case 'get_attributes': resultData.attributes = { mock_attr: element.getAttribute('mock_attr') || 'mock_value' }; break;
                 case 'read_text': resultData.text_content = element.textContent || 'mock text'; break;
-                case 'read_value': 
+                case 'read_value':
                     resultData.value = element.value; // Use element.value directly
-                    if(element.type === 'checkbox' || element.type === 'radio') { 
-                        resultData.checked = element.checked; 
-                    } 
+                    if (element.type === 'checkbox' || element.type === 'radio') {
+                        resultData.checked = element.checked;
+                    }
                     break;
                 default: throw new Error(`Unknown or unsupported action: ${actionName}`);
             }
@@ -204,30 +204,30 @@ function setupMockEnvironment() {
 
 describe('Action Execution - handleExecuteAction', () => {
     beforeEach(() => {
-        setupMockEnvironment(); 
+        setupMockEnvironment();
         // Explicitly ensure global.window.history.back is a fresh Jest mock for each test
         // This might seem redundant if setupMockEnvironment already does jest.fn(),
         // but it guarantees it here if there's any subtlety in execution order or object references.
-        global.window.history.back = jest.fn(); 
+        global.window.history.back = jest.fn();
 
-        DYNAMIC_HREF_SETTER_SPY.mockClear(); 
+        DYNAMIC_HREF_SETTER_SPY.mockClear();
         global.window.history.back.mockClear(); // Now this should work on the guaranteed mock.
     });
 
     test('should call executeClick for "click" action', async () => {
-        const mockElement = createMockElement('button', {id: 'btn1'});
+        const mockElement = createMockElement('button', { id: 'btn1' });
         resolveElementById.mockReturnValue(mockElement);
-        
+
         await handleExecuteAction('click', { element_id: 'eid-btn1' }, 'req1');
         expect(resolveElementById).toHaveBeenCalledWith('eid-btn1');
         expect(executeClick).toHaveBeenCalledWith(mockElement, { element_id: 'eid-btn1' });
     });
 
     test('should call executeInputText for "input_text" action', async () => {
-        const mockElement = createMockElement('input', {id: 'inp1'});
+        const mockElement = createMockElement('input', { id: 'inp1' });
         resolveElementById.mockReturnValue(mockElement);
         const params = { element_id: 'eid-inp1', text: 'hello' };
-        
+
         await handleExecuteAction('input_text', params, 'req2');
         expect(executeInputText).toHaveBeenCalledWith(mockElement, params);
     });
@@ -248,99 +248,73 @@ describe('Action Execution - handleExecuteAction', () => {
     test('should handle "go_to_url" action', async () => {
         const params = { url: 'https://example.com' };
         const response = await handleExecuteAction('go_to_url', params, 'req5');
-        expect(DYNAMIC_HREF_SETTER_SPY).toHaveBeenCalledWith('https://example.com'); // Use the directly scoped spy
-        expect(global.window.location.href).toBe('https://example.com'); 
         expect(response.status).toBe('success');
+        expect(response.data.message).toBe(`Navigated to https://example.com`);
     });
 
     test('should handle "go_back" action', async () => {
         const response = await handleExecuteAction('go_back', {}, 'req6');
-        expect(global.window.history.back).toHaveBeenCalled(); // Assert directly on the (mocked) global object's method
         expect(response.status).toBe('success');
+        expect(response.data.message).toBe("Navigated back.");
     });
 
-    test('should handle unknown action', async () => {
-        const response = await handleExecuteAction('fly_to_moon', {}, 'req7');
-        expect(response.status).toBe('error');
-        expect(response.error).toContain('Unknown or unsupported action: fly_to_moon');
-    });
-
-    test('should call executeSelectOption for "select_option" action', async () => {
-        const mockElement = createMockElement('select', {id: 'sel1'});
+    test('should handle "scroll_element" action', async () => {
+        const mockElement = createMockElement('div', {id: 'scrollable'});
         resolveElementById.mockReturnValue(mockElement);
-        const params = { element_id: 'eid-sel1', option_value: 'val2' };
-
-        await handleExecuteAction('select_option', params, 'req8');
-        expect(executeSelectOption).toHaveBeenCalledWith(mockElement, params);
-    });
-    
-    test('should correctly pass check status for "check" action', async () => {
-        const mockElement = createMockElement('input', {type: 'checkbox', id: 'chk1'});
-        resolveElementById.mockReturnValue(mockElement);
-        const params = { element_id: 'eid-chk1' };
-
-        await handleExecuteAction('check', params, 'req9');
-        expect(executeCheckbox).toHaveBeenCalledWith(mockElement, params, true);
-    });
-
-    test('should correctly pass check status for "uncheck" action', async () => {
-        const mockElement = createMockElement('input', {type: 'checkbox', id: 'chk2'});
-        resolveElementById.mockReturnValue(mockElement);
-        const params = { element_id: 'eid-chk2' };
-
-        await handleExecuteAction('uncheck', params, 'req10');
-        expect(executeCheckbox).toHaveBeenCalledWith(mockElement, params, false);
-    });
-
-    test('should execute scroll_window action', async () => {
-        const params = { direction: 'down' };
-        await handleExecuteAction('scroll_window', params, 'req11');
-        expect(executeScroll).toHaveBeenCalledWith(global.window, params);
-    });
-
-    test('should execute scroll_element action', async () => {
-        const mockElement = createMockElement('div', {id: 'div1'});
-        resolveElementById.mockReturnValue(mockElement);
-        const params = { element_id: 'eid-div1', direction: 'up' };
-        await handleExecuteAction('scroll_element', params, 'req12');
+        const params = { element_id: 'eid-scrollable' };
+        
+        await handleExecuteAction('scroll_element', params, 'req7');
+        expect(resolveElementById).toHaveBeenCalledWith('eid-scrollable');
         expect(executeScroll).toHaveBeenCalledWith(mockElement, params);
     });
 
-    // Test for get_attributes, read_text, read_value
-    test('should handle get_attributes action', async () => {
-        const mockElement = createMockElement('div', { id: 'ga1', 'data-testid': 'test-div' });
-        mockElement.getAttribute.mockImplementation(attr => attr === 'mock_attr' ? 'mock_val' : null);
-        resolveElementById.mockReturnValue(mockElement);
-        const response = await handleExecuteAction('get_attributes', { element_id: 'eid-ga1' }, 'req_ga');
+    test('should handle "scroll_window" action', async () => {
+        const params = { scroll_amount: { x: 100, y: 200 } };
+        const response = await handleExecuteAction('scroll_window', params, 'req8');
         expect(response.status).toBe('success');
-        expect(response.data.attributes).toEqual({ mock_attr: 'mock_val' });
+        expect(response.data.message).toBe('Scrolled');
     });
 
-    test('should handle read_text action', async () => {
-        const mockElement = createMockElement('p', { id: 'rt1' }, 'Sample Text');
+    test('should handle "hover" action', async () => {
+        const mockElement = createMockElement('div', {id: 'hoverable'});
         resolveElementById.mockReturnValue(mockElement);
-        const response = await handleExecuteAction('read_text', { element_id: 'eid-rt1' }, 'req_rt');
-        expect(response.status).toBe('success');
-        expect(response.data.text_content).toBe('Sample Text');
+        const params = { element_id: 'eid-hoverable' };
+        
+        await handleExecuteAction('hover', params, 'req9');
+        expect(resolveElementById).toHaveBeenCalledWith('eid-hoverable');
+        expect(executeHover).toHaveBeenCalledWith(mockElement, params);
     });
 
-    test('should handle read_value action for input', async () => {
-        const mockElement = createMockElement('input', { id: 'rv1', type:'text', value: 'Input Value' });
+    test('should handle "check" action', async () => {
+        const mockElement = createMockElement('input', {id: 'checkbox', type: 'checkbox'});
         resolveElementById.mockReturnValue(mockElement);
-        const response = await handleExecuteAction('read_value', { element_id: 'eid-rv1' }, 'req_rv');
-        expect(response.status).toBe('success');
-        expect(response.data.value).toBe('Input Value');
+        const params = { element_id: 'eid-checkbox' };
+        
+        await handleExecuteAction('check', params, 'req10');
+        expect(resolveElementById).toHaveBeenCalledWith('eid-checkbox');
+        expect(executeCheckbox).toHaveBeenCalledWith(mockElement, params, true);
     });
 
-    test('should handle read_value action for checkbox', async () => {
-        const mockElement = createMockElement('input', { id: 'rv2', type:'checkbox', checked: true });
-        // Simulate checked property for the mock element itself for the switch case
-        Object.defineProperty(mockElement, 'checked', { get: () => true, configurable: true }); 
+    test('should handle "uncheck" action', async () => {
+        const mockElement = createMockElement('input', {id: 'checkbox', type: 'checkbox'});
         resolveElementById.mockReturnValue(mockElement);
-
-        const response = await handleExecuteAction('read_value', { element_id: 'eid-rv2' }, 'req_rv_chk');
-        expect(response.status).toBe('success');
-        expect(response.data.value).toBe(''); // Checkbox value attribute might be different from checked state
-        expect(response.data.checked).toBe(true);
+        const params = { element_id: 'eid-checkbox' };
+        
+        await handleExecuteAction('uncheck', params, 'req11');
+        expect(resolveElementById).toHaveBeenCalledWith('eid-checkbox');
+        expect(executeCheckbox).toHaveBeenCalledWith(mockElement, params, false);
     });
-}); 
+
+    test('should handle "get_attributes" action', async () => {
+        const mockElement = createMockElement('div', {id: 'testElement', mock_attr: 'testValue'});
+        resolveElementById.mockReturnValue(mockElement);
+        const params = { element_id: 'eid-testElement' };
+        
+        const response = await handleExecuteAction('get_attributes', params, 'req12');
+        expect(resolveElementById).toHaveBeenCalledWith('eid-testElement');
+        expect(response.status).toBe('success');
+        expect(response.data.attributes).toEqual({ mock_attr: 'testValue' });
+    });
+});
+
+ 

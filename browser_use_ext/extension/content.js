@@ -1,4 +1,20 @@
 console.log("CONTENT.JS TOP LEVEL EXECUTION - Script Start"); // VERY FIRST LINE
+
+// --- Content Script Ready Signal ---
+// Function to send the content_script_ready message to the background script
+function signalReadyToBackground() {
+    console.log("CONTENT.JS: Attempting to send content_script_ready message.");
+    chrome.runtime.sendMessage({ type: "content_script_ready" }, _response => {
+        if (chrome.runtime.lastError) {
+            console.error('CONTENT.JS: Error sending content_script_ready:', chrome.runtime.lastError.message);
+        } else {
+            // console.log("CONTENT.JS: Background acked content_script_ready:", response);
+            console.log("CONTENT.JS: Successfully sent content_script_ready.");
+        }
+    });
+}
+// --- END Content Script Ready Signal ---
+
 // browser-use-ext/extension/content.js
 // Interacts with the DOM of the web page.
 // Listens for messages from background.js and executes actions on the page.
@@ -23,176 +39,83 @@ let currentScanUsedIds = new Set();
  * Listener for messages from the background script.
  * Handles requests like 'get_state' and 'execute_action'.
  */
-/*
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    console.log("Content script received message:", message);
+let messageListener = null; // Keep this global for the listener function
 
-    if (message.type === "get_state") {
-        // Handles request to get the current state of the page.
-        // The requestId is used to correlate responses if multiple requests are in flight.
-        handleGetState(message.requestId)
-            .then(response => {
-                // Adding request_id to the response for background script to map.
-                sendResponse({ request_id: message.requestId, ...response });
-            })
-            .catch(error => {
-                console.error("Error in handleGetState:", error);
-                sendResponse({
-                    request_id: message.requestId,
-                    type: "response", // Standard type for responses.
-                    status: "error",
-                    error: `Failed to get state: ${error.message}`
-                });
-            });
-        return true; // Indicates that the response will be sent asynchronously.
-    } else if (message.type === "execute_action") {
-        // Handles request to execute an action on the page.
-        // The action and its parameters are in message.payload.
-        // The requestId is used for correlating responses.
-        handleExecuteAction(message.payload, message.requestId) // Pass the entire payload
-            .then(response => {
-                 // Adding request_id to the response for background script to map.
-                sendResponse({ request_id: message.requestId, ...response });
-            })
-            .catch(error => {
-                console.error("Error in handleExecuteAction:", error);
-                sendResponse({
-                    request_id: message.requestId,
-                    type: "response", // Standard type for responses.
-                    status: "error",
-                    error: `Failed to execute action \'${message.payload && message.payload.action}\': ${error.message}`
-                });
-            });
-        return true; // Indicates that the response will be sent asynchronously.
-    }
-    // If message type is not recognized, return false to allow other listeners to process it.
-    return false;
-});
-*/
-// ADDED CODE based on PERPLEXITY_OUTPUT.md
-let isContentScriptReady = false;
-let messageListener = null;
+// This flag is local to the message listener setup, but its state depends on the top-level aggressive sender
+// let isContentScriptReady = false; // We will use hasAggressiveSignalSucceeded instead or set this based on it.
 
 // Establish the message listener first
 function setupMessageListener() {
     if (messageListener) {
-        console.warn('Message listener already established');
+        console.warn('CONTENT.JS: Message listener already established');
         return;
     }
 
     messageListener = function(request, sender, sendResponse) {
-        console.log('Content script received message:', request);
+        // console.log('Content script received message:', request); // Keep this less verbose for now
         
-        if (!isContentScriptReady) {
-            console.warn('Content script received message before ready state');
-            sendResponse({ error: 'Content script not ready' });
-            return false; // Return false for sync response, or true if planning async for error
-        }
-
         // Handle different message types
         switch (request.type) {
             case 'get_state':
-                // Pass requestId from the original request if available
                 handleGetState(request.requestId)
                     .then(response => {
-                        sendResponse({ request_id: request.requestId, ...response });
+                        // Add logging here to see what handleGetState returns
+                        console.log("CONTENT.JS: State data collected by handleGetState for ID", request.requestId, ":", response);
+                        sendResponse({ request_id: request.requestId, ...response }); // Forward the response from handleGetState
                     })
-                    .catch(error => {
-                        console.error("Error in handleGetState:", error);
+                    .catch(_error => {
+                        console.error("CONTENT.JS: Error in handleGetState:", _error);
                         sendResponse({
-                            request_id: request.requestId,
-                            type: "response",
-                            status: "error",
-                            error: `Failed to get state: ${error.message}`
+                            request_id: request.requestId, type: "response",
+                            status: "error", error: `Failed to get state: ${_error.message}`
                         });
                     });
                 return true; // Indicates async response
             case 'execute_action':
-                 // Pass requestId from the original request if available
                 handleExecuteAction(request.payload, request.requestId)
-                    .then(response => {
-                        sendResponse({ request_id: request.requestId, ...response });
-                    })
+                    .then(_response => sendResponse({ request_id: request.requestId, ..._response }))
                     .catch(error => {
-                        console.error("Error in handleExecuteAction:", error);
+                        console.error("CONTENT.JS: Error in handleExecuteAction:", error);
                         sendResponse({
-                            request_id: request.requestId,
-                            type: "response",
-                            status: "error",
-                            error: `Failed to execute action \'${request.payload && request.payload.action}\': ${error.message}`
+                            request_id: request.requestId, type: "response",
+                            status: "error", error: `Failed to execute action '${request.payload && request.payload.action}': ${error.message}`
                         });
                     });
                 return true; // Indicates async response
             case 'ping':
-                sendResponse({ status: 'ready', timestamp: Date.now() });
+                console.log("CONTENT.JS: Received PING. Request ID:", request.requestId);
+                sendResponse({ type: 'pong', requestId: request.requestId });
                 return false; // Synchronous response
             default:
-                console.warn('Unknown message type:', request.type);
+                console.warn('CONTENT.JS: Unknown message type:', request.type);
                 sendResponse({ error: 'Unknown message type' });
                 return false; // Synchronous response
         }
     };
-
+    // LOG BEFORE ADDING LISTENER
+    console.log("CONTENT.JS: About to add runtime.onMessage.addListener.");
     chrome.runtime.onMessage.addListener(messageListener);
-    console.log('Message listener established');
-}
-
-// Send ready signal to background script
-function signalContentScriptReady() {
-    const maxRetries = 3;
-    const baseDelay = 100; // milliseconds
-    
-    function attemptSignal(retryCount = 0) {
-        console.log(`Attempting to signal ready state (attempt ${retryCount + 1}/${maxRetries})`);
-        
-        // The PERPLEXITY_OUTPUT.md shows tabId: null, but content scripts usually don't know their tabId
-        // when sending to background. background.js can get it from the sender object.
-        chrome.runtime.sendMessage(
-            { type: "content_script_ready", timestamp: Date.now() }, 
-            function(response) {
-                if (chrome.runtime.lastError) {
-                    console.error('Error sending ready signal:', chrome.runtime.lastError.message);
-                    
-                    if (retryCount < maxRetries -1 ) { // Corrected retry condition
-                        const delay = baseDelay * Math.pow(2, retryCount);
-                        console.log(`Retrying ready signal in ${delay}ms`);
-                        setTimeout(() => attemptSignal(retryCount + 1), delay);
-                    } else {
-                        console.error('Failed to signal ready state after all retries');
-                    }
-                } else {
-                    console.log('Content script ready signal acknowledged by background:', response);
-                    isContentScriptReady = true;
-                }
-            }
-        );
-    }
-    
-    attemptSignal();
+    console.log('CONTENT.JS: Message listener established.');
 }
 
 // Initialize content script
 function initializeContentScript() {
-    console.log('Initializing content script...');
-    
+    console.log('CONTENT.JS: Initializing content script...');
     try {
-        // Set up message handling first
-        setupMessageListener();
+        // The aggressive signal sender is already running from the top of the file.
+        // setupDOMObserver(); // Commented out: function not defined
+        // setupElementRegistry(); // Commented out: function not defined
+        // setupScrollListeners(); // Commented out: function not defined
+        setupMessageListener(); 
         
-        // Perform any other initialization tasks
-        // ... existing initialization code ...
-        // (Assuming existing initialization like unique ID generation setup, etc., remains)
-        
-        // Signal readiness after all setup is complete
-        signalContentScriptReady();
-        
+        // Signal readiness to the background script after listener is set up.
+        signalReadyToBackground();
+        console.log("CONTENT.JS: Core initialization complete. Ready signal sent.");
+
     } catch (error) {
-        console.error('Content script initialization failed:', error);
-        // Could implement additional error recovery here
+        console.error('CONTENT.JS: Content script core initialization failed:', error);
     }
 }
-// END ADDED CODE
-
 
 // --- Enhanced Element Identification System ---
 
@@ -218,7 +141,7 @@ function generateStableElementId(element) {
         // Check if the generated ID is valid and unique within the document/current scan.
         if (id && isIdUnique(id, element)) {
             if (DEBUG_ELEMENT_IDENTIFICATION) {
-                console.log(`[DebugID] Element: %o, Strategy: ${strategy.name}, ID: \"${id}\"`, element);
+                console.log(`[DebugID] Element: %o, Strategy: ${strategy.name}, ID: "${id}"`, element);
             }
             currentScanUsedIds.add(id); // Add to used IDs for the current scan
             return id;
@@ -231,10 +154,10 @@ function generateStableElementId(element) {
     let fallbackId;
     do {
         fallbackId = `element_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${fallbackIdCount++}`;
-    } while (currentScanUsedIds.has(fallbackId) || document.querySelector(`[data-element-id=\"${fallbackId}\"]`));
+    } while (currentScanUsedIds.has(fallbackId) || document.querySelector(`[data-element-id="${fallbackId}"]`));
     
     if (DEBUG_ELEMENT_IDENTIFICATION) {
-        console.log(`[DebugID] Element: %o, Strategy: Fallback, ID: \"${fallbackId}\"`, element);
+        console.log(`[DebugID] Element: %o, Strategy: Fallback, ID: "${fallbackId}"`, element);
     }
     console.warn("Falling back to timestamp-based ID for element:", element, "Generated ID:", fallbackId);
     currentScanUsedIds.add(fallbackId);
@@ -292,7 +215,7 @@ function generateIdByStructuralPosition(element) {
 function generateIdByXPath(element) {
     if (element.id) {
         // Using a direct ID-based XPath is the most robust.
-        return `xpath_id(\"${element.id}\")`; // Standard XPath function for ID
+        return `xpath_id("${element.id}")`; // Standard XPath function for ID
     }
 
     let path = '';
@@ -355,13 +278,13 @@ function generateIdByTextContent(element) {
  */
 function isIdUnique(id, currentElement) {
     if (currentScanUsedIds.has(id)) {
-        if (DEBUG_ELEMENT_IDENTIFICATION) console.log(`[DebugIDUniqueness] ID \"${id}\" already in currentScanUsedIds.`);
+        if (DEBUG_ELEMENT_IDENTIFICATION) console.log(`[DebugIDUniqueness] ID "${id}" already in currentScanUsedIds.`);
         return false;
     }
     // Check if any *other* element in the DOM already uses this ID as data-element-id
-    const existingElementWithId = document.querySelector(`[data-element-id=\"${id}\"]`);
+    const existingElementWithId = document.querySelector(`[data-element-id="${id}"]`);
     if (existingElementWithId && existingElementWithId !== currentElement) {
-        if (DEBUG_ELEMENT_IDENTIFICATION) console.log(`[DebugIDUniqueness] ID \"${id}\" already used by another element: %o`, existingElementWithId);
+        if (DEBUG_ELEMENT_IDENTIFICATION) console.log(`[DebugIDUniqueness] ID "${id}" already used by another element: %o`, existingElementWithId);
         return false;
     }
     return true;
@@ -670,7 +593,7 @@ function getAvailableOperations(element) {
  * @returns {Promise<Object>} A promise that resolves with the page state object.
  */
 async function handleGetState(requestId) {
-    console.log(`handleGetState called for requestId: ${requestId}`);
+    console.log(`CONTENT.JS: handleGetState ENTERED for requestId: ${requestId}`); // ADDED LOG
     try {
         const actionableElements = detectActionableElements(); // This is the core new part
 
@@ -690,7 +613,7 @@ async function handleGetState(requestId) {
                     x: window.scrollX,
                     y: window.scrollY,
                     max_x: document.documentElement.scrollWidth - window.innerWidth,
-                    max_y: document.documentElement.scrollHeight - window.innerHeight
+                    max_y: document.documentElement.scrollHeight - window.innerHeight,
                 },
                 document_dimensions: {
                     width: document.documentElement.scrollWidth,
@@ -707,10 +630,10 @@ async function handleGetState(requestId) {
                 timestamp: new Date().toISOString()
             }
         };
-        console.log(`State extracted successfully for requestId: ${requestId}. ${actionableElements.length} actionable elements found.`);
-        return pageState;
+        console.log(`CONTENT.JS: State extracted successfully for requestId: ${requestId}. ${actionableElements.length} actionable elements found. State URL: ${pageState.state.url}`); // ADDED LOG
+        return pageState; // Return the full state object
     } catch (error) {
-        console.error(`Error extracting page state for requestId ${requestId}:`, error);
+        console.error(`CONTENT.JS: Error extracting page state for requestId ${requestId}:`, error); // ADDED LOG
         // Structure the error response consistently
         return {
             // requestId: requestId,
@@ -721,6 +644,32 @@ async function handleGetState(requestId) {
         };
     }
 }
+
+// The collectBrowserState function below was a placeholder and is not needed with the correct handleGetState
+// /**
+//  * Collects the current state of the browser tab's content.
+//  * @returns {object} An object containing the current URL, title, HTML, DOM tree, and selector map.
+//  */
+// function collectBrowserState() {
+//     console.log("CONTENT.JS: collectBrowserState ENTERED.");
+//     try {
+//         const url = window.location.href;
+//         const title = document.title;
+//         const html_content = document.documentElement ? document.documentElement.outerHTML : '';
+//         
+//         // Placeholder for DOM tree and selector map collection
+//         // These would typically involve traversing the DOM and generating simplified representations.
+//         const tree = {
+//             type: "document",
+//             // ... existing code ...
+//         };
+//         
+//         // ... rest of the function ...
+//     } catch (error) {
+//         console.error("CONTENT.JS: Error collecting browser state:", error);
+//         return { status: "error", error: `Failed to collect browser state: ${error.message}` };
+//     }
+// }
 
 // --- Action Execution System ---
 
@@ -849,85 +798,143 @@ function resolveByTextContent(elementId) {
  * @returns {Promise<Object>} A promise that resolves with the action result (success/failure, messages).
  */
 async function handleExecuteAction(payload, requestId) {
-    console.log(`handleExecuteAction called for requestId: ${requestId}, Payload:`, payload);
-    const { action, params } = payload;
+    console.log(`CONTENT.JS: handleExecuteAction ENTERED. RequestID: ${requestId}. Raw payload received:`, JSON.stringify(payload));
 
-    if (!params || !params.element_id) {
-        if (action !== 'scroll_window' && action !== 'navigate_to_url') { // These actions might not need element_id
-            console.error("Action execution failed: element_id is missing in params.", params);
-            return { status: "error", error: `Element ID is required for action '${action}'.` };
+    const actionName = payload.action;
+    const _params = payload.params; // Prefix unused parameter
+
+    console.log(`CONTENT.JS: Parsed actionName: '${actionName}' (Type: ${typeof actionName}), Parsed params:`, JSON.stringify(_params));
+
+    if (!actionName) {
+        console.error("CONTENT.JS: Action execution failed: action name is missing in payload.");
+        return { type: "response", status: "error", error: "Action name missing." };
+    }
+    
+    // --- BEGIN MODIFICATION: Handle 'navigate' action specifically ---
+    if (actionName === "navigate") {
+        if (_params && _params.url) {
+            console.log(`CONTENT.JS: Executing navigate to URL: ${_params.url} (Request ID: ${requestId})`);
+            try {
+                window.location.href = _params.url;
+                // Navigation will cause page unload. A response might not reliably reach background.
+                // Consider this a "fire and forget" from content.js perspective for navigation.
+                // Background will detect new page load via tab events.
+                // However, send a success message optimistically.
+                return { type: "response", status: "success", data: { message: `Navigation to ${_params.url} initiated.` } };
+            } catch (e) {
+                console.error(`CONTENT.JS: Error during navigation to ${_params.url}:`, e);
+                return { type: "response", status: "error", error: `Error navigating to ${_params.url}: ${e.message}` };
+            }
+        } else {
+            console.error("CONTENT.JS: Navigate action failed: 'url' is missing in params.");
+            return { type: "response", status: "error", error: "Navigate action: 'url' missing in params." };
         }
+    }
+    // --- END MODIFICATION ---
+
+    console.log(`CONTENT.JS: Comparing actionName ('${actionName}') with 'navigate'. Is equal? ${actionName === "navigate"}`);
+
+    // For actions like 'navigate', element_id is not applicable.
+    // Handle 'navigate' action specifically before trying to resolve an element.
+    // if (actionName === "navigate") {
+
+    // Original logic that assumes element_id for other actions:
+    const elementId = _params.element_id; 
+
+    if (!elementId && actionName !== 'scroll_page' && actionName !== 'get_text' && actionName !== 'get_attributes' && actionName !== 'done' && actionName !== 'navigate_to_url') { // Added 'done' and 'navigate_to_url'
+        console.error("CONTENT.JS: Action execution failed: element_id is missing in params for action:", actionName, _params);
+        return { type: "response", status: "error", error: `Element ID missing for action '${actionName}'.` };
     }
     
     try {
         let element = null;
         // Some actions operate on the window or don't need a specific element
-        if (action !== 'scroll_window' && action !== 'navigate_to_url' && params.element_id) {
-            element = resolveElementById(params.element_id);
+        if (actionName !== 'scroll_window' && actionName !== 'navigate_to_url' && elementId) {
+            element = resolveElementById(elementId);
             if (!element) {
-                return { status: "error", error: `Element with ID '${params.element_id}' not found or no longer exists.` };
+                return { status: "error", error: `Element with ID '${elementId}' not found or no longer exists.` };
             }
              // Ensure element is visible and interactable before acting (unless action is like 'get_text')
-            if (!isElementVisible(element) && !['get_text', 'get_attributes', 'scroll_element'].includes(action)) {
-                 console.warn(`Action '${action}' on non-visible element ID '${params.element_id}'. Proceeding cautiously.`);
-                 // return { status: "error", error: `Element with ID '${params.element_id}' is not visible.` };
+            if (!isElementVisible(element) && !['get_text', 'get_attributes', 'scroll_element'].includes(actionName)) {
+                 console.warn(`Action '${actionName}' on non-visible element ID '${elementId}'. Proceeding cautiously.`);
+                 // return { status: "error", error: `Element with ID '${elementId}' is not visible.` };
             }
         }
 
         let result;
         // Generalized action names (removed "_by_index" convention)
-        switch (action) {
+        switch (actionName) {
             case 'click':
-                result = await executeClick(element, params); // Made async for potential waits
+                result = await executeClick(element, _params); // Made async for potential waits
                 break;
             case 'input_text':
-                result = executeInputText(element, params);
+                result = executeInputText(element, _params);
                 break;
             case 'clear':
-                result = executeClear(element, params);
+                result = executeClear(element, _params);
                 break;
             case 'select_option':
-                result = executeSelectOption(element, params);
+                result = executeSelectOption(element, _params);
                 break;
             case 'scroll_element': // For scrolling a specific element
-                result = executeScroll(element, params);
+                result = executeScroll(element, _params);
                 break;
             case 'scroll_window': // For scrolling the main window
-                result = executeScroll(window, params); // Pass window as target
+                result = executeScroll(window, _params); // Pass window as target
                 break;
             case 'hover':
-                result = executeHover(element, params);
+                result = executeHover(element, _params);
                 break;
             case 'check':
             case 'uncheck':
-                result = executeCheckbox(element, params, action === 'check');
+                result = executeCheckbox(element, _params, actionName === 'check');
                 break;
             case 'navigate': // Assumes element is a link, action navigates by clicking it
-                result = executeNavigateByClick(element, params);
+                result = executeNavigateByClick(element, _params);
                 break;
             case 'navigate_to_url': // New action for direct navigation
-                result = executeNavigateToUrl(params);
+                result = executeNavigateToUrl(_params);
                 break;
             case 'focus':
-                result = executeFocus(element, params);
+                result = executeFocus(element, _params);
                 break;
             case 'blur':
-                result = executeBlur(element, params);
+                result = executeBlur(element, _params);
                 break;
             case 'get_text':
-                result = executeGetText(element, params);
+                result = executeGetText(element, _params);
                 break;
             case 'get_attributes':
-                result = executeGetAttributes(element, params);
+                result = executeGetAttributes(element, _params);
+                break;
+            case 'done': // ADDED CASE for 'done' action
+                console.log("CONTENT.JS: Received 'done' action. Params:", _params);
+                // 'done' action primarily signals completion to the agent.
+                // Content script just needs to acknowledge receipt.
+                result = { success: true, message: "'done' action received by content script." };
                 break;
             // TODO: Add cases for 'upload_file' if needed (complex, involves file inputs)
             default:
-                return { status: "error", error: `Unknown action: ${action}` };
+                return { status: "error", error: `Unknown action: ${actionName}` };
         }
-        return { status: "success", result: result }; // Consistent success response structure
+        // return { status: "success", result: result }; // Old return structure
+        
+        // NEW RETURN STRUCTURE: Match background.js expectation
+        return {
+            type: "response",
+            status: "success",
+            data: result // Place the actual action result object under the 'data' key
+        }; 
+
     } catch (error) {
-        console.error(`Error executing action '${action}' for requestId ${requestId}:`, error);
-        return { status: "error", error: error.message, details: error.stack };
+        console.error(`Error executing action '${actionName}' for requestId ${requestId}:`, error);
+        // Also update error response structure
+        return {
+            type: "response", // Add type to error responses too
+            status: "error",
+            error: error.message, 
+            details: error.stack // Keep details for debugging
+        }; 
     }
 }
 
@@ -1092,7 +1099,7 @@ function executeScroll(scrollTarget, params) {
     }
 }
 
-function executeHover(element, params) {
+function executeHover(element, _params) {
      if (!element || typeof element.dispatchEvent !== 'function') {
         return { success: false, error: 'Element is not valid or cannot dispatch events.' };
     }
@@ -1110,7 +1117,7 @@ function executeHover(element, params) {
     }
 }
 
-function executeCheckbox(element, params, shouldCheck) {
+function executeCheckbox(element, _params, shouldCheck) {
     if (!element || element.tagName.toLowerCase() !== 'input' || (element.type !== 'checkbox' && element.type !== 'radio') || element.disabled) {
         return { success: false, error: 'Element is not a non-disabled checkbox/radio or not found.' };
     }
@@ -1237,24 +1244,22 @@ function executeGetAttributes(element, params) {
  * This is crucial for the two-way handshake to prevent errors when the background script
  * tries to message a content script that hasn't fully initialized its listeners.
  */
-async function signalReadyToBackground() {
-    // This function seems to be a leftover or an alternative implementation attempt.
-    // The PERPLEXITY_OUTPUT.md details a `signalContentScriptReady` function, which has been implemented above.
-    // To avoid conflicts and align with the plan, this function will be commented out or removed.
-    /*
-    console.log("content.js: Attempting to send content_script_ready message (from signalReadyToBackground).");
-    try {
-        const response = await chrome.runtime.sendMessage({ type: "content_script_ready" });
-        // console.log("content.js: Background acked content_script_ready:", response);
-    } catch (error) {
-        if (error.message.includes("Receiving end does not exist")) {
-            console.warn("content.js: Background script not ready yet for content_script_ready signal. This might be okay if background initializes slower.");
-        } else {
-            console.error('content.js: Error sending content_script_ready (from signalReadyToBackground):', error.message);
-        }
-    }
-    */
-}
+// This function seems to be a leftover or an alternative implementation attempt.
+// The PERPLEXITY_OUTPUT.md details a `signalContentScriptReady` function, which has been implemented above.
+// To avoid conflicts and align with the plan, this function will be commented out or removed.
+/*
+ console.log("content.js: Attempting to send content_script_ready message (from signalReadyToBackground).");
+ try {
+     const response = await chrome.runtime.sendMessage({ type: "content_script_ready" });
+     // console.log("content.js: Background acked content_script_ready:", response);
+ } catch (error) {
+     if (error.message.includes("Receiving end does not exist")) {
+         console.warn("content.js: Background script not ready yet for content_script_ready signal. This might be okay if background initializes slower.");
+     } else {
+         console.error('content.js: Error sending content_script_ready (from signalReadyToBackground):', error.message);
+     }
+ }
+ */
 
 // ADDED CODE based on PERPLEXITY_OUTPUT.md
 // Start initialization when DOM is ready
@@ -1268,7 +1273,7 @@ if (document.readyState === 'loading') {
 window.addEventListener('beforeunload', function() {
     console.log('Content script cleaning up...');
     // Resetting ready state. If the script is re-injected on a new page, it will re-initialize.
-    isContentScriptReady = false; 
+    // isContentScriptReady = false; 
     // It's also good practice to remove the listener if the script instance is truly being destroyed
     // and not just for a page navigation where it might be re-used or re-injected.
     // However, typical content script lifecycle means it's unloaded with the page.

@@ -1,8 +1,7 @@
 # This file makes the message_manager directory a Python package. 
 
-from .service import Message, MessageManager
+from .service import MessageManager
 
 __all__ = [
-    "Message",
     "MessageManager",
 ] 
