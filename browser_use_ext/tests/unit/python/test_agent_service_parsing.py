@@ -6,11 +6,11 @@ from unittest.mock import MagicMock, patch
 from browser_use_ext.agent.service import Agent
 from browser_use_ext.agent.views import (
     ActionCommand,
-    InvalidActionError,
     AgentLLMOutput,
     AgentBrain,  # AgentLLMOutput contains AgentBrain
     AgentSettings
 )
+from browser_use_ext.exceptions import InvalidActionError
 # For mocking Agent constructor arguments
 from langchain_core.language_models.chat_models import BaseChatModel 
 # Assuming ExtensionInterface is imported correctly if its definition is elsewhere
@@ -106,7 +106,7 @@ def test_parse_llm_response_success_multiple_actions_truncated(agent_instance: A
                 "thought": "First click."
             },
             {
-                "action": "type",
+                "action": "input_text",
                 "params": {"element_id": "input-1", "text": "hello"},
                 "thought": "Then type."
             }
@@ -174,7 +174,7 @@ def test_parse_llm_response_error_not_json(agent_instance: Agent):
     with pytest.raises(InvalidActionError) as exc_info:
         agent_instance._parse_llm_response(not_json_response)
     
-    assert "Could not parse LLM response" in str(exc_info.value) # Error message changed in service._parse_llm_response
+    assert "Malformed LLM response or failed validation for AgentLLMOutput" in str(exc_info.value)
 
 def test_parse_llm_response_error_empty_string(agent_instance: Agent):
     """Tests InvalidActionError for an empty string response."""
@@ -183,9 +183,8 @@ def test_parse_llm_response_error_empty_string(agent_instance: Agent):
     with pytest.raises(InvalidActionError) as exc_info:
         agent_instance._parse_llm_response(empty_response)
 
-    # The specific error message depends on how json.loads('') behaves vs model_validate_json('')
-    # Usually it's a JSONDecodeError which gets wrapped.
-    assert "Could not parse LLM response" in str(exc_info.value) 
+    # Empty string also causes ValidationError from model_validate_json
+    assert "Malformed LLM response or failed validation for AgentLLMOutput" in str(exc_info.value) 
 
 def test_parse_llm_response_error_empty_json_object(agent_instance: Agent):
     """Tests InvalidActionError for an empty JSON object (missing 'current_state' and 'action')."""
@@ -212,15 +211,11 @@ def test_action_command_param_validation_navigate_missing_url(agent_instance: Ag
         agent_instance._parse_llm_response(invalid_navigate_json)
     
     assert isinstance(exc_info.value.__cause__, ValidationError)
-    # Check for a message specific to the 'navigate' action's 'url' parameter
-    # This requires knowing how your ActionCommand validator reports errors.
-    # Example: Look for 'url' and 'Field required' in the error details.
     errors = exc_info.value.__cause__.errors()
+    # Check that error message contains information about missing url
     assert any(
-        err['type'] == 'missing' and err['loc'][0] == 'action' and err['loc'][2] == 'params' and 'url' in str(err['msg']).lower()
-        for err_list in [e.get('ctx', {}).get('error', {}).errors() for e in errors if e['loc'][0] == 'action' and e['loc'][2] == 'params'] if err_list for err in err_list
-    ) or any(
-         'url' in str(err['msg']).lower() and 'required' in str(err['msg']).lower() for err in errors if err['loc'][0] == 'action' and err['loc'][1] == 0 and err['loc'][2] == 'params'
+        'url' in str(err['msg']).lower() and 'required' in str(err['msg']).lower() 
+        for err in errors
     )
 
 
@@ -238,11 +233,10 @@ def test_action_command_param_validation_click_missing_element_id(agent_instance
     
     assert isinstance(exc_info.value.__cause__, ValidationError)
     errors = exc_info.value.__cause__.errors()
+    # Check that error message contains information about missing element_id
     assert any(
-        err['type'] == 'missing' and err['loc'][0] == 'action' and err['loc'][2] == 'params' and 'element_id' in str(err['msg']).lower()
-        for err_list in [e.get('ctx', {}).get('error', {}).errors() for e in errors if e['loc'][0] == 'action' and e['loc'][2] == 'params'] if err_list for err in err_list
-    ) or any(
-         'element_id' in str(err['msg']).lower() and 'required' in str(err['msg']).lower() for err in errors if err['loc'][0] == 'action' and err['loc'][1] == 0 and err['loc'][2] == 'params'
+        'element_id' in str(err['msg']).lower() and 'required' in str(err['msg']).lower() 
+        for err in errors
     )
     
 

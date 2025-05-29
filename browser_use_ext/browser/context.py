@@ -127,7 +127,7 @@ class BrowserContext:
             # or raises an error (e.g., RuntimeError) on failure.
             browser_state: BrowserState = await self._extension.get_state(
                 for_vision=include_screenshot,
-                # tab_id is handled by ExtensionInterface._active_tab_id internally
+                tab_id=tab_id
             )
             
             # Update caches

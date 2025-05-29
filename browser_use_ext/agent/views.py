@@ -326,10 +326,7 @@ if __name__ == "__main__":
     )
     logger.info(f"Agent Output (Failure): {output_failure.model_dump_json(indent=2)}")
 
-# --- Define InvalidActionError and ActionCommand here ---
-class InvalidActionError(Exception):
-    """Custom exception for invalid actions parsed from LLM response."""
-    pass
+# --- Define ActionCommand here ---
 
 # --- Discriminated Union for Action Parameters ---
 ActionParamsUnion = Annotated[
@@ -400,13 +397,13 @@ class ActionCommand(BaseModel):
                 # The agent or interface using ActionCommand would re-parse `params` using the correct model if needed.
                 param_model(**params_data)
             except ValidationError as e:
-                # Raise a more specific error that can be caught by the agent
-                raise InvalidActionError(
+                # Raise ValueError which Pydantic will convert to ValidationError
+                raise ValueError(
                     f"Invalid parameters for action '{action_type}': {e.errors()}"
                 ) from e
         else:
             # This case should ideally be caught by the Literal type on `action` field itself.
-            raise InvalidActionError(f"Unknown action type: {action_type}")
+            raise ValueError(f"Unknown action type: {action_type}")
         return data
 
 # AgentLLMOutput now uses the locally defined ActionCommand

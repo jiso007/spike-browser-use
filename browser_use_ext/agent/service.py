@@ -8,6 +8,7 @@ from typing import Any, List, Optional, Dict, TYPE_CHECKING
 
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, BaseMessage
+from pydantic import ValidationError
 
 if TYPE_CHECKING:
     from browser_use_ext.extension_interface.service import ExtensionInterface
@@ -140,6 +141,10 @@ class Agent:
             elif not output.action:
                 logger.warning("LLM did not propose any actions.")
             return output
+        except InvalidActionError as e:
+            # InvalidActionError from the validator should be treated as a validation error
+            logger.error(f"LLM response validation failed for AgentLLMOutput: {e}")
+            raise InvalidActionError(f"Malformed LLM response or failed validation for AgentLLMOutput: {e}") from e
         except ValidationError as e:
             logger.error(f"LLM response validation failed for AgentLLMOutput: {e.errors(include_url=False)}")
             raise InvalidActionError(f"Malformed LLM response or failed validation for AgentLLMOutput: {e}") from e

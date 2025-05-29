@@ -68,7 +68,7 @@ class TestMockLLM:
             action_command = parsed_output.action[0]
             assert action_command.action == "done", "Fallback action should be 'done'."
             assert action_command.params["success"] is False, "Fallback 'done' action should indicate failure."
-            assert "Fallback: No more mock responses" in action_command.params["message"], \
+            assert "Fallback: No more mock LLM responses" in action_command.params["message"], \
                 "Fallback message not found in params."
         except Exception as e:
             pytest.fail(f"Fallback content could not be parsed as AgentLLMOutput or content is incorrect: {e}\nContent: {fallback_content_str}")

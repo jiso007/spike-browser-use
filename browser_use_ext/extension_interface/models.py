@@ -131,6 +131,7 @@ class ResponseData(BaseModel):
     active_tab_id: Optional[int] = Field(default=None) # Matches BrowserState.active_tab_id
     viewport_size: Optional[Dict[str, int]] = Field(default=None) # Matches BrowserState.viewport_size
     scroll_position: Optional[Dict[str, int]] = Field(default=None) # Matches BrowserState.scroll_position
+    pixels_above: Optional[int] = Field(default=None) # Matches BrowserState.pixels_above
     pixels_below: Optional[int] = Field(default=None) # Matches BrowserState.pixels_below
     screenshot: Optional[str] = Field(default=None) # Matches BrowserState.screenshot
     

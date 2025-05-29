@@ -131,6 +131,8 @@ class MessageManager:
     def add_user_message(self, content: Union[str, List[Dict[str, Any]]], message_type: str = "user_turn") -> None:
         """Adds a standard user message (browser state, task follow-up, etc.) to history."""
         # content can be a string or a list for multimodal messages (text + image_url)
+        if isinstance(content, str) and not content:
+            logger.warning("Attempted to add message with empty content")
         self._add_message_to_history(HumanMessage(content=content), message_type=message_type)
 
     def add_ai_response(self, agent_llm_output: AgentLLMOutput, message_type: str = "ai_response") -> None:

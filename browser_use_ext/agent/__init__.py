@@ -43,7 +43,6 @@ from .views import (
     AgentHistory,
     AgentLLMOutput,
     ActionCommand, # ActionCommand is here
-    InvalidActionError, # InvalidActionError is here
     ActionResult,
     StepMetadata,
     AgentError,
@@ -51,6 +50,7 @@ from .views import (
     AgentOutput,
     AgentThought
 )
+from ..exceptions import InvalidActionError  # Import from exceptions instead
 from .message_manager import MessageManager
 from .service import Agent # Import Agent from .service
 

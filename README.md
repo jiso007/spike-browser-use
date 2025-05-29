@@ -171,63 +171,6 @@ To learn more about the library, check out the [local setup 📕](https://docs.b
 
 `main` is the primary development branch with frequent changes. For production use, install a stable [versioned release](https://github.com/browser-use/browser-use/releases) instead.
 
-## Browser Interaction Sub-system (`browser_use_ext`)
-
-This section is for developers working with or contributing to the core browser interaction capabilities of `browser-use`. It details how to run the underlying Python WebSocket server and the accompanying Chrome extension, which together enable direct browser control and detailed state extraction.
-
-This system is responsible for fetching the `BrowserState` from active web pages, which includes the DOM structure, tab information, page metadata, and more.
-
-### Components
-
-1.  **Python WebSocket Server:**
-    *   Located at: `browser_use_ext/extension_interface/service.py`
-    *   Handles communication with the Chrome extension, processes requests for browser actions, and receives browser state data.
-2.  **Chrome Extension:**
-    *   Located at: `browser_use_ext/extension/`
-    *   Injects content scripts into web pages to extract data and perform actions.
-    *   Communicates with the Python WebSocket server.
-
-### Setup and Running
-
-**1. Python WebSocket Server:**
-
-*   **Prerequisites:** Ensure you have Python (>=3.11 recommended) and the necessary dependencies installed (e.g., `websockets`, `pydantic`). If you've followed the main project's local setup, these should be covered.
-*   **Running:**
-    Navigate to the root directory of the `browser-use` project in your terminal and run:
-    ```bash
-    python -m browser_use_ext.extension_interface.service
-    ```
-    The server will start and listen on `ws://localhost:8765` by default. You should see log output in your console indicating it's running.
-
-**2. Chrome Extension:**
-
-*   **Loading the Extension:**
-    1.  Open Google Chrome.
-    2.  Navigate to `chrome://extensions/`.
-    3.  Ensure "Developer mode" (usually a toggle in the top-right corner) is **enabled**.
-    4.  Click the "Load unpacked" button.
-    5.  In the file dialog, select the `browser_use_ext/extension` directory from this project.
-*   The extension should now appear in your list of extensions and automatically attempt to connect to the Python WebSocket server. You can check its background console for connection status (Right-click extension icon -> Inspect popup (if any) or look for "Service worker" link on `chrome://extensions/` details page).
-
-### Automatic Browser State Logging
-
-Once both the Python server is running and the Chrome extension is loaded and connected:
-
-*   **Trigger:** Every time a web page fully loads in your browser (or you switch to an already loaded tab), the extension will notify the Python server.
-*   **Action:** The Python server will then request the complete current `BrowserState` from that tab.
-*   **Output:** This `BrowserState` (including the DOM tree, URL, title, open tabs, etc.) is saved as a JSON file.
-    *   **Location:** These JSON files are stored in a directory named `browser_states_json_logs/` which will be created at the root of your project (where you ran the Python server).
-    *   **Filename Convention:** Files are named dynamically to ensure uniqueness, following a pattern like: `browser_state_tab<TAB_ID>_<SANITIZED_URL>_<TIMESTAMP>.json`. For example: `browser_state_tab123_google_com_search_q_example_20231105_153000_123.json`.
-
-**Purpose of these JSON State Logs:**
-
-These detailed JSON logs are invaluable for:
-*   Debugging issues related to browser interaction and control.
-*   Understanding the precise structure and content of the data available from web pages.
-*   Developing and testing new features that rely on browser state information.
-*   Analyzing how web pages are perceived by the system.
-
----
 
 ## Swag
 
@@ -265,3 +208,4 @@ After installing dependencies from `requirements.txt`, you must also install the
 ```bash
 playwright install chromium
 ```
+

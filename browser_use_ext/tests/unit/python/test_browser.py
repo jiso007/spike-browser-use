@@ -35,8 +35,8 @@ def mock_extension_interface_instance():
 @pytest.fixture
 def patched_extension_interface_cls(mock_extension_interface_instance: AsyncMock):
     """Patches the ExtensionInterface class to return a specific mock instance."""
-    # Patch where ExtensionInterface is IMPORTED by the Browser class
-    with patch("browser_use_ext.browser.browser.ExtensionInterface", return_value=mock_extension_interface_instance, autospec=True) as mock_cls:
+    # Patch where ExtensionInterface is actually located, not where it's imported
+    with patch("browser_use_ext.extension_interface.service.ExtensionInterface", return_value=mock_extension_interface_instance, autospec=True) as mock_cls:
         yield mock_cls # Yield the mock class itself for assertions on constructor calls
 
 
@@ -152,8 +152,8 @@ async def test_browser_close_when_not_launched(browser_config: BrowserConfig, mo
     # The mock_extension_interface_instance passed as arg isn't automatically browser's _extension_interface here without launch & patching.
     # So, we check the one Browser itself creates.
     
-    # To be robust, let's patch just for this test to control the instance
-    with patch("browser_use_ext.browser.browser.ExtensionInterface", return_value=mock_extension_interface_instance) as temp_mock_cls:
+    # Patch ExtensionInterface where it's imported inside Browser.__init__
+    with patch("browser_use_ext.extension_interface.service.ExtensionInterface", return_value=mock_extension_interface_instance):
         fresh_browser = Browser(config=browser_config)
         assert not fresh_browser.is_launched
         assert fresh_browser._extension_interface == mock_extension_interface_instance
