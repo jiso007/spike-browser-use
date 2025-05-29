@@ -171,7 +171,7 @@ class ExtensionInterface:
             logger.debug(f"Request {request_id} sent.")
 
             # Wait for the response with a timeout
-            actual_timeout = timeout_seconds if timeout_seconds is not None else DEFAULT_REQUEST_TIMEOUT
+            actual_timeout = DEFAULT_REQUEST_TIMEOUT
             logger.debug(f"Waiting for response {request_id} with timeout {actual_timeout}s")
             # asyncio.wait_for raises TimeoutError if timeout occurs
             response_data_obj = await asyncio.wait_for(future, timeout=actual_timeout)
@@ -362,6 +362,9 @@ class ExtensionInterface:
                         break
                     # _process_message expects client_id and the raw message_json (which should be a string here)
                     await self._process_message(client_id, message_json_str) 
+                except websockets.exceptions.ConnectionClosedOK:
+                    # Re-raise to be handled by outer exception handler for proper "graceful disconnect" logging
+                    raise
                 except websockets.exceptions.ConnectionClosedError as e: # Catch specific closure errors here
                     logger.info(f"Connection closed for client {client_id} during recv: {e.code} {e.reason}")
                     break # Exit the while True loop

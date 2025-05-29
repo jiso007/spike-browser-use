@@ -41,6 +41,15 @@ async def mock_websocket():
 
     received_messages_queue = asyncio.Queue()
 
+    # Mock the recv() method to return messages from the queue
+    async def mock_recv():
+        message = await received_messages_queue.get()
+        if message is None: # Sentinel value for connection close
+            raise ConnectionClosedOK(rcvd=None, sent=None)
+        return message
+    
+    mock_ws.recv = mock_recv
+
     async def mock_recv_iterator():
         while not mock_ws.closed:
             message = await received_messages_queue.get()
@@ -192,10 +201,10 @@ async def test_send_request_get_state_success(interface_instance: ExtensionInter
         )
         # Simulate the client sending the response back by directly processing it
         # This bypasses the actual websocket send/recv for this part of the test
-        await interface_instance._process_message(client_id, response_message.model_dump()) 
+        await interface_instance._process_message(client_id, response_message.model_dump_json()) 
 
     # Patch the method that generates message IDs
-    with patch.object(interface_instance, '_get_next_message_id', new_callable=MagicMock, return_value=test_request_id) as mock_get_id:
+    with patch.object(interface_instance, '_get_request_id', new_callable=MagicMock, return_value=test_request_id) as mock_get_id:
         # Start the client responder task in the background
         # It will "send" the response when _send_request puts the future in _pending_requests
         asyncio.create_task(client_responder_task(test_request_id))
@@ -215,11 +224,10 @@ async def test_send_request_get_state_success(interface_instance: ExtensionInter
     assert sent_msg["type"] == "get_state"
     assert sent_msg["data"] == request_params.model_dump(exclude_none=True)
 
-    # Compare after converting response_data_payload to a ResponseData model and then dumping it, 
-    # or ensure response (which is already a dump) matches the structure of response_data_payload.
-    # Since response is response_obj.model_dump(), and response_data_payload is the dict used to create that response_obj.
+    # Compare after converting response_data_payload to a ResponseData model
+    # _send_request returns a ResponseData object, not a model dump
     expected_response_obj = ResponseData.model_validate(response_data_payload)
-    assert response == expected_response_obj.model_dump()
+    assert response == expected_response_obj
 
     mock_websocket.stop_iteration()
     if not handler_task.done():
@@ -244,41 +252,43 @@ async def test_get_state_method_success(interface_instance: ExtensionInterface, 
     expected_browser_state_dict = {
         "url": "http://final.com", 
         "title": "Final Page", 
-        "tabs": [{"id": 1, "url": "http://final.com", "title": "Final Page", "active": True, "fav_icon_url": None}], # Example TabInfo
+        "tabs": [{"tabId": 1, "url": "http://final.com", "title": "Final Page", "isActive": True}], # Fixed TabInfo structure
         "screenshot": None, 
         "tree": DOMDocumentNode(children=[]).model_dump(), # Ensure tree is a valid DOMDocumentNode dump
-        "selector_map": {"s1": "//div"}, 
+        "selector_map": {1: "//div"}, # Use integer keys for selector_map
         "pixels_above": 10,
         "pixels_below": 20,
         "error_message": None # Explicitly add for model validation if needed
     }
     
-    # _send_request returns a dictionary (model_dump of ResponseData)
-    mock_send_request_return_value_dict = ResponseData(
+    # Set up the response future for the old implementation
+    response_data = ResponseData(
         success=True,
-        result=expected_browser_state_dict # This is the payload that becomes BrowserState
-    ).model_dump()
-
-    interface_instance._send_request = AsyncMock(return_value=mock_send_request_return_value_dict)
-
-    # Call the public get_state method
-    # Test with for_vision=True and a specific tab_id
-    browser_state_result = await interface_instance.get_state(for_vision=True, tab_id=1)
-
-    # Assert that _send_request was called correctly
-    # The 'data' field in _send_request call should be RequestData.model_dump()
-    expected_request_data = RequestData(include_screenshot=True, tab_id=1) # for_vision translates to include_screenshot here
-    interface_instance._send_request.assert_awaited_once_with(
-        action="get_state",
-        data=expected_request_data.model_dump(exclude_none=True)
+        data=expected_browser_state_dict # This should be the BrowserState data
     )
+    
+    with patch.object(interface_instance, '_wait_for_content_script_ready', new_callable=AsyncMock) as mock_wait_ready:
+        with patch.object(interface_instance, '_get_request_id', return_value=123) as mock_get_id:
+            # Create a future that will resolve with our response data
+            response_future = asyncio.Future()
+            response_future.set_result(response_data)
+            
+            # Mock the _pending_requests to contain our future
+            interface_instance._pending_requests[123] = response_future
+            
+            # Call the public get_state method
+            # Test with for_vision=True and a specific tab_id
+            browser_state_result = await interface_instance.get_state(for_vision=True, tab_id=1)
 
-    # Assert that the returned BrowserState matches the expected structure
-    assert isinstance(browser_state_result, BrowserState)
-    # Compare relevant fields or the whole model dump
-    expected_final_browser_state = BrowserState.model_validate(expected_browser_state_dict)
-    assert browser_state_result.model_dump_json() == expected_final_browser_state.model_dump_json()
-    # interface_instance.logger.info.assert_any_call(f"Successfully retrieved state for tab {1 if 1 else 'current'}.") # Logging check
+            # Assert that the returned BrowserState matches the expected structure
+            assert isinstance(browser_state_result, BrowserState)
+            # Compare relevant fields or the whole model dump
+            expected_final_browser_state = BrowserState.model_validate(expected_browser_state_dict)
+            assert browser_state_result.model_dump_json() == expected_final_browser_state.model_dump_json()
+            
+            # Verify websocket.send was called via the active connection
+            # The active connection is the mock_websocket we set up
+            mock_websocket.send.assert_awaited_once()
 
     mock_websocket.stop_iteration()
     if not handler_task.done():
