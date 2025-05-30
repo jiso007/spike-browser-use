@@ -444,7 +444,6 @@ async def test_process_message_unknown_type(mock_interface: AsyncMock, caplog):
     assert iface._pending_requests == {}
 
 
-@pytest.mark.skip(reason="ExtensionInterface doesn't have _remove_client method")
 @pytest.mark.asyncio
 async def test_remove_client_clears_active(interface: ExtensionInterface):
     """Test that removing the active client clears the active_connection_object and ID."""
@@ -463,15 +462,9 @@ async def test_remove_client_clears_active(interface: ExtensionInterface):
 
     # Manually add the mock client to the interface's internal state.
     # This bypasses the real connection handling but allows testing _remove_client logic.
-    interface._connections[client_id] = ConnectionInfo(client_id=client_id, websocket=mock_websocket, handler_task=asyncio.current_task())
-    interface._active_connection_id = client_id
-    interface.active_connection_object = mock_websocket # Should ideally be the websocket object itself
-    # Note: The real _handle_connection creates a ConnectionInfo object wrapping the websocket.
-    # Let's create a realistic mock ConnectionInfo.
     mock_conn_info = ConnectionInfo(client_id=client_id, websocket=mock_websocket, handler_task=asyncio.current_task())
     interface._connections[client_id] = mock_conn_info
     interface._active_connection_id = client_id
-    interface.active_connection_object = mock_conn_info # Store the ConnectionInfo object
 
 
     assert len(interface._connections) > 0
@@ -493,7 +486,7 @@ async def test_remove_client_clears_active(interface: ExtensionInterface):
         assert interface.active_connection_object is None
 
         # Assert the correct log message was called
-        mock_logger.info.assert_any_call(f'Removed client {client_id} from connections.')
+        mock_logger.info.assert_any_call(f'Removed client {client_id} from active connections.')
         mock_logger.info.assert_any_call(f'Cleared active connection (was {client_id}).')
         # The original test asserted for a different message. Correcting based on service.py logs.
         # The log for graceful disconnection happens within _handle_connection, not _remove_client.
@@ -715,7 +708,6 @@ async def test_send_request_success_mocked_dependencies():
 
 # Fixing the assertion string in test_remove_client_clears_active.
 
-@pytest.mark.skip(reason="ExtensionInterface doesn't have _remove_client method")
 @pytest.mark.asyncio
 async def test_remove_client_clears_active_fixed_assertion(interface: ExtensionInterface):
     """Test that removing the active client clears the active_connection_object and ID (fixed assertions)."""
@@ -731,7 +723,6 @@ async def test_remove_client_clears_active_fixed_assertion(interface: ExtensionI
     # Manually add and set as active
     interface._connections[client_id] = mock_conn_info
     interface._active_connection_id = client_id
-    interface.active_connection_object = mock_conn_info
 
     initial_connections_count = len(interface._connections) # Should be 1 after adding mock
 
@@ -754,7 +745,7 @@ async def test_remove_client_clears_active_fixed_assertion(interface: ExtensionI
 
         # Assert the correct log messages were called
         # Correcting the expected log string based on service.py code
-        mock_logger.info.assert_any_call(f'Removed client {client_id} from connections.')
+        mock_logger.info.assert_any_call(f'Removed client {client_id} from active connections.')
         mock_logger.info.assert_any_call(f'Cleared active connection (was {client_id}).')
 
 # Test for ResponseData error scenario in test_models.py

@@ -304,16 +304,21 @@ class ExtensionInterface:
         except Exception as e:
             logger.error(f"Unexpected error in connection handler for {client_id}: {e}", exc_info=True)
         finally:
-            if client_id in self._connections:
-                del self._connections[client_id]
-                logger.info(f"Removed client {client_id} from active connections.")
-            if self._active_connection_id == client_id:
-                self._active_connection_id = None
-                logger.info(f"Cleared active connection (was {client_id}).")
-                if self._connections:
-                    new_active_id = next(iter(self._connections.keys()))
-                    self._active_connection_id = new_active_id
-                    logger.info(f"Set new active connection to: {new_active_id}")
+            await self._remove_client(client_id)
+
+    async def _remove_client(self, client_id: str) -> None:
+        """Remove a client and update active connection state."""
+        if client_id in self._connections:
+            del self._connections[client_id]
+            logger.info(f"Removed client {client_id} from active connections.")
+        
+        if self._active_connection_id == client_id:
+            self._active_connection_id = None
+            logger.info(f"Cleared active connection (was {client_id}).")
+            if self._connections:
+                new_active_id = next(iter(self._connections.keys()))
+                self._active_connection_id = new_active_id
+                logger.info(f"Set new active connection to: {new_active_id}")
 
     async def _process_message(self, client_id: str, message_json_str: str) -> None:
         """Processes a deserialized message received from a client."""
