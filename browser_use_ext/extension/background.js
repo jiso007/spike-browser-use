@@ -263,14 +263,10 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
       sendPageFullyLoadedAndReadyEventToPython(tabId, tab.url, tab.title, "tab_updated_complete");
 
       if (tabId === activeTabId) {
-        console.log(`Active tab ${activeTabId} just completed loading ${tab.url}. Invalidating previous content script readiness for this tabId.`);
-        // Explicitly remove the tabId from the set. The new page's content script MUST send a new 'content_script_ready'.
-        if (contentScriptsReady.has(tabId)) {
-          contentScriptsReady.delete(tabId);
-          console.log(`TabId ${tabId} removed from contentScriptsReady due to navigation. Awaiting new signal from ${tab.url}.`);
-        } else {
-          console.log(`TabId ${tabId} was not in contentScriptsReady. New page ${tab.url} will need to send its signal.`);
-        }
+        console.log(`Active tab ${activeTabId} just completed loading ${tab.url}.`);
+        // Don't clear content script ready status here - let the content script manage its own lifecycle
+        // The content script will send a ready signal when it's actually ready
+        console.log(`TabId ${tabId} page load complete. Content script should signal when ready.`);
       }
     }
 
@@ -846,6 +842,8 @@ async function handleServerMessage(message) {
                     // Navigate directly using Chrome API instead of content script
                     try {
                         await chrome.tabs.update(activeTabId, { url: subActionParams.url });
+                        console.log(`Navigation initiated for blank tab ${activeTabId} to ${subActionParams.url}`);
+                        
                         sendDataToServer({
                             type: "response",
                             id: requestId,
