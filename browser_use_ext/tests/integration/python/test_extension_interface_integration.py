@@ -628,7 +628,8 @@ async def test_get_state_method_success_mocked_wait(mock_interface: AsyncMock):
         action="get_state",
         data={
             "action": "get_state",
-            "params": {"for_vision": False}
+            "params": {"for_vision": False},
+            "tabId": 1  # FIXED: Now expects tabId to be included
         },
         timeout=DEFAULT_REQUEST_TIMEOUT # Check if timeout is passed
     )

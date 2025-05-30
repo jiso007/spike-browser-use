@@ -297,3 +297,103 @@ cd /path/to/project/root
 - **browser_use_ext/README.md** - Extension system documentation
 - **README.md** - Main project documentation
 - **PROJECT_DOCS/test_rules.md** - Comprehensive testing guidelines
+
+## E2E Test Goals & Learnings Summary
+
+### Core Testing Philosophy
+**Use Chrome Extension for ALL browser interactions - NO Playwright navigation**
+
+### Key Goals Achieved
+
+1. **Launch Chrome with Playwright WITHOUT navigating**
+   - Playwright only creates the browser instance and blank tab
+   - Do NOT use `page.goto()` or any Playwright navigation methods
+   - The extension is the source of truth for all browser state
+
+2. **Accept and work with blank tabs (`about:blank`)**
+   - Modified extension's tab scoring to accept blank tabs
+   - Added special handling in background.js for navigating blank tabs via `chrome.tabs.update`
+   - Skip content script readiness checks for navigation actions in Python interface
+
+3. **Navigate using Chrome Extension DOM injection**
+   - All navigation happens through `extension_interface.execute_action("navigate", {"url": "..."})`
+   - For blank tabs, use direct Chrome API (`chrome.tabs.update`) instead of content script
+   - Navigation is successful even if Playwright page object doesn't update
+
+4. **Retrieve browser state through extension messaging**
+   - State comes from content script → background.js → Python via WebSocket
+   - Console logs from Playwright are nice-to-have but NOT required
+   - The extension's ability to get state proves content script injection worked
+
+### Technical Fixes Applied
+
+1. **Extension Changes:**
+   ```javascript
+   // Accept blank tabs in scoring
+   if (tab.url === "about:blank" || tab.url === "chrome://newtab/" || !tab.url) {
+       score += 5;  // Small positive score for blank tabs
+       factors.push("blank_tab");
+   }
+   
+   // Direct navigation for blank tabs
+   if (tab.url === "about:blank" || tab.url === "chrome://newtab/" || !tab.url) {
+       await chrome.tabs.update(activeTabId, { url: subActionParams.url });
+   }
+   
+   // Don't clear content script ready status on page load complete
+   // (Fixed race condition)
+   ```
+
+2. **Python Interface Changes:**
+   ```python
+   # Skip content script check for navigate actions
+   if action_name != "navigate":
+       # ... wait for content script ready
+   ```
+
+3. **Test Pattern:**
+   ```python
+   # 1. Setup console logging (optional - won't work after extension navigation)
+   # 2. Wait for extension to detect active tab
+   # 3. Navigate using extension
+   # 4. Wait for content script injection
+   # 5. Get state through extension (proves everything works)
+   ```
+
+### Important Learnings
+
+1. **Playwright limitations with extension navigation:**
+   - Playwright page object stays on `about:blank` when extension navigates
+   - Console logs can't be captured after extension navigation
+   - This is OK - the extension is the source of truth
+
+2. **Race conditions to watch for:**
+   - Content script sends ready signal
+   - Page load complete event might clear ready status
+   - Solution: Don't clear ready status on page load
+
+3. **Success criteria:**
+   - Navigation returns success
+   - Extension can get state (URL, title, actionable elements)
+   - This proves content script injected and is working
+
+### Test Implementation Template
+```python
+# 1. Wait for active tab (might be blank)
+await extension_interface.wait_for_active_tab(timeout_seconds=5.0)
+
+# 2. Navigate using extension (NOT Playwright)
+nav_result = await extension_interface.execute_action("navigate", {"url": "https://example.com"})
+assert nav_result.get("success"), "Navigation should succeed"
+
+# 3. Wait for content script
+await asyncio.sleep(5.0)  # Or implement better waiting logic
+
+# 4. Get state to verify everything works
+state = await extension_interface.get_state(for_vision=False)
+assert state.url == "https://example.com/"
+assert len(state.actionable_elements) > 0
+```
+
+### Summary
+**The extension is the browser automation tool, Playwright is just the launcher.** All navigation, state retrieval, and actions go through the Chrome extension's DOM injection capabilities, not Playwright's CDP interface.

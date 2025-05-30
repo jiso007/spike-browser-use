@@ -282,7 +282,8 @@ async def test_get_state_method_unit():
                 action="get_state",
                 data={
                     "action": "get_state", 
-                    "params": {"for_vision": True}
+                    "params": {"for_vision": True},
+                    "tabId": 1  # FIXED: Now expects tabId to be included
                 },
                 timeout=10
             )

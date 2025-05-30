@@ -19,10 +19,11 @@ async def test_debug_content_script_injection(extension_interface: ExtensionInte
         await playwright_browser.new_page()
     page = playwright_browser.pages[0]
     
-    # Start with a simple page
-    logger.info("1. Navigating to example.com...")
-    await page.goto("https://example.com", wait_until="networkidle")
-    await asyncio.sleep(2.0)
+    # Start with a simple page - use extension interface (NOT Playwright)
+    logger.info("1. Navigating to example.com using extension...")
+    nav_result = await extension_interface.execute_action("navigate", {"url": "https://example.com"})
+    logger.info(f"Navigation result: {nav_result}")
+    await asyncio.sleep(3.0)  # Give more time for navigation and content script injection
     
     # Check if content script injected
     marker = await page.evaluate("() => window.__browserUseContentScriptReady || false")
@@ -38,10 +39,11 @@ async def test_debug_content_script_injection(extension_interface: ExtensionInte
     
     page.on('console', handle_console)
     
-    # Navigate to Wikipedia
-    logger.info("3. Navigating to Wikipedia...")
-    await page.goto("https://en.wikipedia.org/wiki/Main_Page", wait_until="networkidle")
-    await asyncio.sleep(3.0)
+    # Navigate to Wikipedia - use extension interface (NOT Playwright)
+    logger.info("3. Navigating to Wikipedia using extension...")
+    nav_result = await extension_interface.execute_action("navigate", {"url": "https://en.wikipedia.org/wiki/Main_Page"})
+    logger.info(f"Navigation result: {nav_result}")
+    await asyncio.sleep(5.0)  # Give more time for navigation and content script injection
     
     # Check if content script injected on Wikipedia
     marker = await page.evaluate("() => window.__browserUseContentScriptReady || false")
