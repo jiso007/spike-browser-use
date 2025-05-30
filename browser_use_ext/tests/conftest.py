@@ -6,6 +6,7 @@
 # This file is intentionally kept simple to avoid import errors. 
 
 import pytest
+import pytest_asyncio
 import asyncio
 import logging
 import os
@@ -44,7 +45,7 @@ def get_extension_path() -> str:
     logger.info(f"Determined extension path: {abs_path}")
     return abs_path
 
-@pytest.fixture(scope="function")
+@pytest_asyncio.fixture(scope="function")
 async def playwright_browser() -> AsyncGenerator[BrowserContext, None]: # Changed Browser to BrowserContext
     """
     Pytest fixture to launch and manage a Playwright browser with the Chrome extension loaded.
@@ -103,7 +104,7 @@ async def playwright_browser() -> AsyncGenerator[BrowserContext, None]: # Change
             await playwright.stop()
             logger.info("Playwright fixture: Playwright stopped.")
 
-@pytest.fixture(scope="function")
+@pytest_asyncio.fixture(scope="function")
 async def extension_interface(playwright_browser: BrowserContext) -> AsyncGenerator[ExtensionInterface, None]: # Added playwright_browser dep
     """
     Pytest fixture to start and stop the ExtensionInterface server for each test function.
@@ -136,8 +137,8 @@ async def extension_interface(playwright_browser: BrowserContext) -> AsyncGenera
         raise # Re-raise the exception to fail the test
     finally:
         logger.info("ExtensionInterface fixture: Stopping server...")
-        if interface and interface._server_task:
-            await interface.stop_server() # Changed from close() to stop_server()
+        if interface:
+            await interface.close()
             logger.info("ExtensionInterface fixture: Server stopped.")
 
 async def wait_for_extension_connection(

@@ -24,6 +24,7 @@ from browser_use_ext.browser.views import BrowserState
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 from langchain_core.outputs import ChatResult, ChatGeneration
+from browser_use_ext.tests.utils.test_mocks import MockLLM
 
 # Basic Logging Setup
 logging.basicConfig(

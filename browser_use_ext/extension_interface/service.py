@@ -106,120 +106,45 @@ class ExtensionInterface:
             return None
 
         logger.debug(f"Sending 'get_state' request for tab ID: {target_tab_id}")
-        request_id = self._get_request_id()
 
-        request_payload = {
-            "type": "request",
-            "id": request_id,
-            "data": {
-                "action": "get_state",
-                "params": {"for_vision": for_vision}
-            }
-        }
-
-        # --- Start: Added Wait for Content Script Ready Logic ---
-        # Check if content script is ready for this tab. If not, wait.
-        logger.debug(f"Checking if content script is ready for tab {target_tab_id} before sending get_state.")
-        # Use the waitForContentScriptReady logic from background.js if we have it, or replicate here.
-        # Since background.js manages the ready state, we should ideally leverage that.
-        # However, our Python interface doesn't directly query background.js ready state.
-        # The content script sends a 'content_script_ready' event to background.js.
-        # The Python interface receives these events and COULD track them.
-        # Let's add tracking in Python ExtensionInterface.
-
-        # For now, as a temporary measure, add a small sleep and rely on the ping/pong handshake
-        # that was added previously, hoping the ping resolves the connection issue.
-        # A better approach is to track ready state via received events.
-
-        # Placeholder for proper ready tracking: 
-        # if not self._is_content_script_ready.get(target_tab_id): # Assuming a dict tracking ready state
-        #     logger.info(f"Content script for tab {target_tab_id} not marked ready. Waiting...")
-        #     # Implement a wait loop with timeout, listening for content_script_ready events for this tab
-        #     await self._wait_for_content_script_ready_event(target_tab_id, timeout_seconds=10)
-
-        # Existing ping/pong helps, but may not guarantee ready status immediately before this specific message.
-        # Let's try a short wait here again, in case the ping is still propagating or the CS is just slow.
-        # This is a band-aid until explicit ready state tracking is implemented in ExtensionInterface.
-        # --- Call the waiting method before sending the request ---
+        # Wait for content script ready before sending request
         try:
-            # Use a reasonable timeout, maybe the request timeout or slightly less
             await self._wait_for_content_script_ready(target_tab_id, timeout_seconds=DEFAULT_REQUEST_TIMEOUT)
         except asyncio.TimeoutError as e:
             logger.error(f"Content script in tab {target_tab_id} not ready before sending get_state: {e}")
-            # Re-raise as a RuntimeError for consistency with other communication errors
             raise RuntimeError(f"Content script in tab {target_tab_id} not ready: {e}") from e
         except Exception as e:
             logger.error(f"Unexpected error while waiting for content script ready for tab {target_tab_id}: {e}", exc_info=True)
             raise RuntimeError(f"Unexpected error waiting for content script ready for tab {target_tab_id}: {e}") from e
-        # --- End: Added Wait for Content Script Ready Logic ---
 
-        # Store the request future
-        future = self._pending_requests[request_id]
-
+        # Use _send_request to handle the request properly
         try:
-            logger.debug(f"Sending request {request_id} to tab {target_tab_id}: get_state")
-            # Use the correct method to send message to a specific tab
-            # Assuming extension_interface has a method like send_message_to_tab
-            # Based on previous code, self.active_connection_object is the websocket connection
-            # and the extension background script handles routing to the correct tab.
-            # So sending via the single websocket connection is correct.
+            response_data_model = await self._send_request(
+                action="get_state",
+                data={
+                    "action": "get_state",
+                    "params": {"for_vision": for_vision}
+                },
+                timeout=DEFAULT_REQUEST_TIMEOUT
+            )
 
-            if self.active_connection_object is None:
-                 raise ConnectionError("WebSocket connection to extension is not active.")
-
-            await self.active_connection_object.websocket.send(json.dumps(request_payload))
-            logger.debug(f"Request {request_id} sent.")
-
-            # Wait for the response with a timeout
-            actual_timeout = DEFAULT_REQUEST_TIMEOUT
-            logger.debug(f"Waiting for response {request_id} with timeout {actual_timeout}s")
-            # asyncio.wait_for raises TimeoutError if timeout occurs
-            response_data_obj = await asyncio.wait_for(future, timeout=actual_timeout)
-            logger.debug(f"Received response for request {request_id}")
-
-            if not response_data_obj.success:
-                error_message = response_data_obj.error or "Unknown error from extension"
-                logger.error(f"Extension error for request ID {request_id}: {error_message}")
-                # Raise a RuntimeError or custom exception to indicate the failure
-                raise RuntimeError(f"Extension error for request ID {request_id}: {error_message}")
+            if not response_data_model:
+                logger.warning("get_state received None response from _send_request")
+                return None
 
             # Parse the received data into a BrowserState model
-            # The response_data_obj.data should contain the state data
-            if response_data_obj.data is None:
-                 logger.warning(f"Received success=true response for request {request_id}, but data field is null.")
-                 return None # Or raise an error if state is mandatory
-                 
-            # Based on previous debugging, the state object is now directly in response_data_obj.data
-            # It should be the JSON representation of BrowserState
-            browser_state_data = response_data_obj.data
-            logger.debug(f"Attempting to parse response data into BrowserState: {browser_state_data}")
-
-            # Ensure the data is a dictionary before trying to validate
-            if not isinstance(browser_state_data, dict):
-                 logger.error(f"Received response data is not a dictionary: {type(browser_state_data)}")
-                 raise RuntimeError(f"Unexpected data format in response for request {request_id}")
-
-            browser_state = BrowserState.model_validate(browser_state_data) # Use model_validate for Pydantic V2+
-            logger.debug(f"Successfully parsed BrowserState for request {request_id}")
+            # response_data_model is already a ResponseData instance
+            browser_state = BrowserState.model_validate(response_data_model.model_dump())
+            logger.debug(f"Successfully parsed BrowserState")
             return browser_state
 
-        except ConnectionError as e:
-             logger.error(f"WebSocket connection error for request ID {request_id}: {e}")
-             raise # Re-raise connection errors
-        except asyncio.TimeoutError:
-            logger.error(f"Timeout waiting for response to request ID {request_id}")
-            raise RuntimeError(f"Timeout waiting for extension response for request ID {request_id}")
         except RuntimeError as e:
              # Catch the RuntimeError raised for extension errors and add context
              logger.error(f"RuntimeError during get_state for tab {target_tab_id}: {e}")
              raise RuntimeError(f"Error getting browser state for tab {target_tab_id}: {e}") from e # Chain the exception
         except Exception as e:
-            logger.error(f"Unexpected error processing get_state request (ID: {request_id}) for tab {target_tab_id}: {e}", exc_info=True)
+            logger.error(f"Unexpected error processing get_state request for tab {target_tab_id}: {e}", exc_info=True)
             raise RuntimeError(f"Unexpected error getting browser state for tab {target_tab_id}: {e}") from e # Chain the exception
-        finally:
-            # Clean up the pending request future regardless of outcome
-            self._pending_requests.pop(request_id, None)
-            logger.debug(f"Cleaned up pending request ID {request_id}.")
 
     async def execute_action(self, action_name: str, params: Dict[str, Any], tab_id: Optional[int] = None, timeout: Optional[float] = None) -> Dict[str, Any]:
         """Sends an action to the extension and waits for a result."""
