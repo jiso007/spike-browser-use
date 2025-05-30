@@ -78,16 +78,25 @@ async def playwright_browser() -> AsyncGenerator[BrowserContext, None]: # Change
             ]
         )
         
-        # Open a new page to ensure there's an active tab for the extension to interact with.
-        # This can sometimes help with extension initialization.
-        if not context.pages:
-            await context.new_page()
+        # Check if we already have a tab from launch_persistent_context
+        logger.info(f"Playwright fixture: Current pages count: {len(context.pages)}")
+        
+        # Use the existing tab if there is one, otherwise create one
+        if context.pages:
+            logger.info("Playwright fixture: Using existing tab")
+            page = context.pages[0]
+        else:
+            logger.info("Playwright fixture: No existing tab, creating one...")
+            page = await context.new_page()
+        
+        logger.info(f"Playwright fixture: Total pages: {len(context.pages)}")
+        logger.info("Playwright fixture: NOT navigating with Playwright - extension will handle navigation via DOM injection")
         
         # It is important to wait for the extension to load and its background script to run.
         # A fixed sleep is not ideal, but often necessary for extensions.
         # A more robust solution would be for the extension to signal readiness.
         logger.info("Playwright fixture: Browser launched, waiting for extension to initialize...")
-        await asyncio.sleep(3.0) # Increased sleep duration for reliability
+        await asyncio.sleep(5.0) # Increased sleep duration for reliability to allow extension to detect active tab
         
         logger.info(f"Playwright fixture: Browser context ready. Pages: {len(context.pages)}")
         yield context # Yield the context

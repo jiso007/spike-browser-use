@@ -166,16 +166,18 @@ class ExtensionInterface:
             return {"success": False, "error": "No target or active tab ID specified for action."}
 
         # --- Call the waiting method before sending the request ---
-        try:
-            # Use a reasonable timeout, potentially action-specific or default
-            wait_timeout = timeout if timeout is not None else DEFAULT_REQUEST_TIMEOUT # Use same timeout for wait? Or separate?
-            await self._wait_for_content_script_ready(target_tab_id, timeout_seconds=wait_timeout)
-        except asyncio.TimeoutError as e:
-            logger.error(f"Content script in tab {target_tab_id} not ready before sending action '{action_name}': {e}")
-            return {"success": False, "error": f"Content script in tab {target_tab_id} not ready before action: {e}"}
-        except Exception as e:
-            logger.error(f"Unexpected error while waiting for content script ready for tab {target_tab_id} before action '{action_name}': {e}", exc_info=True)
-            return {"success": False, "error": f"Unexpected error waiting for content script ready: {e}"}
+        # Skip content script check for navigate actions - the extension will handle blank tabs directly
+        if action_name != "navigate":
+            try:
+                # Use a reasonable timeout, potentially action-specific or default
+                wait_timeout = timeout if timeout is not None else DEFAULT_REQUEST_TIMEOUT # Use same timeout for wait? Or separate?
+                await self._wait_for_content_script_ready(target_tab_id, timeout_seconds=wait_timeout)
+            except asyncio.TimeoutError as e:
+                logger.error(f"Content script in tab {target_tab_id} not ready before sending action '{action_name}': {e}")
+                return {"success": False, "error": f"Content script in tab {target_tab_id} not ready before action: {e}"}
+            except Exception as e:
+                logger.error(f"Unexpected error while waiting for content script ready for tab {target_tab_id} before action '{action_name}': {e}", exc_info=True)
+                return {"success": False, "error": f"Unexpected error waiting for content script ready: {e}"}
 
         request_payload = {
             "action_name": action_name,

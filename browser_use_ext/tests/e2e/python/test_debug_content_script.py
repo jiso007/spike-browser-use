@@ -30,7 +30,13 @@ async def test_debug_content_script_injection(extension_interface: ExtensionInte
     
     # Check console logs
     console_logs = []
-    page.on('console', lambda msg: console_logs.append(f"{msg.type()}: {msg.text()}"))
+    def handle_console(msg):
+        try:
+            console_logs.append(f"{msg.type()}: {msg.text()}")
+        except Exception as e:
+            logger.warning(f"Console handler error: {e}")
+    
+    page.on('console', handle_console)
     
     # Navigate to Wikipedia
     logger.info("3. Navigating to Wikipedia...")

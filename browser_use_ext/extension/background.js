@@ -353,8 +353,14 @@ function calculateTabScore(tab) {
         factors.push("ready");
     } else {
         // No content script = much lower priority
-        score -= 50;
-        factors.push("not_ready");
+        // But for blank tabs, be more lenient since they can't have content scripts
+        if (tab.url === "about:blank" || tab.url === "chrome://newtab/" || !tab.url) {
+            score += 5;  // Small positive score for blank tabs
+            factors.push("blank_tab");
+        } else {
+            score -= 50;
+            factors.push("not_ready");
+        }
     }
 
     // Factor 2: Current active tab in this browser gets bonus
@@ -830,6 +836,33 @@ async function handleServerMessage(message) {
             }
 
             console.log(`Forwarding action '${subActionName}' (ID: ${requestId}) to tab ${activeTabId} as type 'execute_action'`);
+            
+            // Special handling for navigate action on blank tabs
+            if (subActionName === "navigate") {
+                // Check if this is a blank tab
+                const tab = await chrome.tabs.get(activeTabId);
+                if (tab.url === "about:blank" || tab.url === "chrome://newtab/" || !tab.url) {
+                    console.log(`Direct navigation for blank tab ${activeTabId} to ${subActionParams.url}`);
+                    // Navigate directly using Chrome API instead of content script
+                    try {
+                        await chrome.tabs.update(activeTabId, { url: subActionParams.url });
+                        sendDataToServer({
+                            type: "response",
+                            id: requestId,
+                            data: { success: true, message: `Navigated blank tab ${activeTabId} to ${subActionParams.url}` }
+                        });
+                        return;
+                    } catch (error) {
+                        console.error(`Failed to navigate blank tab: ${error.message}`);
+                        sendDataToServer({
+                            type: "response",
+                            id: requestId,
+                            data: { success: false, error: `Failed to navigate blank tab: ${error.message}` }
+                        });
+                        return;
+                    }
+                }
+            }
             
             // Wait for content script to be ready (important for non-navigate actions, and for navigate to ensure the current page's content script receives the command)
             const isReady = await waitForContentScriptReady(activeTabId, CONTENT_SCRIPT_READY_TIMEOUT);

@@ -46,7 +46,7 @@ def test_synchronous_sanity_check():
 
 @pytest.mark.asyncio
 # Add the fixture here
-async def test_agent_run_navigate_and_get_heading(extension_interface: ExtensionInterface):
+async def test_agent_run_navigate_and_get_heading(extension_interface: ExtensionInterface, playwright_browser):
     logger.info("!!! ASYNC TEST LOG: test_agent_run_navigate_and_get_heading IS STARTING (Restoring Full Logic) !!!")
     
     # The interface is now provided by the fixture
