@@ -164,7 +164,7 @@ async def wait_for_extension_connection(
             return False
         await asyncio.sleep(0.25) # Check frequently
     
-    logger.info(f"Extension WebSocket connected: Client ID {interface.active_connection.client_id if interface.active_connection else 'N/A'}")
+    logger.info(f"Extension WebSocket connected: Client ID {interface.active_connection_object.client_id if interface.active_connection_object else 'N/A'}")
     return True
 
 # Minimal conftest.py for the tests directory
