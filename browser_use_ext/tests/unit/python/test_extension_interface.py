@@ -242,66 +242,57 @@ async def test_send_request_get_state_success(interface_instance: ExtensionInter
     # interface_instance.logger.info.assert_any_call(f"Removed client {client_id} from active connections.") # Temporarily commented out due to mock/async issues
     # interface_instance.logger.info.assert_any_call(f"Cleared active connection (was {client_id}).") # Temporarily commented out due to mock/async issues
 
-@pytest.mark.skip(reason="Complex websocket mocking timeout issues")
 @pytest.mark.asyncio
-async def test_get_state_method_success(interface_instance: ExtensionInterface, mock_websocket: AsyncMock):
-    client_id, handler_task = await connect_mock_client(interface_instance, mock_websocket)
-    interface_instance._active_connection_id = client_id # Ensure an active connection
-
-    # This is the dictionary that BrowserState.model_validate will receive
-    # It's the content of ResponseData.result
-    expected_browser_state_dict = {
-        "url": "http://final.com", 
-        "title": "Final Page", 
-        "tabs": [{"tabId": 1, "url": "http://final.com", "title": "Final Page", "isActive": True}], # Fixed TabInfo structure
-        "screenshot": None, 
-        "tree": DOMDocumentNode(children=[]).model_dump(), # Ensure tree is a valid DOMDocumentNode dump
-        "selector_map": {1: "//div"}, # Use integer keys for selector_map
-        "pixels_above": 10,
-        "pixels_below": 20,
-        "error_message": None # Explicitly add for model validation if needed
+async def test_get_state_method_unit():
+    """Unit test: Tests get_state method logic with all dependencies mocked."""
+    # Create a clean ExtensionInterface instance
+    interface = ExtensionInterface(host="localhost", port=8777)
+    interface._active_tab_id = 1  # Set an active tab
+    
+    # Expected BrowserState data
+    expected_state_data = {
+        "url": "http://test.com",
+        "title": "Test Page", 
+        "tabs": [{"tabId": 1, "url": "http://test.com", "title": "Test Page", "isActive": True}],
+        "screenshot": None,
+        "tree": DOMDocumentNode(children=[]).model_dump(),
+        "selector_map": {1: {"xpath": "//div"}},
+        "pixels_above": 0,
+        "pixels_below": 100
     }
     
-    # Set up the response future for the old implementation
-    response_data = ResponseData(
+    # Mock ResponseData that _send_request would return
+    mock_response_data = ResponseData(
         success=True,
-        data=expected_browser_state_dict # This should be the BrowserState data
+        **expected_state_data  # Spread the state data into ResponseData fields
     )
     
-    with patch.object(interface_instance, '_wait_for_content_script_ready', new_callable=AsyncMock) as mock_wait_ready:
-        with patch.object(interface_instance, '_get_request_id', return_value=123) as mock_get_id:
-            # Create a future that will resolve with our response data
-            response_future = asyncio.Future()
-            response_future.set_result(response_data)
+    # Mock all dependencies
+    with patch.object(interface, '_wait_for_content_script_ready', new_callable=AsyncMock) as mock_wait:
+        with patch.object(interface, '_send_request', new_callable=AsyncMock) as mock_send:
+            # Configure mocks
+            mock_send.return_value = mock_response_data
             
-            # Mock the _pending_requests to contain our future
-            interface_instance._pending_requests[123] = response_future
+            # Call the method under test
+            result = await interface.get_state(for_vision=True, tab_id=1)
             
-            # Call the public get_state method
-            # Test with for_vision=True and a specific tab_id
-            browser_state_result = await interface_instance.get_state(for_vision=True, tab_id=1)
-
-            # Assert that the returned BrowserState matches the expected structure
-            assert isinstance(browser_state_result, BrowserState)
-            # Compare relevant fields or the whole model dump
-            expected_final_browser_state = BrowserState.model_validate(expected_browser_state_dict)
-            assert browser_state_result.model_dump_json() == expected_final_browser_state.model_dump_json()
+            # Verify dependencies were called correctly
+            mock_wait.assert_awaited_once_with(1, timeout_seconds=10)
+            mock_send.assert_awaited_once_with(
+                action="get_state",
+                data={
+                    "action": "get_state", 
+                    "params": {"for_vision": True}
+                },
+                timeout=10
+            )
             
-            # Verify websocket.send was called via the active connection
-            # The active connection is the mock_websocket we set up
-            mock_websocket.send.assert_awaited_once()
-
-    mock_websocket.stop_iteration()
-    if not handler_task.done():
-        handler_task.cancel()
-    with pytest.raises(asyncio.CancelledError):
-        await handler_task
-
-    assert client_id not in interface_instance._connections
-    assert interface_instance._active_connection_id is None
-    # interface_instance.logger.info.assert_any_call(f"Client {client_id} disconnected gracefully.") # Temporarily commented out
-    # interface_instance.logger.info.assert_any_call(f"Removed client {client_id} from active connections.") # Temporarily commented out
-    # interface_instance.logger.info.assert_any_call(f"Cleared active connection (was {client_id}).") # Temporarily commented out
+            # Verify result
+            assert isinstance(result, BrowserState)
+            assert result.url == "http://test.com"
+            assert result.title == "Test Page"
+            assert len(result.tabs) == 1
+            assert result.tabs[0].tabId == 1
 
 @pytest.mark.asyncio
 async def test_send_request_timeout(interface_instance: ExtensionInterface, mock_websocket: AsyncMock):

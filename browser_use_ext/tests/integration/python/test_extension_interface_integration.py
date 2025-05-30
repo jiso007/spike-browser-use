@@ -220,7 +220,6 @@ async def test_send_request_method_success():
                 except asyncio.CancelledError: pass
 
 
-@pytest.mark.skip(reason="DOM parsing test has complex type conversion issues")
 @pytest.mark.asyncio
 async def test_get_state_parsing(mock_interface: AsyncMock):
     """Test the parsing of a get_state response, focusing on _parse_element_tree_data."""
@@ -273,10 +272,27 @@ async def test_get_state_parsing(mock_interface: AsyncMock):
     assert isinstance(browser_state.tree, DOMDocumentNode)
     assert browser_state.tree.type == "document"
     assert len(browser_state.tree.children) == 1
-    # The children are stored as dictionaries during parsing, which is fine for this test
+    # The children are properly parsed into DOMElementNode objects
     html_node = browser_state.tree.children[0]
-    assert html_node["tag_name"] == "html"
-    assert html_node["type"] == "element"
+    assert isinstance(html_node, DOMElementNode)
+    assert html_node.tag_name == "html"
+    assert html_node.type == "element"
+    assert len(html_node.children) == 1
+    
+    # Test the nested body element (stored as dict due to DOMNode=Any)
+    body_node = html_node.children[0]
+    assert isinstance(body_node, dict)
+    assert body_node["tag_name"] == "body"
+    assert body_node["type"] == "element"
+    assert len(body_node["children"]) == 1
+    
+    # Test the nested div element (also stored as dict)
+    div_node = body_node["children"][0]
+    assert isinstance(div_node, dict) 
+    assert div_node["tag_name"] == "div"
+    assert div_node["type"] == "element"
+    assert div_node["attributes"]["id"] == "main"
+    assert div_node["text"] == "Hello"
 
     assert browser_state.screenshot == "data:image/png;base64,fakedata"
     # selector_map uses int keys

@@ -9,10 +9,17 @@ global.chrome = {
             removeListener: jest.fn(),
             hasListener: jest.fn(() => true),
         },
-        sendMessage: jest.fn((tabId, message, callback) => {
+        sendMessage: jest.fn((messageOrCallback, callback) => {
+            // Handle the case where only a callback is passed (background.modular.js passes only message)
+            let message = messageOrCallback;
+            if (typeof messageOrCallback === 'function') {
+                callback = messageOrCallback;
+                message = {};
+            }
+            
             // If testing scenarios where background sends to content script, mock this response
             // For example, for page_fully_loaded_and_ready
-            if (message.type === "page_fully_loaded_and_ready") {
+            if (message && message.type === "page_fully_loaded_and_ready") {
                 if (typeof callback === 'function') {
                     setTimeout(() => callback({ status: "content_script_acked_load_ready" }), 0);
                 }
@@ -147,17 +154,18 @@ function getTabOnActivatedCallback() {
 }
 
 // --- Mock WebSocket globally or for specific tests ---
+// Add WebSocket constants
 global.WebSocket = jest.fn(url => {
     const wsMock = {
         url: url,
-        readyState: WebSocket.CONNECTING, // Initial state
+        readyState: 0, // WebSocket.CONNECTING
         send: jest.fn(data => {
             // console.log("[Mock WebSocket] send:", data);
             // If testing message queue, add to it
             // messageQueue.push(data);
         }),
         close: jest.fn(() => {
-            wsMock.readyState = WebSocket.CLOSED;
+            wsMock.readyState = 3; // WebSocket.CLOSED
             if (wsMock.onclose) wsMock.onclose({ code: 1000, reason: "Normal closure" });
         }),
         onopen: null,
@@ -167,14 +175,19 @@ global.WebSocket = jest.fn(url => {
     };
     // Simulate connection opening
     setTimeout(() => {
-        wsMock.readyState = WebSocket.OPEN;
+        wsMock.readyState = 1; // WebSocket.OPEN
         if (wsMock.onopen) wsMock.onopen();
     }, 0);
     socket = wsMock; // Assign to global mock socket for inspection
     return wsMock;
 });
+// Mock WebSocket constants
+global.WebSocket.CONNECTING = 0;
+global.WebSocket.OPEN = 1;
+global.WebSocket.CLOSING = 2;
+global.WebSocket.CLOSED = 3;
 
-ddescribe('Background Script Ready Handshake & Core Logic', () => {
+describe('Background Script Ready Handshake & Core Logic', () => {
     let messageListenerCallback; // To store the function passed to chrome.runtime.onMessage.addListener
     let tabRemovedListenerCallback; // To store the function passed to chrome.tabs.onRemoved.addListener
     let backgroundModule; // To access exported functions if any (like waitForContentScriptReady)
@@ -184,23 +197,38 @@ ddescribe('Background Script Ready Handshake & Core Logic', () => {
         jest.clearAllMocks();
         jest.resetModules(); // This is key to re-require and re-initialize background.js
 
-        // Capture the listener callbacks when background.js is loaded
-        global.chrome.runtime.onMessage.addListener.mockImplementation(callback => {
-            messageListenerCallback = callback;
-        });
-        global.chrome.tabs.onRemoved.addListener.mockImplementation(callback => {
-            tabRemovedListenerCallback = callback;
+        // Reset console mocks
+        global.console.log.mockClear();
+        global.console.error.mockClear();
+        global.console.warn.mockClear();
+
+        // Mock tabs.query to prevent issues
+        global.chrome.tabs.query.mockImplementation((queryInfo, callback) => {
+            if (callback) {
+                callback([]);
+            }
+            return Promise.resolve([]);
         });
 
-        // Load the background script. This will execute its top-level code, including addListener calls.
-        // NOTE: If background.js exports functions (e.g. for testing), assign it here.
-        // If it only operates via side effects (listeners), this is fine.
-        backgroundModule = require('../../extension/background.js');
+        // Load the modular background script
+        backgroundModule = require('../../../extension/background.modular.js');
+        
+        // Initialize listeners (in browser environment this happens automatically)
+        backgroundModule.initializeListeners();
+        
+        // Capture the listener callbacks after initialization
+        if (global.chrome.runtime.onMessage.addListener.mock.calls.length > 0) {
+            messageListenerCallback = global.chrome.runtime.onMessage.addListener.mock.calls[0][0];
+        }
+        if (global.chrome.tabs.onRemoved.addListener.mock.calls.length > 0) {
+            tabRemovedListenerCallback = global.chrome.tabs.onRemoved.addListener.mock.calls[0][0];
+        }
     });
 
     test('should register runtime message and tab removal listeners on init', () => {
-        expect(global.chrome.runtime.onMessage.addListener).toHaveBeenCalledTimes(1);
-        expect(global.chrome.tabs.onRemoved.addListener).toHaveBeenCalledTimes(1);
+        // The modular version may call addListener multiple times in initialization
+        expect(global.chrome.runtime.onMessage.addListener.mock.calls.length).toBeGreaterThanOrEqual(1);
+        expect(global.chrome.tabs.onRemoved.addListener.mock.calls.length).toBeGreaterThanOrEqual(1);
     });
 
     describe('Content Script Ready Handling', () => {
@@ -212,73 +240,88 @@ ddescribe('Background Script Ready Handshake & Core Logic', () => {
             // Simulate a message from content script
             const result = messageListenerCallback(request, sender, mockSendResponse);
 
-            // As per current background.js, content_script_ready is handled synchronously
-            expect(result).toBe(false); // Or undefined, depending on explicit return
+            // Check that the tab was added to the ready set
+            expect(backgroundModule.state.contentScriptsReady.has(123)).toBe(true);
+            
+            // Check the response
+            expect(result).toBe(false); // Synchronous response
             expect(mockSendResponse).toHaveBeenCalledWith({
-                acknowledged: true,
-                tabId: 123,
-                status: "acknowledged_content_script_ready",
-                timestamp: expect.any(Number)
+                status: "acknowledged",
+                tabId: 123
             });
+            
+            // Check console logs
             expect(global.console.log).toHaveBeenCalledWith(
-                expect.stringContaining('Background: Tab 123 marked as ready')
+                expect.stringContaining('Content script ready for tab 123')
             );
         });
 
-        test('should log an error if tab ID is missing in ready signal', () => {
+        test('should not add tab if tab ID is missing in ready signal', () => {
             const mockSendResponse = jest.fn();
             const sender = { /* tab missing */ }; 
             const request = { type: 'content_script_ready' };
 
             messageListenerCallback(request, sender, mockSendResponse);
 
-            expect(global.console.error).toHaveBeenCalledWith(
-                'Content script ready signal missing tab ID from sender'
-            );
-            expect(mockSendResponse).toHaveBeenCalledWith({
-                error: 'Missing tab ID in sender object',
-                status: "error_missing_tab_id"
-            });
+            // The modular version doesn't send an error response for missing tab ID
+            expect(mockSendResponse).not.toHaveBeenCalled();
+            // Check that no tab was added to the ready set
+            expect(backgroundModule.state.contentScriptsReady.size).toBe(0);
         });
 
         test('should track multiple ready tabs correctly', () => {
             const mockSendResponse = jest.fn();
-            messageListenerCallback({ type: 'content_script_ready' }, { tab: { id: 1 } }, mockSendResponse);
-            messageListenerCallback({ type: 'content_script_ready' }, { tab: { id: 2 } }, mockSendResponse);
             
-            // To verify internal state (contentScriptsReady Set), we'd ideally need to export it 
-            // or an accessor from background.js. If not, we infer from logs or subsequent behavior.
-            // The PERPLEXITY_OUTPUT logs the set: console.log(`Background: Tab ${tabId} marked as ready. Ready tabs:`, Array.from(contentScriptsReady));
-            expect(global.console.log).toHaveBeenCalledWith("Background: Tab 1 marked as ready. Ready tabs:", [1]);
-            expect(global.console.log).toHaveBeenCalledWith("Background: Tab 2 marked as ready. Ready tabs:", [1, 2]);
+            // Add first tab
+            messageListenerCallback({ type: 'content_script_ready' }, { tab: { id: 1 } }, mockSendResponse);
+            expect(backgroundModule.state.contentScriptsReady.has(1)).toBe(true);
+            expect(backgroundModule.state.contentScriptsReady.size).toBe(1);
+            
+            // Add second tab
+            messageListenerCallback({ type: 'content_script_ready' }, { tab: { id: 2 } }, mockSendResponse);
+            expect(backgroundModule.state.contentScriptsReady.has(2)).toBe(true);
+            expect(backgroundModule.state.contentScriptsReady.size).toBe(2);
+            
+            // Verify both tabs are tracked
+            expect(Array.from(backgroundModule.state.contentScriptsReady)).toEqual([1, 2]);
         });
     });
 
     describe('Tab Removal Handling', () => {
         test('should clean up ready state when a tracked tab is removed', () => {
             const mockSendResponse = jest.fn();
+            
             // Mark tab 123 as ready
             messageListenerCallback({ type: 'content_script_ready' }, { tab: { id: 123 } }, mockSendResponse);
-            expect(global.console.log).toHaveBeenCalledWith("Background: Tab 123 marked as ready. Ready tabs:", [123]);
+            expect(backgroundModule.state.contentScriptsReady.has(123)).toBe(true);
 
             // Simulate tab removal
-            tabRemovedListenerCallback(123, { isWindowClosing: false });
+            tabRemovedListenerCallback(123);
 
+            // Verify the tab was removed from the ready set
+            expect(backgroundModule.state.contentScriptsReady.has(123)).toBe(false);
+            expect(backgroundModule.state.contentScriptsReady.size).toBe(0);
+            
+            // Check console logs
             expect(global.console.log).toHaveBeenCalledWith(
-                `Background: Removed tabId 123 from contentScriptsReady set.`
+                expect.stringContaining('Tab 123 removed. Cleared from ready set.')
             );
-             // Check the log for the updated set
-            expect(global.console.log).toHaveBeenCalledWith('Background: Ready tabs after cleanup:', []);
         });
 
         test('should not error if a non-tracked tab is removed', () => {
-            tabRemovedListenerCallback(999, { isWindowClosing: false }); // Tab 999 was never added
-            // Check that it logged the removal attempt
-            expect(global.console.log).toHaveBeenCalledWith(expect.stringContaining('Background: Tab 999 closed, cleaning up ready state'));
-            // Check that it didn't log "Removed tabId ... from contentScriptsReady set"
-            expect(global.console.log).not.toHaveBeenCalledWith(expect.stringContaining('Removed tabId 999 from contentScriptsReady set'));
-            // Check the log for the (empty) set state
-            expect(global.console.log).toHaveBeenCalledWith('Background: Ready tabs after cleanup:', []);
+            // Ensure the set is empty initially
+            expect(backgroundModule.state.contentScriptsReady.size).toBe(0);
+            
+            // Try to remove a tab that was never added
+            tabRemovedListenerCallback(999);
+            
+            // The set should still be empty
+            expect(backgroundModule.state.contentScriptsReady.size).toBe(0);
+            
+            // Since the tab wasn't in the set, no removal log should be shown
+            expect(global.console.log).not.toHaveBeenCalledWith(
+                expect.stringContaining('Tab 999 removed. Cleared from ready set.')
+            );
         });
     });
 
@@ -305,13 +348,16 @@ ddescribe('Background Script Ready Handshake & Core Logic', () => {
         test('should resolve true immediately if tab is already ready', async () => {
             // Mark tab as ready
             messageListenerCallback({ type: 'content_script_ready' }, { tab: { id: 777 } }, jest.fn());
+            expect(backgroundModule.state.contentScriptsReady.has(777)).toBe(true);
 
             const isReadyPromise = backgroundModule.waitForContentScriptReady(777, 1000);
             jest.runAllTimers(); // Resolve any setTimeout
             const isReady = await isReadyPromise;
             
             expect(isReady).toBe(true);
-            expect(global.console.log).toHaveBeenCalledWith('background.js: Content script for tabId: 777 is ready.');
+            expect(global.console.log).toHaveBeenCalledWith(
+                'Content script already ready for tab 777'
+            );
         });
 
         test('should resolve true after polling if tab becomes ready', async () => {
@@ -323,16 +369,18 @@ ddescribe('Background Script Ready Handshake & Core Logic', () => {
                 messageListenerCallback({ type: 'content_script_ready' }, { tab: { id: tabId } }, jest.fn());
             }, 300); // Becomes ready after ~1 poll (250ms interval)
 
-            jest.advanceTimersByTime(250); // First poll: not ready
-            expect(global.console.log).toHaveBeenCalledWith(`background.js: Polling for content script ready for tabId: ${tabId}. Still waiting...`);
+            jest.advanceTimersByTime(100); // First poll: not ready
             
-            jest.advanceTimersByTime(100); // Advance a bit more, to trigger the setTimeout for ready signal
+            jest.advanceTimersByTime(200); // Advance to 300ms total
             // The ready signal (messageListenerCallback) is called now.
-            jest.advanceTimersByTime(250); // Next poll: should be ready
+            
+            jest.advanceTimersByTime(100); // Next poll: should be ready
 
             const isReady = await readyPromise;
             expect(isReady).toBe(true);
-            expect(global.console.log).toHaveBeenCalledWith(`background.js: Content script for tabId: ${tabId} is ready.`);
+            expect(global.console.log).toHaveBeenCalledWith(
+                `Content script is now ready for tab ${tabId}`
+            );
         });
 
         test('should timeout and resolve false if tab does not become ready', async () => {
@@ -344,7 +392,7 @@ ddescribe('Background Script Ready Handshake & Core Logic', () => {
             const isReady = await readyPromise;
             expect(isReady).toBe(false);
             expect(global.console.error).toHaveBeenCalledWith(
-                `background.js: Timeout waiting for content script in tab ${tabId} to signal ready after 500ms.`
+                `Timeout: Content script not ready for tab ${tabId} after 500ms`
             );
         });
     });

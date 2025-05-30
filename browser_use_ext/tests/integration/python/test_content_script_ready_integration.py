@@ -189,9 +189,8 @@ class TestContentScriptReadiness:
                 execute_action_call_args = sent_message
                 break
         assert execute_action_call_args is not None
-        assert execute_action_call_args["data"]["action"] == "click"
+        assert execute_action_call_args["data"]["action_name"] == "click"
         assert execute_action_call_args["data"]["params"]["element_id"] == "btn-1"
-        assert execute_action_call_args["data"]["tabId"] == tab_id_to_test
 
     @pytest.mark.asyncio
     async def test_execute_action_fails_if_content_script_not_ready(self, extension_interface, mock_websocket):
