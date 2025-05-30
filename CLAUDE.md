@@ -63,32 +63,73 @@ playwright install chromium
 
 ### Running Tests
 
-#### Python Tests
+#### JavaScript Tests (Jest)
 ```bash
-# Run all tests
-pytest
-
-# Run specific test directory
-pytest browser_use_ext/tests/unit/python/
-pytest browser_use_ext/tests/integration/
-
-# Run with coverage
-pytest --cov=browser_use_ext --cov-report=html
-
-# Run a single test
-pytest -v browser_use_ext/tests/unit/python/test_browser.py::TestBrowser::test_browser_initialization
-```
-
-#### JavaScript Tests
-```bash
-# Run Jest tests
+# Run all Jest tests (unit + integration)
 npm test
 
-# Run specific test pattern
+# Run specific test file
 npm test -- test_action_execution_unit.js
 
-# Run with coverage
+# Run specific test directory
+npm test -- browser_use_ext/tests/unit/javascript/
+npm test -- browser_use_ext/tests/integration/javascript/
+
+# Run with coverage report
 npm test -- --coverage
+
+# Run in watch mode (re-runs on file changes)
+npm test -- --watch
+
+# Run with verbose output
+npm test -- --verbose
+```
+
+**Jest Test Statistics:**
+- **Total Tests**: 76 tests across 8 test suites
+- **Unit Tests**: 65 tests (7 suites)
+- **Integration Tests**: 11 tests (1 suite)
+- **Execution Time**: ~3-6 seconds
+- **Expected Pass Rate**: 100%
+
+#### Python Tests
+```bash
+# Run all tests (using Poetry virtual environment)
+poetry run pytest
+
+# Run specific test directory
+poetry run pytest browser_use_ext/tests/unit/python/
+poetry run pytest browser_use_ext/tests/integration/python/
+
+# Run with coverage
+poetry run pytest --cov=browser_use_ext --cov-report=html
+
+# Run a single test
+poetry run pytest -v browser_use_ext/tests/unit/python/test_browser.py::TestBrowser::test_browser_initialization
+
+# Run E2E tests (requires browser setup)
+poetry run pytest browser_use_ext/tests/e2e/python/ -m e2e
+
+# Run performance tests
+poetry run pytest browser_use_ext/tests/performance/ -m performance
+```
+
+#### Comprehensive Test Runner
+```bash
+# Run all tests (Jest + Python)
+python3 run_all_tests.py
+
+# Run only Jest tests
+python3 run_all_tests.py --only-jest
+
+# Run only Python tests
+python3 run_all_tests.py --only-python
+
+# Run performance monitoring
+python3 run_all_tests.py --performance
+
+# Include E2E tests (requires manual browser setup)
+python3 run_all_tests.py --include-e2e
 ```
 
 ### Code Quality Checks
@@ -105,8 +146,8 @@ npm run check-types  # TypeScript
 
 ### Running the Extension Interface
 ```bash
-# Start the WebSocket server for Chrome extension
-python -m browser_use_ext.extension_interface.service
+# Start the WebSocket server for Chrome extension (using Poetry)
+poetry run python -m browser_use_ext.extension_interface.service
 # Server runs on ws://localhost:8765
 ```
 
@@ -120,6 +161,14 @@ The project follows a testing pyramid approach:
 Test files follow these naming patterns:
 - Python: `test_*.py` or `*_test.py`
 - JavaScript: `*_test.js` or `*_unit.js`
+
+Test locations:
+- **JavaScript Unit Tests**: `browser_use_ext/tests/unit/javascript/`
+- **JavaScript Integration Tests**: `browser_use_ext/tests/integration/javascript/`
+- **Python Unit Tests**: `browser_use_ext/tests/unit/python/`
+- **Python Integration Tests**: `browser_use_ext/tests/integration/python/`
+- **E2E Tests**: `browser_use_ext/tests/e2e/python/`
+- **Performance Tests**: `browser_use_ext/tests/performance/`
 
 ## Key Implementation Notes
 

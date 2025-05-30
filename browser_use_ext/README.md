@@ -141,7 +141,46 @@ Passing all these checks helps maintain a high standard of code quality and redu
 
 ## Running Tests
 
-The project uses `pytest` for unit testing. The necessary `pytest.ini` is located in the parent directory (one level above `browser-use-ext/`) to ensure correct path resolution for imports.
+The project uses both **Jest** for JavaScript testing and **pytest** for Python testing.
+
+### JavaScript Tests (Jest)
+
+The Chrome extension JavaScript code is tested using Jest. Tests are located in `browser_use_ext/tests/unit/javascript/` and `browser_use_ext/tests/integration/javascript/`.
+
+1.  **Install Node.js dependencies** (if not already done):
+    ```bash
+    npm install
+    ```
+
+2.  **Run all Jest tests**:
+    ```bash
+    npm test
+    ```
+    This runs all unit and integration tests for the Chrome extension JavaScript code.
+
+3.  **Run specific test file**:
+    ```bash
+    npm test -- test_action_execution_unit.js
+    ```
+
+4.  **Run with coverage**:
+    ```bash
+    npm test -- --coverage
+    ```
+
+5.  **Run tests in watch mode** (re-runs on file changes):
+    ```bash
+    npm test -- --watch
+    ```
+
+**Test Results**: 
+- **76 tests** across 8 test suites
+- Typical execution time: ~3-6 seconds
+- 100% pass rate expected
+
+### Python Tests (pytest)
+
+The Python backend is tested using pytest. The necessary `pytest.ini` is located in the parent directory (one level above `browser-use-ext/`) to ensure correct path resolution for imports.
 
 1.  **Ensure your virtual environment is activated** and dependencies are installed.
 
@@ -158,6 +197,34 @@ The project uses `pytest` for unit testing. The necessary `pytest.ini` is locate
     Pytest will automatically discover and run tests from the `browser-use-ext/tests` directory based on the `pytest.ini` configuration.
 
     You should see output indicating the number of tests passed, failed, or skipped.
+
+### Comprehensive Test Runner
+
+A comprehensive test runner script is available at the project root:
+
+```bash
+# Run all tests (Jest + Python)
+python3 run_all_tests.py
+
+# Run only Jest tests
+python3 run_all_tests.py --only-jest
+
+# Run only Python tests  
+python3 run_all_tests.py --only-python
+
+# Run performance monitoring tests
+python3 run_all_tests.py --performance
+
+# Include E2E tests (requires browser setup)
+python3 run_all_tests.py --include-e2e
+```
+
+### Test Organization
+
+- **Unit Tests** (`tests/unit/`): Test individual components in isolation
+- **Integration Tests** (`tests/integration/`): Test module interactions
+- **E2E Tests** (`tests/e2e/`): Test complete workflows with real browser
+- **Performance Tests** (`tests/performance/`): Monitor test execution times
 
 ## Starting the Python WebSocket Server (Standalone)
 

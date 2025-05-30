@@ -45,7 +45,6 @@ class TestContentScriptReadiness:
         interface._message_id_counter = 0
         return interface
 
-    @pytest.mark.skip(reason="ExtensionInterface.get_state has bugs: doesn't create future and expects response_data_obj.data")
     @pytest.mark.asyncio
     async def test_wait_for_content_script_ready_success(self, extension_interface, mock_websocket):
         """Test successful wait for content script readiness from Python side via get_state"""
@@ -114,30 +113,23 @@ class TestContentScriptReadiness:
         assert state is not None
         assert state.url == "https://example.com"
 
-    @pytest.mark.skip(reason="ExtensionInterface.get_state has bugs: doesn't create future and expects response_data_obj.data")
     @pytest.mark.asyncio
     async def test_get_state_timeout_if_content_script_never_ready(self, extension_interface, mock_websocket):
-        """Test get_state returns None if background.js indicates content script not ready"""
+        """Test get_state raises RuntimeError if content script not ready"""
         tab_id_to_test = 456
-        request_id_sent_from_python = None
-
-        async def send_side_effect(message_str):
-            nonlocal request_id_sent_from_python
-            message_obj = json.loads(message_str)
-            request_id_sent_from_python = message_obj.get("id")
-            # Don't send any response - let it timeout since content script is not ready
-            return None
-
-        mock_websocket.send.side_effect = send_side_effect
+        
+        # Mock _wait_for_content_script_ready to raise TimeoutError
+        async def mock_wait_timeout(tab_id, timeout_seconds=10):
+            raise asyncio.TimeoutError("Content script not ready")
+        
+        extension_interface._wait_for_content_script_ready = mock_wait_timeout
         
         with pytest.raises(RuntimeError) as exc_info:
-            await extension_interface.get_state(tab_id=tab_id_to_test, timeout_seconds=1)
+            await extension_interface.get_state(tab_id=tab_id_to_test)
         
         assert "Content script in tab" in str(exc_info.value)
         assert "not ready" in str(exc_info.value)
-        # The test now expects timeout before any request is sent, 
-        # so there may not be any actual get_state message sent
-        # We can verify the tab was not marked as ready
+        # Verify the tab was not marked as ready
         assert tab_id_to_test not in extension_interface._content_script_ready_tabs
 
     @pytest.mark.asyncio
