@@ -7,6 +7,24 @@ from pydantic import BaseModel, Field
 from ..dom.views import DOMElementNode, DOMDocumentNode
 
 
+class ActionableElement(BaseModel):
+    """
+    Represents an actionable element extracted from a webpage by the content script.
+    
+    This model stores information about interactive or notable elements that 
+    the agent can operate on, including their identification, type, text content,
+    and available operations.
+    """
+    
+    id: str = Field(description="Unique identifier for the element.")
+    type: str = Field(description="Type of the element (e.g., 'button', 'link', 'text_input').")
+    tag: str = Field(description="HTML tag name of the element (e.g., 'button', 'a', 'input').")
+    text_content: str = Field(default="", description="Text content of the element.")
+    attributes: Dict[str, Any] = Field(default_factory=dict, description="HTML attributes of the element.")
+    is_visible: bool = Field(default=True, description="Whether the element is currently visible.")
+    available_operations: List[str] = Field(default_factory=list, description="List of operations that can be performed on this element.")
+
+
 class TabInfo(BaseModel):
     """
     Represents information about a single browser tab.
@@ -85,4 +103,10 @@ class BrowserState(BaseModel):
     )
 
     # Optional error message if the state represents an error condition.
-    error_message: Optional[str] = Field(default=None, description="Error message if state retrieval failed.") 
+    error_message: Optional[str] = Field(default=None, description="Error message if state retrieval failed.")
+    
+    # List of actionable elements detected by the content script.
+    # These are interactive or notable elements that the agent can operate on.
+    actionable_elements: List[ActionableElement] = Field(
+        default_factory=list, description="List of actionable elements detected on the page."
+    ) 

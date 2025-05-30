@@ -98,11 +98,12 @@ class ExtensionInterface:
 
     async def get_state(self, for_vision: bool = False, tab_id: Optional[int] = None) -> Optional[BrowserState]:
         """
-        Requests the current browser state from the active tab.
+        Requests the current browser state from the best available tab.
         """
-        target_tab_id = tab_id if tab_id is not None else self._active_tab_id
+        # Smart tab selection: use explicit tab_id, or find best ready tab, or fallback to active tab
+        target_tab_id = tab_id if tab_id is not None else self._get_best_ready_tab_id()
         if target_tab_id is None:
-            logger.warning("get_state called but no active tab ID is set.")
+            logger.warning("get_state called but no suitable tab ID found (no active tab or ready tabs).")
             return None
 
         logger.debug(f"Sending 'get_state' request for tab ID: {target_tab_id}")
@@ -123,7 +124,8 @@ class ExtensionInterface:
                 action="get_state",
                 data={
                     "action": "get_state",
-                    "params": {"for_vision": for_vision}
+                    "params": {"for_vision": for_vision},
+                    "tabId": target_tab_id  # FIXED: Send the target tab ID to background.js
                 },
                 timeout=DEFAULT_REQUEST_TIMEOUT
             )
@@ -377,8 +379,10 @@ class ExtensionInterface:
             elif event_name == "content_script_ready": # Handle the content_script_ready event
                 tab_id = event_payload.get("tabId")
                 if isinstance(tab_id, int):
-                    logger.info(f"Received content_script_ready for tab ID: {tab_id}.")
-                    self._content_script_ready_tabs[tab_id] = asyncio.get_event_loop().time() # Mark tab as ready with timestamp
+                    timestamp = asyncio.get_event_loop().time()
+                    self._content_script_ready_tabs[tab_id] = timestamp
+                    logger.critical(f"!!! CONTENT SCRIPT READY: Tab {tab_id} marked as ready at {timestamp} !!!")
+                    logger.critical(f"!!! READY TABS NOW: {list(self._content_script_ready_tabs.keys())} !!!")
                     # If we had pending futures waiting for this tab, we could potentially notify them here,
                     # but the _wait_for_content_script_ready method will handle the waiting logic.
                 else:
@@ -547,6 +551,34 @@ class ExtensionInterface:
         # logger.info(f"Active tab reaffirmed: {tab_id}, URL: {url if url else 'N/A'}") # Can be noisy
         # pass # No need to log if not changing, the critical log above is enough
 
+    def _get_best_ready_tab_id(self) -> Optional[int]:
+        """
+        Returns the best tab ID to use for get_state, prioritizing ready tabs over active tab.
+        """
+        current_time = asyncio.get_event_loop().time()
+        logger.critical(f"!!! _get_best_ready_tab_id CALLED at {current_time} !!!")
+        logger.critical(f"!!! CURRENT READY TABS: {dict(self._content_script_ready_tabs)} !!!")
+        logger.critical(f"!!! CURRENT ACTIVE TAB: {self._active_tab_id} !!!")
+        
+        # If we have ready tabs, prefer the most recently ready one
+        if self._content_script_ready_tabs:
+            # Find the most recently ready tab (highest timestamp)
+            best_tab_id = max(self._content_script_ready_tabs.keys(), 
+                             key=lambda tid: self._content_script_ready_tabs[tid])
+            ready_time = self._content_script_ready_tabs[best_tab_id]
+            logger.critical(f"!!! USING READY TAB {best_tab_id} for get_state (ready at {ready_time}, {current_time - ready_time:.1f}s ago) !!!")
+            logger.critical(f"!!! ALL READY TABS: {list(self._content_script_ready_tabs.keys())} !!!")
+            return best_tab_id
+        
+        # Fallback to active tab if no ready tabs
+        if self._active_tab_id is not None:
+            logger.critical(f"!!! NO READY TABS - FALLING BACK to active tab {self._active_tab_id} for get_state !!!")
+            return self._active_tab_id
+        
+        # No tabs available
+        logger.critical("!!! NO READY TABS OR ACTIVE TAB available for get_state !!!")
+        return None
+
     async def _wait_for_content_script_ready(self, tab_id: int, timeout_seconds: float) -> None:
         """
         Waits until the content script for the specified tab ID is marked as ready.
@@ -559,12 +591,12 @@ class ExtensionInterface:
             asyncio.TimeoutError: If the tab does not become ready within the timeout.
         """
         start_wait_time = asyncio.get_event_loop().time()
-        logger.debug(f"_wait_for_content_script_ready CALLED for tabId: {tab_id}, timeout: {timeout_seconds}s. Start wait time: {start_wait_time}.")
+        logger.debug(f"_wait_for_content_script_ready CALLED for tabId: {tab_id}, timeout: {timeout_seconds}s.")
 
-        # Check initial state: Is it already marked ready AND was the signal received AFTER we started waiting?
-        ready_timestamp = self._content_script_ready_tabs.get(tab_id)
-        if ready_timestamp is not None and ready_timestamp >= start_wait_time:
-            logger.debug(f"Content script for tab {tab_id} already marked ready with timestamp {ready_timestamp} >= {start_wait_time}. Returning immediately.")
+        # SIMPLIFIED: If tab is already ready, return immediately (no timestamp checking needed)
+        if tab_id in self._content_script_ready_tabs:
+            ready_timestamp = self._content_script_ready_tabs[tab_id]
+            logger.debug(f"Content script for tab {tab_id} already marked ready at {ready_timestamp}. Returning immediately.")
             return
 
         # If not immediately ready, start polling
@@ -572,15 +604,14 @@ class ExtensionInterface:
         elapsed_time = 0
 
         while elapsed_time < timeout_seconds:
-            # Check again inside the loop
-            ready_timestamp = self._content_script_ready_tabs.get(tab_id)
-            if ready_timestamp is not None and ready_timestamp >= start_wait_time:
-                logger.debug(f"Content script for tab {tab_id} became ready during wait with timestamp {ready_timestamp} >= {start_wait_time}.")
+            # Check again inside the loop - simple check
+            if tab_id in self._content_script_ready_tabs:
+                ready_timestamp = self._content_script_ready_tabs[tab_id]
+                logger.debug(f"Content script for tab {tab_id} became ready during wait at {ready_timestamp}.")
                 return
 
             await asyncio.sleep(polling_interval)
             elapsed_time += polling_interval
-            # logger.debug(f"Waiting for tab {tab_id} ready. Elapsed: {elapsed_time:.2f}s / {timeout_seconds}s")
 
         # If loop finishes without returning, it timed out
         logger.error(f"Timeout waiting for content script in tab {tab_id} to signal ready after {timeout_seconds}s.")

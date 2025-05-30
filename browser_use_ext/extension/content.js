@@ -1,17 +1,30 @@
-console.log("CONTENT.JS TOP LEVEL EXECUTION - Script Start"); // VERY FIRST LINE
+console.log("🚀 CONTENT.JS TOP LEVEL EXECUTION - Script Start - URL:", window.location.href); // VERY FIRST LINE
+console.log("🚀 CONTENT.JS: Document ready state:", document.readyState);
+console.log("🚀 CONTENT.JS: Chrome runtime available:", !!chrome?.runtime);
 
 // --- Content Script Ready Signal ---
 // Function to send the content_script_ready message to the background script
 function signalReadyToBackground() {
-    console.log("CONTENT.JS: Attempting to send content_script_ready message.");
-    chrome.runtime.sendMessage({ type: "content_script_ready" }, _response => {
-        if (chrome.runtime.lastError) {
-            console.error('CONTENT.JS: Error sending content_script_ready:', chrome.runtime.lastError.message);
-        } else {
-            // console.log("CONTENT.JS: Background acked content_script_ready:", response);
-            console.log("CONTENT.JS: Successfully sent content_script_ready.");
-        }
-    });
+    console.log("📢 CONTENT.JS: Attempting to send content_script_ready message to background...");
+    console.log("📢 CONTENT.JS: Chrome runtime check:", !!chrome?.runtime);
+    console.log("📢 CONTENT.JS: Current URL:", window.location.href);
+    
+    if (!chrome?.runtime) {
+        console.error("❌ CONTENT.JS: Chrome runtime not available! Cannot send message.");
+        return;
+    }
+    
+    try {
+        chrome.runtime.sendMessage({ type: "content_script_ready" }, response => {
+            if (chrome.runtime.lastError) {
+                console.error('❌ CONTENT.JS: Error sending content_script_ready:', chrome.runtime.lastError.message);
+            } else {
+                console.log("✅ CONTENT.JS: Successfully sent content_script_ready. Response:", response);
+            }
+        });
+    } catch (error) {
+        console.error("❌ CONTENT.JS: Exception while sending content_script_ready:", error);
+    }
 }
 // --- END Content Script Ready Signal ---
 
@@ -52,11 +65,15 @@ function setupMessageListener() {
     }
 
     messageListener = function(request, sender, sendResponse) {
-        // console.log('Content script received message:', request); // Keep this less verbose for now
+        console.log(`📨 CONTENT.JS: MESSAGE RECEIVED! Type: ${request.type}, RequestID: ${request.requestId}`);
+        console.log(`📨 CONTENT.JS: Full request object:`, request);
+        console.log(`📨 CONTENT.JS: Sender info:`, sender);
+        console.log(`📨 CONTENT.JS: Current URL: ${window.location.href}`);
         
         // Handle different message types
         switch (request.type) {
             case 'get_state':
+                console.log(`🎯 CONTENT.JS: Handling get_state request for ID: ${request.requestId}`);
                 handleGetState(request.requestId)
                     .then(response => {
                         // Add logging here to see what handleGetState returns
@@ -100,20 +117,24 @@ function setupMessageListener() {
 
 // Initialize content script
 function initializeContentScript() {
-    console.log('CONTENT.JS: Initializing content script...');
+    console.log('🔧 CONTENT.JS: Initializing content script for URL:', window.location.href);
+    console.log('🔧 CONTENT.JS: Document state:', document.readyState);
+    
     try {
-        // The aggressive signal sender is already running from the top of the file.
-        // setupDOMObserver(); // Commented out: function not defined
-        // setupElementRegistry(); // Commented out: function not defined
-        // setupScrollListeners(); // Commented out: function not defined
+        console.log('🔧 CONTENT.JS: Setting up message listener...');
         setupMessageListener(); 
         
+        // Set a marker that the page can check
+        window.__browserUseContentScriptReady = true;
+        console.log('🔧 CONTENT.JS: Set window.__browserUseContentScriptReady marker to true');
+        
         // Signal readiness to the background script after listener is set up.
+        console.log('🔧 CONTENT.JS: About to call signalReadyToBackground()...');
         signalReadyToBackground();
-        console.log("CONTENT.JS: Core initialization complete. Ready signal sent.");
+        console.log("✅ CONTENT.JS: Core initialization complete. Ready signal sent.");
 
     } catch (error) {
-        console.error('CONTENT.JS: Content script core initialization failed:', error);
+        console.error('❌ CONTENT.JS: Content script core initialization failed:', error);
     }
 }
 
@@ -593,17 +614,37 @@ function getAvailableOperations(element) {
  * @returns {Promise<Object>} A promise that resolves with the page state object.
  */
 async function handleGetState(requestId) {
-    console.log(`CONTENT.JS: handleGetState ENTERED for requestId: ${requestId}`); // ADDED LOG
+    console.log(`🟢 CONTENT.JS: handleGetState ENTERED for requestId: ${requestId}`);
+    console.log(`🟢 CONTENT.JS: Current window.location.href: ${window.location.href}`);
+    console.log(`🟢 CONTENT.JS: Current document.title: "${document.title}"`);
+    console.log(`🟢 CONTENT.JS: Document ready state: ${document.readyState}`);
+    console.log(`🟢 CONTENT.JS: Document URL: ${document.URL}`);
+    console.log(`🟢 CONTENT.JS: Document domain: ${document.domain}`);
+    
     try {
-        const actionableElements = detectActionableElements(); // This is the core new part
+        console.log(`🔍 CONTENT.JS: About to call detectActionableElements() for requestId: ${requestId}`);
+        const actionableElements = detectActionableElements();
+        console.log(`🔍 CONTENT.JS: detectActionableElements() returned ${actionableElements.length} elements`);
+
+        // Debug the current page details
+        const currentUrl = window.location.href;
+        const currentTitle = document.title;
+        const totalElements = document.querySelectorAll('*').length;
+        
+        console.log(`🔍 CONTENT.JS: Building state object...`);
+        console.log(`🔍 CONTENT.JS: - URL: ${currentUrl}`);
+        console.log(`🔍 CONTENT.JS: - Title: "${currentTitle}"`);
+        console.log(`🔍 CONTENT.JS: - Total DOM elements: ${totalElements}`);
+        console.log(`🔍 CONTENT.JS: - Actionable elements: ${actionableElements.length}`);
+        console.log(`🔍 CONTENT.JS: - Viewport: ${window.innerWidth}x${window.innerHeight}`);
+        console.log(`🔍 CONTENT.JS: - Scroll position: (${window.scrollX}, ${window.scrollY})`);
 
         const pageState = {
-            // requestId: requestId, // requestId is now added by the caller in onMessage
-            type: "state_response", // Consistent response type
+            type: "state_response",
             status: "success",
-            state: { // Nest actual state data under a 'state' key
-                url: window.location.href,
-                title: document.title,
+            state: {
+                url: currentUrl,
+                title: currentTitle,
                 viewport: {
                     width: window.innerWidth,
                     height: window.innerHeight,
@@ -621,7 +662,7 @@ async function handleGetState(requestId) {
                 },
                 actionable_elements: actionableElements,
                 page_metrics: {
-                    total_elements_on_page: document.querySelectorAll('*').length,
+                    total_elements_on_page: totalElements,
                     actionable_elements_count: actionableElements.length,
                     visible_actionable_elements_count: actionableElements.filter(el => el.is_visible).length,
                     dom_load_time: window.performance && window.performance.timing ? (window.performance.timing.domContentLoadedEventEnd - window.performance.timing.navigationStart) : -1,
@@ -630,17 +671,32 @@ async function handleGetState(requestId) {
                 timestamp: new Date().toISOString()
             }
         };
-        console.log(`CONTENT.JS: State extracted successfully for requestId: ${requestId}. ${actionableElements.length} actionable elements found. State URL: ${pageState.state.url}`); // ADDED LOG
-        return pageState; // Return the full state object
+        
+        console.log(`✅ CONTENT.JS: State object built successfully for requestId: ${requestId}`);
+        console.log(`✅ CONTENT.JS: Returning state with URL: ${pageState.state.url}`);
+        console.log(`✅ CONTENT.JS: Returning state with title: "${pageState.state.title}"`);
+        console.log(`✅ CONTENT.JS: Returning state with ${pageState.state.actionable_elements.length} actionable elements`);
+        
+        // Log first few actionable elements for debugging
+        if (actionableElements.length > 0) {
+            console.log(`🔍 CONTENT.JS: First 3 actionable elements:`);
+            for (let i = 0; i < Math.min(3, actionableElements.length); i++) {
+                const elem = actionableElements[i];
+                console.log(`  ${i+1}. ${elem.tag} (${elem.type}) - "${elem.text_content.substring(0, 50)}..."`);
+            }
+        } else {
+            console.log(`⚠️ CONTENT.JS: No actionable elements found!`);
+        }
+        
+        return pageState;
     } catch (error) {
-        console.error(`CONTENT.JS: Error extracting page state for requestId ${requestId}:`, error); // ADDED LOG
-        // Structure the error response consistently
+        console.error(`❌ CONTENT.JS: Error extracting page state for requestId ${requestId}:`, error);
+        console.error(`❌ CONTENT.JS: Error stack:`, error.stack);
         return {
-            // requestId: requestId,
             type: "state_response",
             status: "error",
             error: `Error extracting page state: ${error.message}`,
-            details: error.stack // Optional: include stack for debugging
+            details: error.stack
         };
     }
 }
@@ -1263,9 +1319,17 @@ function executeGetAttributes(element, params) {
 
 // ADDED CODE based on PERPLEXITY_OUTPUT.md
 // Start initialization when DOM is ready
+console.log('🎬 CONTENT.JS: Script loaded, checking document ready state...');
+console.log('🎬 CONTENT.JS: Document ready state:', document.readyState);
+
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeContentScript);
+    console.log('🎬 CONTENT.JS: Document still loading, waiting for DOMContentLoaded...');
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log('🎬 CONTENT.JS: DOMContentLoaded fired, calling initializeContentScript...');
+        initializeContentScript();
+    });
 } else {
+    console.log('🎬 CONTENT.JS: Document already ready, calling initializeContentScript immediately...');
     initializeContentScript();
 }
 

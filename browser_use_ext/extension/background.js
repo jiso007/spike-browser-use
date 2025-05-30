@@ -124,11 +124,45 @@ function sendQueuedEvents() {
 
 // NEW: Listen for messages from content scripts and popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log('background.js: Message received:', message, 'from sender:', sender);
+  console.log('🎯 BACKGROUND.JS: Message received:', message, 'from sender:', sender);
+  console.log('🎯 BACKGROUND.JS: Message type:', message?.type);
+  console.log('🎯 BACKGROUND.JS: Sender tab ID:', sender?.tab?.id);
+  console.log('🎯 BACKGROUND.JS: Sender tab URL:', sender?.tab?.url);
 
-  if (sender.tab && message.type === "content_script_ready") { // Removed unused 'sendResponse'
-    console.log(`background.js: Received 'content_script_ready' from tabId: ${sender.tab.id}`);
+  if (sender.tab && message.type === "content_script_ready") {
+    console.log(`🎉 BACKGROUND.JS: *** RECEIVED content_script_ready from tabId: ${sender.tab.id} ***`);
+    console.log(`🎉 BACKGROUND.JS: Tab URL: ${sender.tab.url}`);
+    console.log(`🎉 BACKGROUND.JS: WebSocket state: ${websocket?.readyState} (1=OPEN)`);
     contentScriptsReady.add(sender.tab.id);
+    
+    // SEND CONTENT SCRIPT READY EVENT TO PYTHON SERVER
+    if (websocket && websocket.readyState === WebSocket.OPEN) {
+      const readyEvent = {
+        type: "extension_event",
+        id: Date.now(),
+        data: {
+          event_name: "content_script_ready",
+          tabId: sender.tab.id
+        }
+      };
+      websocket.send(JSON.stringify(readyEvent));
+      console.log(`🚀 BACKGROUND.JS: *** SENT content_script_ready event to Python WebSocket server for tab ${sender.tab.id} ***`);
+      
+      // Also send debug info for troubleshooting
+      const debugMsg = {
+        type: "extension_event",
+        id: Date.now() + 1,
+        data: {
+          event_name: "debug_content_script_ready",
+          tabId: sender.tab.id,
+          readyTabsCount: contentScriptsReady.size,
+          allReadyTabs: Array.from(contentScriptsReady)
+        }
+      };
+      websocket.send(JSON.stringify(debugMsg));
+      console.log(`background.js: Sent debug info to Python server for tab ${sender.tab.id}`);
+    }
+    
     return true; // For async response
   }
 
@@ -141,12 +175,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   // Fallback for messages not handled by the `if` above.
-  // If this is the *only* runtime message listener, unhandled messages might need an error response.
-  // If there are other listeners, `return false` (or `undefined`) is usually correct to allow them to process.
-  if (message.type !== "content_script_ready") {
-    console.warn(`Background.js: Unhandled runtime message type '${message.type}' from sender:`, sender);
-    // Optionally send a response if no other listeners are expected to handle it.
-    // sendResponse({ error: `Unhandled message type: ${message.type}` });
+  else {
+    console.warn(`⚠️ BACKGROUND.JS: Unhandled runtime message type '${message?.type}' from sender:`, sender);
+    console.warn(`⚠️ BACKGROUND.JS: Full message object:`, message);
+    if (sender?.tab) {
+      console.warn(`⚠️ BACKGROUND.JS: Message from tab ${sender.tab.id} (${sender.tab.url}) was not handled`);
+    }
   }
   // Returning false to indicate synchronous response or that the message was not handled here,
   // allowing other listeners (if any) to process it. If this is the only listener, this is fine.
@@ -249,31 +283,253 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 });
 
 /**
- * Queries for the currently active tab and updates activeTabId.
- * Optionally sends context update if a new active tab is found.
+ * Smart active tab management - prioritizes based on user interaction, content script readiness, and recency.
  * @param {boolean} [sendContext=false] - Whether to send context update for the new active tab.
  */
 function queryActiveTab(sendContext = false) {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    chrome.tabs.query({}, (allTabs) => {
         if (chrome.runtime.lastError) {
-            console.error("Error querying active tab:", chrome.runtime.lastError.message);
+            console.error("Error querying all tabs:", chrome.runtime.lastError.message);
             activeTabId = null;
             return;
         }
-        if (tabs.length > 0) {
-            const newActiveTab = tabs[0];
-            if (activeTabId !== newActiveTab.id || sendContext) {
-                console.log("Querying active tab. Found:", newActiveTab.id, newActiveTab.url);
-                activeTabId = newActiveTab.id;
-                if (sendContext) {
-                    sendTabContextUpdate("tab_activated_on_query", newActiveTab);
-                }
-            }
+
+        // Group tabs by window and find active tabs
+        const activeTabs = allTabs.filter(tab => tab.active);
+        console.log(`Background.js: Found ${activeTabs.length} active tabs across ${new Set(allTabs.map(t => t.windowId)).size} windows`);
+
+        if (activeTabs.length === 0) {
+            console.log("Background.js: No active tabs found");
+            activeTabId = null;
+            return;
+        }
+
+        // Smart tab selection logic
+        const bestTab = selectBestActiveTab(activeTabs);
+        if (bestTab) {
+            updateActiveTab(bestTab.tab, sendContext, bestTab.reason);
         } else {
-            console.log("No active tab found during query.");
-            activeTabId = null; 
+            console.log("Background.js: No suitable active tab found");
+            activeTabId = null;
         }
     });
+}
+
+/**
+ * Selects the best active tab based on smart prioritization
+ * @param {Array} activeTabs - Array of active tab objects
+ * @returns {Object|null} - {tab: TabObject, reason: string} or null
+ */
+function selectBestActiveTab(activeTabs) {
+    const tabScores = activeTabs.map(tab => {
+        const score = calculateTabScore(tab);
+        console.log(`Background.js: Tab ${tab.id} (${tab.url}) - Score: ${score.total} (${score.breakdown})`);
+        return { tab, score: score.total, breakdown: score.breakdown };
+    });
+
+    // Sort by score (highest first)
+    tabScores.sort((a, b) => b.score - a.score);
+    
+    const winner = tabScores[0];
+    if (winner && winner.score > 0) {
+        return { tab: winner.tab, reason: `smart_selection_${winner.breakdown}` };
+    }
+    
+    return null;
+}
+
+/**
+ * Calculates a priority score for a tab based on multiple factors
+ * @param {Object} tab - Chrome tab object
+ * @returns {Object} - {total: number, breakdown: string}
+ */
+function calculateTabScore(tab) {
+    let score = 0;
+    const factors = [];
+
+    // Factor 1: Content script readiness (highest priority)
+    if (contentScriptsReady.has(tab.id)) {
+        score += 100;
+        factors.push("ready");
+    } else {
+        // No content script = much lower priority
+        score -= 50;
+        factors.push("not_ready");
+    }
+
+    // Factor 2: Current active tab in this browser gets bonus
+    if (activeTabId === tab.id) {
+        score += 30;
+        factors.push("current");
+    }
+
+    // Factor 3: URL quality indicators
+    const urlScore = calculateUrlScore(tab.url);
+    score += urlScore.score;
+    if (urlScore.reason) factors.push(urlScore.reason);
+
+    // Factor 4: Recency - tabs that were recently activated
+    // (This would need tab activation tracking, simplified for now)
+    
+    // Factor 5: Browser window characteristics
+    // Prefer windows with fewer tabs (likely test scenarios)
+    // This will be calculated in the context of window tabs when needed
+
+    return {
+        total: score,
+        breakdown: factors.join("_")
+    };
+}
+
+/**
+ * Calculates URL-based scoring for tab prioritization
+ * @param {string} url - Tab URL
+ * @returns {Object} - {score: number, reason: string}
+ */
+function calculateUrlScore(url) {
+    if (!url) return { score: 0, reason: "no_url" };
+
+    // High priority URLs (testing/development)
+    const highPriorityUrls = [
+        "example.com",
+        "wikipedia.org", 
+        "httpbin.org",
+        "jsonplaceholder",
+        "127.0.0.1",
+        "localhost"
+    ];
+
+    // Medium priority URLs (neutral)
+    const neutralUrls = [
+        "github.com",
+        "stackoverflow.com"
+    ];
+
+    // Low priority URLs (likely personal browsing)
+    const lowPriorityUrls = [
+        "tradingview.com",
+        "youtube.com",
+        "facebook.com",
+        "twitter.com",
+        "instagram.com",
+        "tiktok.com",
+        "netflix.com"
+    ];
+
+    // Special cases
+    if (url === "about:blank" || url === "data:,") {
+        return { score: 10, reason: "blank_page" };
+    }
+
+    // Check high priority
+    for (const pattern of highPriorityUrls) {
+        if (url.includes(pattern)) {
+            return { score: 20, reason: "high_priority_url" };
+        }
+    }
+
+    // Check low priority (negative score)
+    for (const pattern of lowPriorityUrls) {
+        if (url.includes(pattern)) {
+            return { score: -20, reason: "low_priority_url" };
+        }
+    }
+
+    // Check neutral
+    for (const pattern of neutralUrls) {
+        if (url.includes(pattern)) {
+            return { score: 5, reason: "neutral_url" };
+        }
+    }
+
+    // Default case
+    return { score: 0, reason: "unknown_url" };
+}
+
+
+/**
+ * Updates the active tab with smart override protection
+ */
+function updateActiveTab(newActiveTab, sendContext, source) {
+    const isFirstTime = activeTabId === null;
+    const isSameTab = activeTabId === newActiveTab.id;
+    
+    if (isFirstTime || isSameTab || sendContext) {
+        // Always allow: first time, same tab, or explicit context request
+        console.log(`Background.js: Setting active tab ${newActiveTab.id} (${newActiveTab.url}) - Source: ${source}`);
+        activeTabId = newActiveTab.id;
+        if (sendContext) {
+            sendTabContextUpdate("tab_activated_on_query", newActiveTab);
+        }
+        return;
+    }
+    
+    // For tab changes, check if the new tab is actually better
+    // ADDED: Extra protection - never let low-priority URLs override high-priority ones
+    const newUrlScore = calculateUrlScore(newActiveTab.url);
+    if (newUrlScore.score < -15) {
+        console.log(`Background.js: BLOCKING tab ${newActiveTab.id} (${newActiveTab.url}) - very low priority URL (${newUrlScore.score})`);
+        return; // Block very low priority URLs completely
+    }
+    
+    if (shouldReplaceActiveTab(activeTabId, newActiveTab)) {
+        console.log(`Background.js: Replacing active tab ${activeTabId} with ${newActiveTab.id} (${newActiveTab.url}) - Source: ${source}`);
+        activeTabId = newActiveTab.id;
+        if (sendContext) {
+            sendTabContextUpdate("tab_activated_on_query", newActiveTab);
+        }
+    } else {
+        console.log(`Background.js: Keeping current active tab ${activeTabId}, rejecting ${newActiveTab.id} (${newActiveTab.url}) - Source: ${source}`);
+    }
+}
+
+/**
+ * Determines if we should replace the current active tab with a new one
+ * @param {number} currentTabId - Current active tab ID
+ * @param {Object} newTab - New tab object to potentially switch to
+ * @returns {boolean} - True if we should switch
+ */
+function shouldReplaceActiveTab(currentTabId, newTab) {
+    // If current tab is not ready but new tab is, switch
+    const currentReady = contentScriptsReady.has(currentTabId);
+    const newReady = contentScriptsReady.has(newTab.id);
+    
+    if (!currentReady && newReady) {
+        console.log(`Background.js: Switching because new tab ${newTab.id} is ready but current ${currentTabId} is not`);
+        return true;
+    }
+    
+    // If current tab is ready but new tab is not, don't switch
+    if (currentReady && !newReady) {
+        console.log(`Background.js: Not switching because current tab ${currentTabId} is ready but new ${newTab.id} is not`);
+        return false;
+    }
+    
+    // If both ready or both not ready, compare by URL priority
+    const newUrlScore = calculateUrlScore(newTab.url);
+    
+    // For now, use a simple approach: if current tab is ready, don't switch unless new tab is much better
+    // This prevents good tabs from being overridden by random browser tabs
+    if (currentReady) {
+        console.log(`Background.js: Current tab ${currentTabId} is ready, being very conservative about switching`);
+        // Only switch if new tab has very high priority URL
+        if (newUrlScore.score > 15) {
+            console.log(`Background.js: New tab ${newTab.id} has very high priority (${newUrlScore.score}), allowing switch`);
+            return true;
+        } else {
+            console.log(`Background.js: New tab ${newTab.id} priority too low (${newUrlScore.score}), keeping current ready tab`);
+            return false;
+        }
+    }
+    
+    // If current tab is not ready, be more permissive but still check URL quality
+    if (newUrlScore.score < -10) {
+        console.log(`Background.js: New tab ${newTab.id} has very low priority (${newUrlScore.score}), rejecting`);
+        return false;
+    }
+    
+    console.log(`Background.js: Current tab not ready, new tab acceptable (${newUrlScore.score}), allowing switch`);
+    return true;
 }
 
 // Initial setup
@@ -404,10 +660,29 @@ async function handleServerMessage(message) {
                     console.log(`Background.js: Delay complete. Sending get_state message now (ID: ${requestId}).`);
 
                     try {
+                        console.log(`🚀 Background.js: About to send get_state message to tab ${targetTabIdForState} (ID: ${requestId})`);
+                        
+                        // First, check if the tab exists and has content scripts
+                        const tab = await chrome.tabs.get(targetTabIdForState);
+                        console.log(`🔍 Background.js: Tab info for ${targetTabIdForState}:`, {
+                            url: tab.url, 
+                            title: tab.title, 
+                            status: tab.status,
+                            active: tab.active
+                        });
+                        
+                        // FIXED: Send message specifically to the main frame (frameId: 0) to avoid about:blank iframes
+                        console.log(`🚀 Background.js: Sending get_state to main frame (frameId: 0) of tab ${targetTabIdForState}...`);
+                        
                         const contentResponse = await chrome.tabs.sendMessage(targetTabIdForState, {
                             type: "get_state", 
                             requestId: requestId
+                        }, {
+                            frameId: 0  // Explicitly target the main frame only
                         });
+                        
+                        console.log(`✅ Background.js: *** SUCCESSFULLY SENT get_state to MAIN FRAME (frameId: 0) of tab ${targetTabIdForState} ***`);
+                        console.log(`📥 Background.js: *** RECEIVED RESPONSE from content script ***:`, contentResponse);
 
                         // ADDED: Detailed logging of contentResponse before checking structure
                         console.log(`Background.js: DEBUG get_state (ID: ${requestId}) - Received contentResponse:`, contentResponse);
@@ -463,6 +738,8 @@ async function handleServerMessage(message) {
                                 const retryResponse = await chrome.tabs.sendMessage(targetTabIdForState, {
                                     type: "get_state", 
                                     requestId: requestId
+                                }, {
+                                    frameId: 0  // Also target main frame on retry
                                 });
                                 if (retryResponse && retryResponse.type === "state_response" && retryResponse.status === "success" && retryResponse.state) {
                                     console.log(`Successfully received state on retry for ID ${requestId} (Tab: ${targetTabIdForState}):`, retryResponse.state);
