@@ -10,7 +10,7 @@ from browser_use_ext.extension_interface.models import ConnectionInfo, Message
 from browser_use_ext.browser.context import BrowserContext, BrowserContextConfig
 from browser_use_ext.controller.service import Controller
 from browser_use_ext.agent.service import Agent
-from browser_use_ext.dom.views import DOMState, ActionableElement
+from browser_use_ext.dom.views import DOMElementNode, DOMDocumentNode
 
 
 # Mark all tests in this module as integration tests

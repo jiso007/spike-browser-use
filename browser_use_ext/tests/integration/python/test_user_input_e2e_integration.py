@@ -11,8 +11,8 @@ from browser_use_ext.controller.service import Controller
 from browser_use_ext.agent.service import Agent
 
 
-# Register the integration marker
-pytest.register_mark("integration")
+# Mark as integration test
+pytestmark = pytest.mark.integration
 
 
 class TestUserInputE2EIntegration:

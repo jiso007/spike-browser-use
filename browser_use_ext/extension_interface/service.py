@@ -27,12 +27,24 @@ from ..agent.views import ActionResult # CORRECTED IMPORT
 # Initialize a logger for this module
 logger = logging.getLogger(__name__)
 
+# Agent imports
+try:
+    from langchain_openai import ChatOpenAI
+    from langchain_anthropic import ChatAnthropic
+    from ..agent.service import Agent
+    from ..agent.views import AgentSettings, AgentHistoryList
+    AGENT_IMPORTS_AVAILABLE = True
+except ImportError:
+    AGENT_IMPORTS_AVAILABLE = False
+    logger.warning("Agent imports not available. Agent functionality will be limited.")
+
 # Maximum time (in seconds) to wait for a response from the extension
 DEFAULT_REQUEST_TIMEOUT = 10  # seconds
 
 
 class ExtensionInterface:
-    def __init__(self, host: str = "localhost", port: int = 8765):
+    def __init__(self, host: str = "localhost", port: int = 8765, 
+                 llm_model: str = "gpt-4o", llm_temperature: float = 0.0):
         self.host = host
         self.port = port
         self._server: Optional[websockets.server.WebSocketServer] = None
@@ -44,6 +56,54 @@ class ExtensionInterface:
         # self._initial_state_fetched_for_event = False # Flag seems unused, can be removed if truly so
         self._filename_sanitize_re = re.compile(r'[^a-zA-Z0-9_.-]+')
         self._content_script_ready_tabs: Dict[int, float] = {}
+        
+        # Agent-related attributes
+        self._llm_model = llm_model
+        self._llm_temperature = llm_temperature
+        self._llm = None
+        self._active_agents: Dict[str, Any] = {}  # session_id -> Agent instance
+        
+        # Initialize LLM for agent functionality
+        self._initialize_llm()
+    
+    def _initialize_llm(self) -> None:
+        """Initialize the LLM for agent functionality based on available API keys."""
+        if not AGENT_IMPORTS_AVAILABLE:
+            logger.warning("LLM imports not available. Agent functionality disabled.")
+            return
+            
+        # Check for API keys
+        openai_key = os.getenv("OPENAI_API_KEY")
+        anthropic_key = os.getenv("ANTHROPIC_API_KEY")
+        
+        # Determine which LLM to use based on model and available keys
+        if self._llm_model.startswith("claude") and anthropic_key:
+            try:
+                self._llm = ChatAnthropic(
+                    model=self._llm_model,
+                    temperature=self._llm_temperature,
+                    api_key=anthropic_key
+                )
+                logger.info(f"Initialized Anthropic LLM with model: {self._llm_model}")
+            except Exception as e:
+                logger.error(f"Failed to initialize Anthropic LLM: {e}")
+                self._llm = None
+        elif (self._llm_model.startswith("gpt") or not self._llm_model.startswith("claude")) and openai_key:
+            try:
+                # Default to gpt-4o if unknown model
+                model_to_use = self._llm_model if self._llm_model.startswith("gpt") else "gpt-4o"
+                self._llm = ChatOpenAI(
+                    model=model_to_use,
+                    temperature=self._llm_temperature,
+                    api_key=openai_key
+                )
+                logger.info(f"Initialized OpenAI LLM with model: {model_to_use}")
+            except Exception as e:
+                logger.error(f"Failed to initialize OpenAI LLM: {e}")
+                self._llm = None
+        else:
+            logger.warning("No LLM API keys found in environment. Agent functionality will be limited.")
+            self._llm = None
 
     @property
     def has_active_connection(self) -> bool:
@@ -410,12 +470,13 @@ class ExtensionInterface:
                     self._active_tab_id = tab_id
                     logger.info(f"Updated active tab ID to {tab_id} from user task submission")
                 
-                # Here you could trigger your agent or task processing
-                # For now, just log the received task - the agent system would handle this
-                logger.info(f"Task details - Task: {task}, Context: {context}, Tab: {tab_id}")
-                
-                # You could emit a signal here for the agent to pick up the task
-                # Example: self._emit_task_signal(task, context, tab_id)
+                # Trigger agent processing of the task
+                if self._llm and AGENT_IMPORTS_AVAILABLE:
+                    logger.info(f"Task details - Task: {task}, Context: {context}, Tab: {tab_id}")
+                    # Create async task for agent processing
+                    asyncio.create_task(self.process_user_task(task, context, tab_id))
+                else:
+                    logger.warning("Cannot process task - agent functionality not available")
             # Add other event handling as needed
         else:
             logger.warning(f"Received unhandled message type '{message.type}' from {client_id}.")
@@ -640,6 +701,60 @@ class ExtensionInterface:
         # If loop finishes without returning, it timed out
         logger.error(f"Timeout waiting for content script in tab {tab_id} to signal ready after {timeout_seconds}s.")
         raise asyncio.TimeoutError(f"Timeout waiting for content script in tab {tab_id} to signal ready.")
+
+    async def process_user_task(self, task: str, context: dict, tab_id: int) -> None:
+        """
+        Process a user task through the agent system.
+        
+        Args:
+            task: The task description from the user
+            context: Additional context (URL, title, etc.)
+            tab_id: The tab ID where the task should be executed
+        """
+        if not self._llm:
+            logger.error("Cannot process task - no LLM configured")
+            return
+            
+        if not AGENT_IMPORTS_AVAILABLE:
+            logger.error("Cannot process task - agent imports not available")
+            return
+        
+        session_id = f"tab_{tab_id}_{uuid.uuid4().hex[:8]}"
+        
+        try:
+            logger.info(f"Starting agent session {session_id} for task: {task}")
+            
+            # Create agent with the configured LLM
+            agent = Agent(
+                task=task,
+                llm=self._llm,
+                extension_interface=self,
+                settings=AgentSettings(
+                    max_steps_per_run=15,
+                    max_failures=3
+                )
+            )
+            
+            # Store agent in active sessions
+            self._active_agents[session_id] = agent
+            
+            # Run the agent
+            history = await agent.run()
+            
+            # Log results
+            if history and len(history.history) > 0:
+                logger.info(f"Agent session {session_id} completed with {len(history.history)} steps")
+                # TODO: Send results back to extension popup
+            else:
+                logger.warning(f"Agent session {session_id} completed with no history")
+                
+        except Exception as e:
+            logger.error(f"Error during agent task processing in session {session_id}: {e}", exc_info=True)
+        finally:
+            # Clean up session
+            if session_id in self._active_agents:
+                del self._active_agents[session_id]
+                logger.info(f"Cleaned up agent session {session_id}")
 
 async def main():
     """Main function to run the WebSocket server."""
