@@ -6,10 +6,64 @@
     body {
       font-family: Arial, sans-serif;
       margin: 10px;
-      min-width: 200px;
+      min-width: 350px;
     }
     h3 {
       margin-top: 0;
+    }
+    .task-input-section {
+      margin-top: 15px;
+      border-top: 1px solid #ddd;
+      padding-top: 15px;
+    }
+    #task-input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 8px;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      resize: vertical;
+      min-height: 60px;
+    }
+    #submit-task {
+      margin-top: 10px;
+      width: 100%;
+      padding: 10px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    #submit-task:hover {
+      background-color: #45a049;
+    }
+    #submit-task:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+    .task-status {
+      margin-top: 10px;
+      padding: 8px;
+      border-radius: 4px;
+      display: none;
+    }
+    .task-status.success {
+      background-color: #d4edda;
+      color: #155724;
+      display: block;
+    }
+    .task-status.error {
+      background-color: #f8d7da;
+      color: #721c24;
+      display: block;
+    }
+    .task-status.processing {
+      background-color: #d1ecf1;
+      color: #0c5460;
+      display: block;
     }
   </style>
 </head>
@@ -17,6 +71,13 @@
   <h3>Browser Use Automation</h3>
   <p>Extension is active.</p>
   <p id="status">Status: Disconnected</p>
+  
+  <div class="task-input-section">
+    <textarea id="task-input" placeholder="Enter your task (e.g., 'Find cheap laptops on Amazon')" rows="3"></textarea>
+    <button id="submit-task">Execute Task</button>
+    <div id="task-status" class="task-status"></div>
+  </div>
+  
   <script src="popup.js"></script>
 </body>
 </html> 

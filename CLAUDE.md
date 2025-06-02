@@ -50,6 +50,32 @@ This is the browser-use project, an AI-powered browser automation framework that
 ## Common Development Commands
 
 ### Python Environment Setup
+
+#### Termux Environment Setup
+When working in a Termux environment, Poetry needs to be installed via pipx and added to PATH:
+
+```bash
+# Install Poetry if not already installed
+pipx install poetry
+
+# Add Poetry to PATH for current session
+export PATH="$HOME/.local/bin:$PATH"
+
+# Navigate to project directory
+cd /root/CURSOR_TERMUX/spike-browser-use
+
+# Install project dependencies with Poetry
+poetry install
+
+# Run Python scripts with Poetry
+poetry run python your_script.py
+
+# Or activate Poetry shell for the session
+poetry shell
+python your_script.py  # Can now run directly
+```
+
+#### Standard Environment Setup
 ```bash
 # The project uses Poetry or UV for dependency management
 # Install dependencies (check which is available)
@@ -64,25 +90,34 @@ playwright install chromium
 ### Running Tests
 
 #### JavaScript Tests (Jest)
+
+**Note for Termux/containerized environments:** Jest may experience memory corruption issues. The test scripts have been configured with `--forceExit` to prevent this.
+
 ```bash
 # Run all Jest tests (unit + integration)
 npm test
 
 # Run specific test file
-npm test -- test_action_execution_unit.js
+npm test browser_use_ext/tests/unit/javascript/test_file.js
 
 # Run specific test directory
-npm test -- browser_use_ext/tests/unit/javascript/
-npm test -- browser_use_ext/tests/integration/javascript/
+npm test browser_use_ext/tests/unit/javascript/
+npm test browser_use_ext/tests/integration/javascript/
 
 # Run with coverage report
-npm test -- --coverage
+npm run test:coverage
 
 # Run in watch mode (re-runs on file changes)
-npm test -- --watch
+npm run test:watch
 
 # Run with verbose output
 npm test -- --verbose
+
+# Debug open handles (if tests hang)
+npm run test:debug
+
+# Run a single test file (useful for debugging)
+npm run test:single test_file.js
 ```
 
 **Jest Test Statistics:**
@@ -93,6 +128,12 @@ npm test -- --verbose
 - **Expected Pass Rate**: 100%
 
 #### Python Tests
+
+**In Termux environment, always add Poetry to PATH first:**
+```bash
+export PATH="$HOME/.local/bin:$PATH"
+```
+
 ```bash
 # Run all tests (using Poetry virtual environment)
 poetry run pytest
@@ -145,6 +186,18 @@ npm run check-types  # TypeScript
 ```
 
 ### Running the Extension Interface
+
+**In Termux environment:**
+```bash
+# Add Poetry to PATH first
+export PATH="$HOME/.local/bin:$PATH"
+
+# Start the WebSocket server for Chrome extension
+poetry run python -m browser_use_ext.extension_interface.service
+# Server runs on ws://localhost:8765
+```
+
+**In standard environment:**
 ```bash
 # Start the WebSocket server for Chrome extension (using Poetry)
 poetry run python -m browser_use_ext.extension_interface.service

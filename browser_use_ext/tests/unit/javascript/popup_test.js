@@ -14,13 +14,17 @@ global.chrome = {
 };
 
 // Mock DOM environment
-Object.defineProperty(global, 'document', {
-    value: {
+// JSDOM provides document, so we'll extend it instead of replacing it
+if (!global.document) {
+    global.document = {
         addEventListener: jest.fn(),
         getElementById: jest.fn()
-    },
-    writable: true
-});
+    };
+} else {
+    // If document exists, just mock the methods we need
+    global.document.addEventListener = jest.fn();
+    global.document.getElementById = jest.fn();
+}
 
 describe('Popup Script', () => {
     let mockStatusElement;

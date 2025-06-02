@@ -3,7 +3,7 @@
 // Handles messages from content scripts and the Python backend.
 // Manages browser tab interactions.
 
-const WS_URL = "ws://localhost:8766";
+const WS_URL = "ws://localhost:8765"; // Fixed: Now matches Python server port
 let websocket = null;
 let activeTabId = null;
 let reconnectInterval = 5000; // 5 seconds
@@ -172,6 +172,54 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log("Background: Debug: Currently ready tabs:", readyTabsArray);
     sendResponse({ status: "ok", readyTabs: readyTabsArray });
     return false; // Synchronous response for this debug utility.
+  }
+
+  // Handle popup status request
+  else if (message.type === "GET_POPUP_STATUS") {
+    console.log("Background: Received GET_POPUP_STATUS from popup");
+    const status = websocket && websocket.readyState === WebSocket.OPEN ? "Connected" : "Disconnected";
+    sendResponse({ status: status });
+    return false; // Synchronous response
+  }
+
+  // Handle task submission from popup
+  else if (message.type === "SUBMIT_TASK") {
+    console.log("Background: Received SUBMIT_TASK from popup", message);
+    
+    if (!websocket || websocket.readyState !== WebSocket.OPEN) {
+      console.error("Background: WebSocket not connected, cannot submit task");
+      sendResponse({ success: false, error: "WebSocket not connected to Python server" });
+      return false;
+    }
+
+    // Set the active tab based on the context from the popup
+    if (message.context && message.context.tabId) {
+      activeTabId = message.context.tabId;
+      console.log(`Background: Set active tab to ${activeTabId} based on task submission context`);
+    }
+
+    // Forward the task to the Python server
+    const taskMessage = {
+      type: "extension_event",
+      id: Date.now(),
+      data: {
+        event_name: "user_task_submitted",
+        task: message.task,
+        context: message.context,
+        tabId: message.context?.tabId || activeTabId
+      }
+    };
+
+    try {
+      websocket.send(JSON.stringify(taskMessage));
+      console.log(`Background: Sent user task to Python server:`, taskMessage);
+      sendResponse({ success: true });
+    } catch (error) {
+      console.error("Background: Error sending task to Python server:", error);
+      sendResponse({ success: false, error: "Failed to send task to server: " + error.message });
+    }
+
+    return false; // Synchronous response
   }
 
   // Fallback for messages not handled by the `if` above.

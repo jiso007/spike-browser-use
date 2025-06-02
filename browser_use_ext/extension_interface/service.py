@@ -57,6 +57,11 @@ class ExtensionInterface:
             return self._connections.get(self._active_connection_id)
         return None
 
+    @property
+    def is_server_running(self) -> bool:
+        """Returns True if the WebSocket server is running, False otherwise."""
+        return self._server is not None
+
     def _sanitize_filename_component(self, component: str) -> str:
         """Sanitizes a string component to be safe for use in a filename."""
         component = component.replace("http://", "").replace("https://", "").replace("www.", "")
@@ -394,6 +399,23 @@ class ExtensionInterface:
                 if isinstance(tab_id, int) and tab_id in self._content_script_ready_tabs:
                     del self._content_script_ready_tabs[tab_id]
                     logger.info(f"Removed tab {tab_id} from ready tracking due to tab_removed event.")
+            elif event_name == "user_task_submitted": # Handle user task submission from popup
+                task = event_payload.get("task")
+                context = event_payload.get("context", {})
+                tab_id = event_payload.get("tabId")
+                logger.info(f"User submitted task from extension popup: '{task}' (Tab ID: {tab_id})")
+                
+                # Update active tab if provided
+                if isinstance(tab_id, int):
+                    self._active_tab_id = tab_id
+                    logger.info(f"Updated active tab ID to {tab_id} from user task submission")
+                
+                # Here you could trigger your agent or task processing
+                # For now, just log the received task - the agent system would handle this
+                logger.info(f"Task details - Task: {task}, Context: {context}, Tab: {tab_id}")
+                
+                # You could emit a signal here for the agent to pick up the task
+                # Example: self._emit_task_signal(task, context, tab_id)
             # Add other event handling as needed
         else:
             logger.warning(f"Received unhandled message type '{message.type}' from {client_id}.")

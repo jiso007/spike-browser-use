@@ -85,37 +85,49 @@ function setupMockEnvironment() {
 
     const mockHistory = { back: jest.fn() };
 
-    // Temporarily store original window if it exists, for restoring (though Jest usually handles this)
-    const originalWindow = global.window;
+    // Work with existing JSDOM window instead of creating a new one
+    if (!global.window) {
+        global.window = {};
+    }
 
-    // Start with a fresh window object for each test setup or ensure it's clean
-    global.window = {}; // Or: delete global.window; global.window = {};
-
-    // Define properties on the new global.window object
+    // Define/override properties on the existing global.window object
     global.window.scrollBy = jest.fn();
     global.window.history = mockHistory;
     global.window.getComputedStyle = jest.fn(element => element.style || {});
     global.window.innerWidth = 1024;
     global.window.innerHeight = 768;
-
-    // Robustly mock window.location using Object.defineProperty
-    Object.defineProperty(global.window, 'location', {
-        value: {
-            // Provide a getter and setter for href that uses the DYNAMIC_HREF_SETTER_SPY
-            get href() {
-                return currentHref;
-            },
-            set href(url) {
-                currentHref = url;
-                DYNAMIC_HREF_SETTER_SPY(url);
-            },
-            // assign: jest.fn(url => { currentHref = url; DYNAMIC_HREF_SETTER_SPY(url); }), // Optional: mock assign if used
-            // reload: jest.fn(), // Optional: mock reload if used
-            // replace: jest.fn(url => { currentHref = url; DYNAMIC_HREF_SETTER_SPY(url); }), // Optional: mock replace
+    
+    // Mock window.location completely since JSDOM's location is not configurable
+    const mockLocation = {
+        href: currentHref,
+        assign: jest.fn((url) => {
+            mockLocation.href = url;
+            currentHref = url;
+            DYNAMIC_HREF_SETTER_SPY(url);
+        }),
+        replace: jest.fn((url) => {
+            mockLocation.href = url;
+            currentHref = url;
+        }),
+        reload: jest.fn(),
+        toString: () => currentHref
+    };
+    
+    // Use Object.defineProperty to make a custom getter/setter for href
+    Object.defineProperty(mockLocation, 'href', {
+        get() {
+            return currentHref;
         },
-        writable: true, // Allow tests to further modify/spy on parts of location if necessary
-        configurable: true // Important for Jest to be able to restore/manage it
+        set(url) {
+            currentHref = url;
+            DYNAMIC_HREF_SETTER_SPY(url);
+        },
+        configurable: true
     });
+    
+    // Replace window.location with our mock
+    delete global.window.location;
+    global.window.location = mockLocation;
 
     global.Node = { ELEMENT_NODE: 1 };
     global.XPathResult = { FIRST_ORDERED_NODE_TYPE: 9 };
